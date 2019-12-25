@@ -1,0 +1,9 @@
+/build
+*.*
+!*.cc
+!*.cpp
+!*.hpp
+!*.xml
+!*.h
+!*.txt
+!.gitignore
