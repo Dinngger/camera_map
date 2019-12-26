@@ -10,10 +10,10 @@
 int g_style;
 CvRect rect;
 
-CvPoint g_StartPoint;
-CvPoint g_EndPoint;
-CvPoint p_Start;        //记录鼠标位置左上方点
-CvPoint p_End;          //记录鼠标位置右下方点
+Cv_Point g_Start_Point;
+Cv_Point g_End_Point;
+Cv_Point p_Start;        //记录鼠标位置左上方点
+Cv_Point p_End;          //记录鼠标位置右下方点
 bool drawing = false;   //是否处于画图状态
 bool erasering = false; //是否处于擦除状态
 void callback(int event, int x, int y, int flags, void *param);
@@ -25,10 +25,10 @@ int main(int argc, char **argv)
     Map map;
     Aera aera(0);
     aera.setT(1, 0, 0, 1, 0, 0);
-    aera.points.push_back(Point(11, 11));
-    aera.points.push_back(Point(22, 11));
-    aera.points.push_back(Point(33, 22));
-    aera.points.push_back(Point(44, 33));
+    aera.points.push_back(_Point(11, 11));
+    aera.points.push_back(_Point(22, 11));
+    aera.points.push_back(_Point(33, 22));
+    aera.points.push_back(_Point(44, 33));
     map.areas.push_back(aera);
     aera.id = 1;
     aera.setT(0.8, 0.2, -0.2, 0.8, 0, 0);
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
         }
         if (g_style == SHAPE_LINE && drawing)
             //画鼠标在按住移动过程中画线
-            cvDrawLine(temp, g_StartPoint, g_EndPoint, cvScalar(0, 0, 0));
+            cvDrawLine(temp, g_Start_Point, g_End_Point, cvScalar(0, 0, 0));
         if (g_style == SHAPE_ERASER)
         {
             cvRectangle(temp, p_Start, p_End, cvScalar(0, 0, 0));
@@ -86,8 +86,8 @@ void callback(int event, int x, int y, int flags, void *param)
         if (SHAPE_LINE == g_style)
         {
             drawing = true;
-            g_StartPoint = cvPoint(x, y);
-            g_EndPoint = g_StartPoint;
+            g_Start_Point = cv_Point(x, y);
+            g_End_Point = g_Start_Point;
             //此处将终点坐标设为同起始点避免记住前一条直线的终点坐标
         }
         if (SHAPE_ERASER == g_style)
@@ -123,7 +123,7 @@ void callback(int event, int x, int y, int flags, void *param)
         {
             if (drawing)
             {
-                g_EndPoint = cvPoint(x, y);
+                g_End_Point = cv_Point(x, y);
             }
         }
         if (SHAPE_ERASER == g_style)
@@ -149,7 +149,7 @@ void callback(int event, int x, int y, int flags, void *param)
         if (SHAPE_LINE == g_style)
         {
             drawing = false;
-            cvDrawLine(img, g_StartPoint, g_EndPoint, cvScalar(255, 0, 0));
+            cvDrawLine(img, g_Start_Point, g_End_Point, cvScalar(255, 0, 0));
             //(255,0,0)此处画出的是蓝色,即BGR
         }
         if (SHAPE_ERASER == g_style)

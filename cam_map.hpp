@@ -149,8 +149,8 @@ bool ReadXmlFile(string& szFileName, Map &map)
             aera.setT(T);
             for (TiXmlElement *point_element = aera_element->FirstChildElement();
                  point_element != NULL; point_element = point_element->NextSiblingElement()) {
-                if (string(point_element->Value()) != "_Point") {
-                    cout << "not a _Point!\n";
+                if (string(point_element->Value()) != "Point") {
+                    cout << "not a Point!\n";
                     continue;
                 }
                 int x=-1, y=-1;
