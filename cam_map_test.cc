@@ -6,25 +6,11 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <fstream>
 
 using namespace cv;
 using namespace std;
-
-int read_text(char *filename, string (&texts)[10])
-{
-    ifstream in(filename);
-    string line;
-    int count = 0;
-    if (in) {
-        while (getline(in, line)) {
-            texts[count] = line;
-            count++;
-        }
-    }
-    in.close();
-    return 0;
-}
 
 int main()
 {
@@ -32,28 +18,49 @@ int main()
     string fileName = "../map.xml";
     ReadXmlFile(fileName, map);
 
-    char prefix[1] = {'3'};
-    Mat img, img600;
+    char prefix[1] = {'4'};
+    Mat img, img600, pointed_map;
     Mat map_img = imread("../map.png");
+    VideoWriter writer("../output.avi", CV_FOURCC('M','J','P','G'),
+                60, Size(1400, 600), true);
     for (int i=1; i<2083; i++) {
         char name[54] = {};
         char name2[50] = {};
-        sprintf(name, "/home/yi03/darknet/pic3/%s_%08d.jpg", prefix, i);
+        sprintf(name, "/home/yi03/darknet/car4/%s_%08d.jpg", prefix, i);
     	img = imread(name);
-        resize(img, img600, cv::Size(600, 600));
+        resize(img, img600, cv::Size(800, 600));
 
-        string texts[10];
+        map_img.copyTo(pointed_map);
         strncpy(name2, name, 34);
-        read_text(name2, texts);
+        ifstream in(name2);
+        string line;
+        if (in) {
+            while (getline(in, line)) {
+                int p[4];
+                stringstream ss;
+                ss << line;
+                for (int i=0; i<4; i++)
+                    ss >> p[i];
+                _Point p_map;
+                if (map.draw_point(p, p_map)) {
+                    printf("\r%d,%d  %d/2082", p_map.x, p_map.y, i);
+                    circle(pointed_map, Point(p_map.x, p_map.y), 1, Scalar(255, 0, 0), -1);
+                }
+            }
+        }
+        in.close();
 
-        Mat comb_img(600, 1200, CV_8UC3);
-        Mat left(comb_img, Rect(0, 0, 600, 600));
+        Mat comb_img(600, 1400, CV_8UC3);
+        Mat left(comb_img, Rect(0, 0, 800, 600));
         img600.copyTo(left);
-        Mat right(comb_img, Rect(600, 0, 600, 600));
-        map_img.copyTo(right);
-        imshow("video", comb_img);
-        waitKey(1);
+        Mat right(comb_img, Rect(800, 0, 600, 600));
+        pointed_map.copyTo(right);
+        writer.write(comb_img);
+        // imshow("video", comb_img);
+        // waitKey(1);
     }
-    destroyWindow("video");
+    writer.release();
+    printf("\noutput finished!\n");
+    // destroyWindow("video");
     return 0;
 }
