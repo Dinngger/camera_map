@@ -34,6 +34,7 @@ public:
     int startGrabbing();
     int stopGrabbing();
     Mat getOpencvMat(int Msec=1000);
+    int setExposureTime(double t);
 };
 
 #endif // __CAMERA_CTL_HPP

@@ -140,3 +140,15 @@ Mat CameraCtl::getOpencvMat(int Msec) {
     }
     return img;
 }
+
+int CameraCtl::setExposureTime(double t) { 
+    nRet = MV_CC_SetFloatValue(handle, "ExposureTime", t);
+    if (MV_OK == nRet)
+    {
+        // printf("set exposure time OK!\n\n");
+        return 0;
+    } else {
+        printf("set exposure time failed! nRet [%x]\n\n", nRet);
+        return -1;
+    }
+}
