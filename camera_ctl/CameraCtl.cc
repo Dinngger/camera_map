@@ -81,6 +81,13 @@ CameraCtl::CameraCtl() {
         printf("MV_CC_SetTriggerMode fail! nRet [%x]\n", nRet);
         return;
     }
+ 
+    nRet = MV_CC_SetFloatValue(handle, "Gain", 17);
+    if (MV_OK != nRet)
+    {
+        printf("MV_CC_SetGain fail! nRet [%x]\n", nRet);
+        return;
+    }
 }
 
 CameraCtl::~CameraCtl() {

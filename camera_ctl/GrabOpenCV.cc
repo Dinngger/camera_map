@@ -10,9 +10,11 @@ int main(int argc, char* argv[])
         Mat img = camCtl.getOpencvMat();
         camCtl.setExposureTime(lowExposureTime ? 8000 : 1000);
         lowExposureTime = !lowExposureTime;
-        imshow("Image", img);
-        if (waitKey(1) > 0)
-            break;
+        if (lowExposureTime) {
+            imshow("Image", img);
+            if (waitKey(1) > 0)
+                break;
+        } 
     }
     waitKey(0);
     return 0;
