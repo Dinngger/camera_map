@@ -37,12 +37,12 @@ void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f>> &trape
 		direction_vectors[1] = corners[2] - corners[3];
 		left_trapezoid.push_back(corners[0]);
 		left_trapezoid.push_back(corners[1]);
-		left_trapezoid.push_back(vertical_vector + direction_vectors[0] + midpoints[0]);
-		left_trapezoid.push_back(vertical_vector - direction_vectors[0] + midpoints[0]);
+		left_trapezoid.push_back(midpoints[0] + vertical_vector - direction_vectors[0]);
+		left_trapezoid.push_back(midpoints[0] + vertical_vector + direction_vectors[0]);
 		right_trapezoid.push_back(corners[2]);
 		right_trapezoid.push_back(corners[3]);
-		right_trapezoid.push_back(-vertical_vector + direction_vectors[1] + midpoints[1]);
-		right_trapezoid.push_back(-vertical_vector - direction_vectors[1] + midpoints[1]);
+		right_trapezoid.push_back(midpoints[1] - vertical_vector + direction_vectors[1]);
+		right_trapezoid.push_back(midpoints[1] - vertical_vector - direction_vectors[1]);
 		trapezoids.push_back(left_trapezoid);
 		trapezoids.push_back(right_trapezoid);
 	}
@@ -55,12 +55,12 @@ void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f>> &trape
 		direction_vectors[1] = corners[3] - corners[0];
 		left_trapezoid.push_back(corners[1]);
 		left_trapezoid.push_back(corners[2]);
-		left_trapezoid.push_back(-vertical_vector + direction_vectors[0] + midpoints[0]);
-		left_trapezoid.push_back(-vertical_vector - direction_vectors[0] + midpoints[0]);
+		left_trapezoid.push_back(midpoints[0] + vertical_vector - direction_vectors[0]);
+		left_trapezoid.push_back(midpoints[0] + vertical_vector + direction_vectors[0]);
 		right_trapezoid.push_back(corners[3]);
 		right_trapezoid.push_back(corners[0]);
-		right_trapezoid.push_back(vertical_vector - direction_vectors[1] + midpoints[1]);
-		right_trapezoid.push_back(vertical_vector + direction_vectors[1] + midpoints[1]);
+		right_trapezoid.push_back(midpoints[1] - vertical_vector - direction_vectors[1]);
+		right_trapezoid.push_back(midpoints[1] - vertical_vector + direction_vectors[1]);
 		trapezoids.push_back(left_trapezoid);
 		trapezoids.push_back(right_trapezoid);
 	}
