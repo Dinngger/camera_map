@@ -4,12 +4,12 @@ project( map_calibrate )
 find_package( OpenCV REQUIRED )
 
 # for arm
-#include_directories( include ${OpenCV_INCLUDE_DIRS} /opt/MVS/include )
-#link_directories(/opt/MVS/lib/aarch64)
+include_directories( include ${OpenCV_INCLUDE_DIRS} /opt/MVS/include )
+link_directories(/opt/MVS/lib/aarch64)
 
 # for x86_64
-include_directories( include ${OpenCV_INCLUDE_DIRS} /opt/MVS/Samples_LinuxSDK/include )
-link_directories(/opt/MVS/Samples_LinuxSDK/lib/64)
+#include_directories( include ${OpenCV_INCLUDE_DIRS} /opt/MVS/Samples_LinuxSDK/include )
+#link_directories(/opt/MVS/Samples_LinuxSDK/lib/64)
 
 aux_source_directory( tinyxml/ TinyXML_SRCS )
 

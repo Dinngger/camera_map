@@ -1,4 +1,16 @@
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <cmath>
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <time.h>
+
+using namespace cv;
+
 #include "CameraCtl.hpp"
+
 
 double getDistance(Point pointO, Point pointA) {
 	double distance;
@@ -13,42 +25,42 @@ void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f>> &trape
 	double d1 = getDistance(corners[0], corners[1]);
 	double d2 = getDistance(corners[1], corners[2]);
 	Point2f trapezoid_points[4];
-	Point2f direction_std::vectors[2];
-	Point2f vertical_std::vector;
+	Point2f direction_vectors[2];
+	Point2f vertical_vector;
 	Point2f midpoints[2];
 	if (d1 > d2) {
 		midpoints[0] = (corners[0] + corners[1]) / 2;
 		midpoints[1] = (corners[2] + corners[3]) / 2;
-		Point2f vertical_std::vector = (midpoints[1]) - (midpoints[0]);
-		vertical_std::vector = d1 * 4 * vertical_std::vector / sqrt(vertical_std::vector.x*vertical_std::vector.x + vertical_std::vector.y*vertical_std::vector.y);
-		direction_std::vectors[0] = corners[1] - corners[0];
-		direction_std::vectors[1] = corners[2] - corners[3];
+		Point2f vertical_vector = (midpoints[1]) - (midpoints[0]);
+		vertical_vector = d1 * 4 * vertical_vector / sqrt(vertical_vector.x*vertical_vector.x + vertical_vector.y*vertical_vector.y);
+		direction_vectors[0] = corners[1] - corners[0];
+		direction_vectors[1] = corners[2] - corners[3];
 		left_trapezoid.push_back(corners[0]);
 		left_trapezoid.push_back(corners[1]);
-		left_trapezoid.push_back(vertical_std::vector + direction_std::vectors[0] + midpoints[0]);
-		left_trapezoid.push_back(vertical_std::vector - direction_std::vectors[0] + midpoints[0]);
+		left_trapezoid.push_back(vertical_vector + direction_vectors[0] + midpoints[0]);
+		left_trapezoid.push_back(vertical_vector - direction_vectors[0] + midpoints[0]);
 		right_trapezoid.push_back(corners[2]);
 		right_trapezoid.push_back(corners[3]);
-		right_trapezoid.push_back(-vertical_std::vector + direction_std::vectors[1] + midpoints[1]);
-		right_trapezoid.push_back(-vertical_std::vector - direction_std::vectors[1] + midpoints[1]);
+		right_trapezoid.push_back(-vertical_vector + direction_vectors[1] + midpoints[1]);
+		right_trapezoid.push_back(-vertical_vector - direction_vectors[1] + midpoints[1]);
 		trapezoids.push_back(left_trapezoid);
 		trapezoids.push_back(right_trapezoid);
 	}
 	else {
 		midpoints[0] = (corners[1] + corners[2]) / 2;
 		midpoints[1] = (corners[3] + corners[0]) / 2;
-		Point2f vertical_std::vector = (midpoints[1]) - (midpoints[0]);
-		vertical_std::vector = d1 * 4 * vertical_std::vector / sqrt(vertical_std::vector.x*vertical_std::vector.x + vertical_std::vector.y*vertical_std::vector.y);
-		direction_std::vectors[0] = corners[2] - corners[1];
-		direction_std::vectors[1] = corners[3] - corners[0];
+		Point2f vertical_vector = (midpoints[1]) - (midpoints[0]);
+		vertical_vector = d1 * 4 * vertical_vector / sqrt(vertical_vector.x*vertical_vector.x + vertical_vector.y*vertical_vector.y);
+		direction_vectors[0] = corners[2] - corners[1];
+		direction_vectors[1] = corners[3] - corners[0];
 		left_trapezoid.push_back(corners[1]);
 		left_trapezoid.push_back(corners[2]);
-		left_trapezoid.push_back(-vertical_std::vector + direction_std::vectors[0] + midpoints[0]);
-		left_trapezoid.push_back(-vertical_std::vector - direction_std::vectors[0] + midpoints[0]);
+		left_trapezoid.push_back(-vertical_vector + direction_vectors[0] + midpoints[0]);
+		left_trapezoid.push_back(-vertical_vector - direction_vectors[0] + midpoints[0]);
 		right_trapezoid.push_back(corners[3]);
 		right_trapezoid.push_back(corners[0]);
-		right_trapezoid.push_back(vertical_std::vector - direction_std::vectors[1] + midpoints[1]);
-		right_trapezoid.push_back(vertical_std::vector + direction_std::vectors[1] + midpoints[1]);
+		right_trapezoid.push_back(vertical_vector - direction_vectors[1] + midpoints[1]);
+		right_trapezoid.push_back(vertical_vector + direction_vectors[1] + midpoints[1]);
 		trapezoids.push_back(left_trapezoid);
 		trapezoids.push_back(right_trapezoid);
 	}
@@ -91,6 +103,7 @@ void get_result(std::vector<RotatedRect> rrects, std::vector<std::vector<Point2f
 }
 
 
+
 int main(int argc, char* argv[]) {
 	CameraCtl camCtl;
 	camCtl.startGrabbing();
@@ -122,6 +135,7 @@ int main(int argc, char* argv[]) {
 			findContours(grayImage, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE, Point());
 
 			for (int i = 0; i < contours.size(); i++) {
+				//绘制轮廓的最小外结矩形
 				double area = contourArea(contours[i]);
 				if (area > 5) {
 					RotatedRect rrect = minAreaRect(contours[i]);
@@ -131,6 +145,7 @@ int main(int argc, char* argv[]) {
 			// imshow("lowExposureImage", img);
 			// if (waitKey(1) > 0)
 			//     break;
+			//Point2f trapezoids[size * 2][4];
 
 			std::vector<std::vector<Point2f>> trapezoids;
 			for (int i = 0; i < rrects.size(); i++) {
@@ -142,9 +157,9 @@ int main(int argc, char* argv[]) {
 
 		}
 		else {
-			for (int i = 0; i < results.size(); i++) {
+			for (int i = 0; i < rrects.size(); i++) {
 				Point2f corners[4];
-				results[i].points(corners);
+				rrects[i].points(corners);
 				for (int j = 0; j < 4; j++) {
 					line(img, corners[j], corners[(j + 1) % 4], Scalar(0, 0, 255), 2);
 				}
