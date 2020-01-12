@@ -162,7 +162,7 @@ int main(int argc, char* argv[]) {
 				Point2f corners[4];
 				results[i].points(corners);
 				for (int j = 0; j < 4; j++) {
-					line(img, corners[j], corners[(j + 1) % 4], Scalar(0, 0, 255), 2);
+					line(img, corners[j], corners[(j + 1) % 4], Scalar(0, 255, 0), 2);
 				}
 			}
             imshow("Image",img);
