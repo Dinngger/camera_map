@@ -32,7 +32,7 @@ void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f>> &trape
 		midpoints[0] = (corners[0] + corners[1]) / 2;
 		midpoints[1] = (corners[2] + corners[3]) / 2;
 		Point2f vertical_vector = (midpoints[1]) - (midpoints[0]);
-		vertical_vector = d1 * 4 * vertical_vector / sqrt(vertical_vector.x*vertical_vector.x + vertical_vector.y*vertical_vector.y);
+		vertical_vector = d1 * 5 * vertical_vector / sqrt(vertical_vector.x*vertical_vector.x + vertical_vector.y*vertical_vector.y);
 		direction_vectors[0] = corners[1] - corners[0];
 		direction_vectors[1] = corners[2] - corners[3];
 		left_trapezoid.push_back(corners[0]);
@@ -50,7 +50,7 @@ void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f>> &trape
 		midpoints[0] = (corners[1] + corners[2]) / 2;
 		midpoints[1] = (corners[3] + corners[0]) / 2;
 		Point2f vertical_vector = (midpoints[1]) - (midpoints[0]);
-		vertical_vector = d1 * 4 * vertical_vector / sqrt(vertical_vector.x*vertical_vector.x + vertical_vector.y*vertical_vector.y);
+		vertical_vector = d1 * 5 * vertical_vector / sqrt(vertical_vector.x*vertical_vector.x + vertical_vector.y*vertical_vector.y);
 		direction_vectors[0] = corners[2] - corners[1];
 		direction_vectors[1] = corners[3] - corners[0];
 		left_trapezoid.push_back(corners[1]);
@@ -69,9 +69,10 @@ void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f>> &trape
 bool in_trapezoid(Point2f corners[4], std::vector<Point2f> trapezoid) {
 	int count = 0;
 	for (int i = 0; i<4; i++) {
-		if (pointPolygonTest(trapezoid, corners[i], false))
+		if (pointPolygonTest(trapezoid, corners[i], false)>0)
 			count++;
 	}
+    //std::cout<<count<<std::endl;
 	if (count == 4) {
 		return true;
 	}
@@ -79,24 +80,25 @@ bool in_trapezoid(Point2f corners[4], std::vector<Point2f> trapezoid) {
 }
 
 void get_result(std::vector<RotatedRect> rrects, std::vector<std::vector<Point2f>> trapezoids, std::vector<RotatedRect> &results, int size) {
-	bool** flag = new bool*[size];
-	for (int i = 0; i < size; ++i)
-		flag[i] = new bool[size];
-
+	bool flag[size][size];
+	for (int i = 0; i < size; i++)
+        for(int j = 0;j < size; j++)
+		    flag[i][j] = false;
 	for (int i = 0; i<size; i++) {
 		Point2f corners[4];
 		rrects[i].points(corners);
-		for (int j = i + 1; j<size; j++) {
+		for (int j = 0; j<size*2; j++) {
 			if (in_trapezoid(corners, trapezoids[j])) {
-				flag[i][j] = true;
+				flag[i][j/2] = true;
+                //std::cout<<i<<" "<<j<<std::endl;
 			}
 		}
 	}
 	for (int i = 0; i<size; i++) {
-		for (int j = i + 1; j<size; j++) {
+		for (int j = 0; j<size; j++) {
 			if (flag[i][j] == true && flag[j][i] == true) {
 				results.push_back(rrects[i]);
-				results.push_back(rrects[j]);
+				results.push_back(rrects[j]); 
 			}
 		}
 	}
@@ -128,7 +130,7 @@ int main(int argc, char* argv[]) {
 		if (lowExposure) {
 			rrects.clear();
 			results.clear();
-			threshold(grayImage, binary, 253, 255, CV_THRESH_BINARY);
+			threshold(grayImage, binary, 243, 255, CV_THRESH_BINARY);
 
 			std::vector<std::vector<Point>> contours;
 			std::vector<Vec4i> hierarchy;
@@ -154,17 +156,24 @@ int main(int argc, char* argv[]) {
 				get_trapezoids(corners, trapezoids);
 			}
 			get_result(rrects, trapezoids, results, rrects.size());
-
 		}
 		else {
-			for (int i = 0; i < rrects.size(); i++) {
+			for (int i = 0; i < results.size(); i++) {
 				Point2f corners[4];
-				rrects[i].points(corners);
+				results[i].points(corners);
 				for (int j = 0; j < 4; j++) {
 					line(img, corners[j], corners[(j + 1) % 4], Scalar(0, 0, 255), 2);
 				}
 			}
-			imshow("Image", img);
+            imshow("Image",img);
+            for (int i = 0; i < rrects.size(); i++) {
+                 Point2f corners[4];
+                 rrects[i].points(corners);
+                 for (int j = 0; j < 4; j++) {
+                     line(img, corners[j], corners[(j + 1) % 4], Scalar(0, 0, 255), 2);
+                 }
+             }
+			imshow("src", img);
 			if (waitKey(1) > 0)
 				break;
 		}
