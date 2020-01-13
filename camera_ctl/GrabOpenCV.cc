@@ -18,7 +18,7 @@ double getDistance(Point pointO, Point pointA) {
 	return distance;
 }
 
-#define PARAM1 5
+#define PARAM1 3
 #define PARAM2 1
 
 void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f>> &trapezoids) {
@@ -39,23 +39,23 @@ void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f>> &trape
 	Point2f vertical_vector = (midpoints[1]) - (midpoints[0]);
 	vertical_vector = (i0 == 0 ? d1 : d2) * PARAM1 * vertical_vector / sqrt(vertical_vector.x*vertical_vector.x + vertical_vector.y*vertical_vector.y);
 	direction_vectors[0] = corners[i0+1] - corners[i0];
-	direction_vectors[1] = corners[i0+2] - corners[(i0+3)%4];
+	direction_vectors[1] = corners[(i0+3)%4] - corners[i0+2];
 	left_trapezoid.push_back(corners[i0]);
 	left_trapezoid.push_back(corners[i0+1]);
-	left_trapezoid.push_back(midpoints[0] + vertical_vector - PARAM2*direction_vectors[0]);
-	left_trapezoid.push_back(midpoints[0] + vertical_vector + PARAM2*direction_vectors[0]);
+	left_trapezoid.push_back(midpoints[0] - vertical_vector + PARAM2*direction_vectors[0]);
+	left_trapezoid.push_back(midpoints[0] - vertical_vector - PARAM2*direction_vectors[0]);
 	right_trapezoid.push_back(corners[i0+2]);
 	right_trapezoid.push_back(corners[(i0+3)%4]);
-	right_trapezoid.push_back(midpoints[1] - vertical_vector + PARAM2*direction_vectors[1]);
-	right_trapezoid.push_back(midpoints[1] - vertical_vector - PARAM2*direction_vectors[1]);
+	right_trapezoid.push_back(midpoints[1] + vertical_vector + PARAM2*direction_vectors[1]);
+	right_trapezoid.push_back(midpoints[1] + vertical_vector - PARAM2*direction_vectors[1]);
 	trapezoids.push_back(left_trapezoid);
 	trapezoids.push_back(right_trapezoid);
 }
 
-bool in_trapezoid(Point2f corners[4], std::vector<Point2f> trapezoid) {
+bool in_trapezoid(Point2f corners[4], const std::vector<Point2f> &trapezoid) {
 	int count = 0;
 	for (int i = 0; i<4; i++) {
-		if (pointPolygonTest(trapezoid, corners[i], false)>0)
+		if (pointPolygonTest(trapezoid, corners[i], false)>=0)
 			count++;
 	}
     //std::cout<<count<<std::endl;
@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
 		if (lowExposure) {
 			rrects.clear();
 			results.clear();
-			threshold(grayImage, binary, 250, 255, CV_THRESH_BINARY);
+			threshold(grayImage, binary, 253, 255, CV_THRESH_BINARY);
 
 			std::vector<std::vector<Point>> contours;
 			std::vector<Vec4i> hierarchy;
