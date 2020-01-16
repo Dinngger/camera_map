@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
-#include <time.h>
 
 using namespace cv;
 
@@ -65,50 +64,7 @@ bool in_trapezoid(Point2f corners[4], const std::vector<Point2f> &trapezoid) {
 	return false;
 }
 
-
-void draw_armor(RotatedRect rrect1, RotatedRect rrect2, Mat &img) {
-	Point2f corners[8];
-	rrect1.points(corners);
-	rrect2.points(corners + 4);
-	Point2f center = Point2f(0, 0);
-	for (int i = 0;i < 8;i++) {
-		center.x += corners[i].x;
-		center.y += corners[i].y;
-	}
-	center.x = center.x / 8;
-	center.y = center.x / 8;
-	double distance_to_center[8];
-	for (int i = 0;i < 8;i++) {
-		distance_to_center[i] = getDistance(corners[i], center);
-	}
-	int index;
-	double temp1;
-	Point2f temp2;
-	for (int i = 0;i < 8;i++) {
-		index = i;
-		for (int j = i + 1;j < 8;j++) {
-			if (distance_to_center[index] > distance_to_center[j]) {
-				index = j;
-			}
-		}
-		if (index != i) {
-			temp1 = distance_to_center[index];
-			distance_to_center[index] = distance_to_center[i];
-			distance_to_center[i] = temp1;
-
-			temp2 = corners[index];
-			corners[index] = corners[i];
-			corners[i] = temp2;
-		}
-	}
-	Point2f armor_points[4] = { corners[0], corners[1], corners[7], corners[6] };
-	for (int i = 0; i < 4; i++) {
-		line(img, armor_points[i], armor_points[(i + 1) % 4], Scalar(0, 0, 255), 2);
-	}
-}
-
-
-void get_result(const std::vector<RotatedRect> &rrects, const std::vector<std::vector<Point2f>> &trapezoids, std::vector<RotatedRect> &results, int size, Mat &img) {
+void get_result(const std::vector<RotatedRect> &rrects, const std::vector<std::vector<Point2f>> &trapezoids, std::vector<RotatedRect> &results, int size) {
 	bool used[size];
 	bool flag[size][size];
 	for (int i = 0; i < size; i++) {
@@ -135,7 +91,6 @@ void get_result(const std::vector<RotatedRect> &rrects, const std::vector<std::v
 			if (flag[i][j] == true && flag[j][i] == true) {
 				results.push_back(rrects[i]);
 				results.push_back(rrects[j]);
-				draw_armor(rrects[i], rrects[j], img);
 				used[i] = true;
 				used[j] = true;
 			}
@@ -151,7 +106,6 @@ int main(int argc, char* argv[]) {
 	std::vector<RotatedRect> rrects;
 	std::vector<RotatedRect> results;
 	float mean_mean = 40;
-	int cnt = 0;
 	while (true) {
 		Mat img = camCtl.getOpencvMat();
 		camCtl.setExposureTime(lowExposureTime ? 7000 : 40);
@@ -188,9 +142,8 @@ int main(int argc, char* argv[]) {
 				rrects[i].points(corners);
 				get_trapezoids(corners, trapezoids);
 			}
-			get_result(rrects, trapezoids, results, rrects.size(), img);
-		}
-		else {
+			get_result(rrects, trapezoids, results, rrects.size());
+		} else {
 			/*
 			for (int i = 0; i < rrects.size(); i++) {
 			Point2f corners[4];
@@ -207,11 +160,9 @@ int main(int argc, char* argv[]) {
 				}
 			}
 			imshow("Image", img);
-			imwrite(std::to_string(cnt) + ".jpg", img);
-			if (waitKey(1) > 0)
+            if (waitKey(1) == 'q')
 				break;
 		}
-		cnt++;
 	}
 	return 0;
 }
