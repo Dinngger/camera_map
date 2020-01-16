@@ -12,14 +12,14 @@ last date of modification:2020.1.13 19:58
 #include <iostream>
 #include <vector>
 #include <cmath>
-#define PARAM1 2.8
-#define PARAM2 1.5
+#define PARAM1 10
+#define PARAM2 6
 
 class ArmorPlate{
 public:
     ArmorPlate();
     ~ArmorPlate();
-	void findPossible(cv::Mat &src);									//找到图上所有可能的灯条
+	void findPossible(cv::Mat src);									//找到图上所有可能的灯条
 	void drawArmorPlate(cv::Mat &src);								//绘制所有的装甲板
 	void preProcess(cv::Mat src, cv::Mat &high_exp, cv::Mat &low_exp);	//处理成高低阈值两个图像
 	bool lowExposure(cv::Mat src, cv::Mat &gray);					//图像预处理
@@ -28,12 +28,11 @@ public:
 private:
 	void reset();													//重置
 	void getRealLight(int size);									//从预选灯条中找到合适的最终灯条	
-	void getTrapezoids(cv::Point2f corners[4], cv::Mat &src);						//取出灯条拓展梯形
+	void getTrapezoids(cv::Point2f corners[4]);						//取出灯条拓展梯形
 	static bool isInTrapezoid(cv::Point2f corners[4], 
 		const std::vector<cv::Point2f> &trapezoid);					//点集是否能被梯形包围
 	static float getDistance(cv::Point p1, cv::Point p2);			//图像两点间距离
 	cv::RotatedRect getArmorPlate(cv::RotatedRect r1, cv::RotatedRect r2);	//取得两个匹配灯条对应的装甲板
-	double getAngle(Point2f direction_vectors1[2], Point2f direction_vectors2[2]);
 private:	
 	float mean_val;													//均值
 	std::vector<cv::RotatedRect> light_list;						//灯条集合
@@ -56,7 +55,7 @@ void ArmorPlate::reset(){
 	trapezoids.clear();
 }
 
-void ArmorPlate::findPossible(cv::Mat &src){					//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
+void ArmorPlate::findPossible(cv::Mat src){					//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
 	reset();
 	cv::Mat binary;
 	cv::threshold(src, binary, 128, 255, CV_THRESH_BINARY);
@@ -67,13 +66,12 @@ void ArmorPlate::findPossible(cv::Mat &src){					//找出所有可能灯条，�
 		if (area > 10) {		
 			cv::RotatedRect light = cv::minAreaRect(contours[i]);
 			possibles.push_back(light);
-			std::cout<<"+++++++++++++++++++"<<std::endl;
 		}
 	}
 	for (int i = 0; i < possibles.size(); ++i) {
 		cv::Point2f corners[4];
 		possibles[i].points(corners);
-		getTrapezoids(corners, src);								
+		getTrapezoids(corners);								
 	}
 	getRealLight(possibles.size());
 }
@@ -145,7 +143,7 @@ void ArmorPlate::getRealLight(int size){
 }
 
 //匹配的灯条其梯形将会互相包含
-void ArmorPlate::getTrapezoids(cv::Point2f corners[4], cv::Mat &src){
+void ArmorPlate::getTrapezoids(cv::Point2f corners[4]){
 	std::vector<cv::Point2f> left_trapezoid;
 	std::vector<cv::Point2f> right_trapezoid;
 	double d1 = getDistance(corners[0], corners[1]);
@@ -170,13 +168,6 @@ void ArmorPlate::getTrapezoids(cv::Point2f corners[4], cv::Mat &src){
 	right_trapezoid.push_back(midpoints[1] + vertical_vector - PARAM2 * direction_vectors[1]);
 	trapezoids.push_back(left_trapezoid);						//灯条左右两边将会拓展出两个梯形
 	trapezoids.push_back(right_trapezoid);
-
-	for(int j = 0; j<4; ++j ){
-		cv::line(src, left_trapezoid[j], left_trapezoid[(j+1)%4], 128);
-	}
-	for(int j = 0; j<4; ++j ){
-		cv::line(src, right_trapezoid[j], right_trapezoid[(j+1)%4], 128);
-	}
 }
 
 bool ArmorPlate::isInTrapezoid(cv::Point2f corners[4], const std::vector<cv::Point2f> &trapezoid){

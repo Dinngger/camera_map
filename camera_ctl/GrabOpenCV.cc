@@ -1,3 +1,4 @@
+#include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <cmath>
@@ -17,10 +18,10 @@ double getDistance(Point pointO, Point pointA) {
 	return distance;
 }
 
-#define PARAM1 3
-#define PARAM2 1
+#define PARAM1 10
+#define PARAM2 6
 
-void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f>> &trapezoids) {
+void get_trapezoids(Point2f corners[4], std::vector<std::vector<Point2f> > &trapezoids) {
 	std::vector<Point2f> left_trapezoid;
 	std::vector<Point2f> right_trapezoid;
 	double d1 = getDistance(corners[0], corners[1]);
@@ -64,7 +65,48 @@ bool in_trapezoid(Point2f corners[4], const std::vector<Point2f> &trapezoid) {
 	return false;
 }
 
-void get_result(const std::vector<RotatedRect> &rrects, const std::vector<std::vector<Point2f>> &trapezoids, std::vector<RotatedRect> &results, int size) {
+void draw_armor(RotatedRect rrect1, RotatedRect rrect2, Mat &img) {
+	Point2f corners[8];
+	rrect1.points(corners);
+	rrect2.points(corners + 4);
+	Point2f center = Point2f(0, 0);
+	for (int i = 0;i < 8;i++) {
+		center.x += corners[i].x;
+		center.y += corners[i].y;
+	}
+	center.x = center.x / 8;
+	center.y = center.x / 8;
+	double distance_to_center[8];
+	for (int i = 0;i < 8;i++) {
+		distance_to_center[i] = getDistance(corners[i], center);
+	}
+	int index;
+	double temp1;
+	Point2f temp2;
+	for (int i = 0;i < 8;i++) {
+		index = i;
+		for (int j = i + 1;j < 8;j++) {
+			if (distance_to_center[index] > distance_to_center[j]) {
+				index = j;
+			}
+		}
+		if (index != i) {
+			temp1 = distance_to_center[index];
+			distance_to_center[index] = distance_to_center[i];
+			distance_to_center[i] = temp1;
+
+			temp2 = corners[index];
+			corners[index] = corners[i];
+			corners[i] = temp2;
+		}
+	}
+	Point2f armor_points[4] = { corners[0], corners[1], corners[7], corners[6] };
+	for (int i = 0; i < 4; i++) {
+		line(img, armor_points[i], armor_points[(i + 1) % 4], Scalar(0, 0, 255), 2);
+	}
+}
+
+void get_result(const std::vector<RotatedRect> &rrects, const std::vector<std::vector<Point2f> > &trapezoids, std::vector<RotatedRect> &results, int size, Mat &img) {
 	bool used[size];
 	bool flag[size][size];
 	for (int i = 0; i < size; i++) {
@@ -83,11 +125,11 @@ void get_result(const std::vector<RotatedRect> &rrects, const std::vector<std::v
 		}
 	}
 	for (int i = 0; i<size; i++) {
-		if (used[i])
-			continue;
+		//if (used[i])
+		//	continue;
 		for (int j = 0; j<size; j++) {
-			if (used[j])
-				continue;
+			//if (used[j])
+			//	continue;
 			if (flag[i][j] == true && flag[j][i] == true) {
 				results.push_back(rrects[i]);
 				results.push_back(rrects[j]);
@@ -108,11 +150,13 @@ int main(int argc, char* argv[]) {
 	float mean_mean = 40;
 	while (true) {
 		Mat img = camCtl.getOpencvMat();
-		camCtl.setExposureTime(lowExposureTime ? 7000 : 40);
+		camCtl.setExposureTime(lowExposureTime ? 7000 : 50);
 		lowExposureTime = !lowExposureTime;
 		Mat grayImage;
 		Mat binary = img.clone();
-		cvtColor(img, grayImage, COLOR_BGR2GRAY);
+		Mat src_channels[3];
+		split(img, src_channels);
+		grayImage = src_channels[0];
 		Scalar meanValue;
 		meanValue = mean(grayImage);
 		bool lowExposure = meanValue.val[0] < mean_mean;
@@ -121,22 +165,22 @@ int main(int argc, char* argv[]) {
 		if (lowExposure) {
 			rrects.clear();
 			results.clear();
-			threshold(grayImage, binary, 253, 255, CV_THRESH_BINARY);
+			threshold(grayImage, binary, 128, 255, CV_THRESH_BINARY);
 
-			std::vector<std::vector<Point>> contours;
+			std::vector<std::vector<Point> > contours;
 			std::vector<Vec4i> hierarchy;
-			findContours(grayImage, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE, Point());
+			findContours(binary, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE, Point());
 
 			for (int i = 0; i < contours.size(); i++) {
 				//绘制轮廓的最小外结矩形
 				double area = contourArea(contours[i]);
-				if (area > 5) {
+				if (area > 10) {
 					RotatedRect rrect = minAreaRect(contours[i]);
 					rrects.push_back(rrect);
 				}
 			}
 
-			std::vector<std::vector<Point2f>> trapezoids;
+			std::vector<std::vector<Point2f> > trapezoids;
 			for (int i = 0; i < rrects.size(); i++) {
 				Point2f corners[4];
 				rrects[i].points(corners);
@@ -144,14 +188,18 @@ int main(int argc, char* argv[]) {
 			}
 			get_result(rrects, trapezoids, results, rrects.size());
 		} else {
-			/*
 			for (int i = 0; i < rrects.size(); i++) {
-			Point2f corners[4];
-			rrects[i].points(corners);
-			for (int j = 0; j < 4; j++) {
-			line(img, corners[j], corners[(j + 1) % 4], Scalar(0, 0, 255), 2);
+				Point2f corners[4];
+				rrects[i].points(corners);
+				for (int j = 0; j < 4; j++) {
+					line(img, corners[j], corners[(j + 1) % 4], Scalar(0, 0, 255), 2);
+				}
 			}
-			}*/
+			imshow("gray", img);
+			if (waitKey(1) > 0)
+				break;
+		}
+		else {
 			for (int i = 0; i < results.size(); i++) {
 				Point2f corners[4];
 				results[i].points(corners);
