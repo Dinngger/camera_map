@@ -1,4 +1,5 @@
 /build
+/pose_estimation/build
 *.*
 !*.md
 !*.cc
@@ -8,4 +9,3 @@
 !*.h
 !*.txt
 !.gitignore
-*.avi

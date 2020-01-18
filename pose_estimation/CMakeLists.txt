@@ -25,7 +25,6 @@ elseif(COMPILER_SUPPORTS_CXX0X)
 else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
-
 find_package(OpenCV 3.0 QUIET)
 if(NOT OpenCV_FOUND)
    find_package(OpenCV 2.4.3 QUIET)
@@ -36,10 +35,11 @@ endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+# message(STATUS ${EIGEN3_INCLUDE_DIRS})
 
 include_directories(
-${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
+${PROJECT_SOURCE_DIR}/../include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 /opt/MVS/include
@@ -52,11 +52,22 @@ link_directories(/opt/MVS/lib/64)
 
 add_executable(viewer
 main.cc
+${PROJECT_SOURCE_DIR}/../armorDetection/ArmorDetect.cpp
 ${VIEWER_SRC}
 )
 
 target_link_libraries(viewer
 MvCameraControl
 ${Pangolin_LIBRARIES}
+${OpenCV_LIBS}
+)
+
+add_executable(pnp_solver
+pnp_solver.cc
+${PROJECT_SOURCE_DIR}/../armorDetection/ArmorDetect.cpp
+)
+
+target_link_libraries(pnp_solver
+MvCameraControl
 ${OpenCV_LIBS}
 )

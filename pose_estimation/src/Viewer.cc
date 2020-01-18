@@ -18,9 +18,9 @@ Viewer::Viewer():
     mImageWidth = 640;
     mImageHeight = 480;
 
-    mViewpointX = 0;
-    mViewpointY = -0.7;
-    mViewpointZ = -1.8;
+    mViewpointX = 4.0;
+    mViewpointY = 2.18558;
+    mViewpointZ = -6.26*2;
     mViewpointF = 500;
 }
 
@@ -38,6 +38,11 @@ void Viewer::Run()
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+
+    //pangolin::CreatePanel("menu").SetBounds(0.0,1.0,0.0,pangolin::Attach::Pix(175));
+    //pangolin::Var<bool> menuFollowCamera("menu.Follow Camera",true,true);
+
+
     // Define Camera Render Object (for view / scene browsing)
     pangolin::OpenGlRenderState s_cam(
                 pangolin::ProjectionMatrix(1024,768,mViewpointF,mViewpointF,512,389,0.1,1000),
@@ -49,19 +54,48 @@ void Viewer::Run()
             .SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -1024.0f/768.0f)
             .SetHandler(new pangolin::Handler3D(s_cam));
 
+    std::vector<pangolin::OpenGlMatrix> Twcs;
     pangolin::OpenGlMatrix Twc;
     Twc.SetIdentity();
+    Twcs.push_back(Twc);
 
     //cv::namedWindow("Current Frame");
 
+    bool bFollow = false;
     while(1)
     {
+        Twcs.clear();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        mDrawer.GetCurrentOpenGLCameraMatrix(Twc);
+
+        mDrawer.GetCurrentOpenGLCameraMatrix(Twcs, mViewpointX, mViewpointY, mViewpointZ);
+
+
+        /*
+        if(menuFollowCamera && bFollow)
+        {
+            s_cam.Follow(Twc);
+        }
+        else if(menuFollowCamera && !bFollow)
+        {
+            s_cam.SetModelViewMatrix(pangolin::ModelViewLookAt(mViewpointX,mViewpointY,mViewpointZ, 0,0,0,0.0,-1.0, 0.0));
+            s_cam.Follow(Twcs[0]);
+            bFollow = true;
+        }
+        else if(!menuFollowCamera && bFollow)
+        {
+            bFollow = false;
+        }
+        //pangolin::ModelViewLookAt(mViewpointX,mViewpointY,mViewpointZ*1.5, 0,0,0,0.0,-1.0, 0.0);
+        //s_cam.Follow(Twcs[0]);
+        */
+        
 
         d_cam.Activate(s_cam);
         glClearColor(1.0f,1.0f,1.0f,1.0f);
-        mDrawer.DrawCurrentCamera(Twc);
+
+        for(int i=0;i<Twcs.size();i++){
+            mDrawer.DrawCurrentCamera(Twcs[i]);
+        }
         pangolin::FinishFrame();
 
         // cv::Mat im = mpFrameDrawer->DrawFrame();
@@ -79,7 +113,7 @@ void Viewer::Run()
         if(CheckFinish())
             break;
     }
-
+    
     SetFinish();
 }
 

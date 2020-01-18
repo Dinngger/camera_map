@@ -123,6 +123,49 @@ viewer/fast:
 	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/build
 .PHONY : viewer/fast
 
+#=============================================================================
+# Target rules for targets named pnp_solver
+
+# Build rule for target.
+pnp_solver: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 pnp_solver
+.PHONY : pnp_solver
+
+# fast build rule for target.
+pnp_solver/fast:
+	$(MAKE) -f CMakeFiles/pnp_solver.dir/build.make CMakeFiles/pnp_solver.dir/build
+.PHONY : pnp_solver/fast
+
+home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.o: home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.o
+
+.PHONY : home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.o
+
+# target to build an object file
+home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.o:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.o
+	$(MAKE) -f CMakeFiles/pnp_solver.dir/build.make CMakeFiles/pnp_solver.dir/home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.o
+.PHONY : home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.o
+
+home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.i: home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.i
+
+.PHONY : home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.i
+
+# target to preprocess a source file
+home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.i:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.i
+	$(MAKE) -f CMakeFiles/pnp_solver.dir/build.make CMakeFiles/pnp_solver.dir/home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.i
+.PHONY : home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.i
+
+home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.s: home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.s
+
+.PHONY : home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.s
+
+# target to generate assembly for a file
+home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.s:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.s
+	$(MAKE) -f CMakeFiles/pnp_solver.dir/build.make CMakeFiles/pnp_solver.dir/home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.s
+.PHONY : home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.s
+
 main.o: main.cc.o
 
 .PHONY : main.o
@@ -149,6 +192,33 @@ main.s: main.cc.s
 main.cc.s:
 	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/main.cc.s
 .PHONY : main.cc.s
+
+pnp_solver.o: pnp_solver.cc.o
+
+.PHONY : pnp_solver.o
+
+# target to build an object file
+pnp_solver.cc.o:
+	$(MAKE) -f CMakeFiles/pnp_solver.dir/build.make CMakeFiles/pnp_solver.dir/pnp_solver.cc.o
+.PHONY : pnp_solver.cc.o
+
+pnp_solver.i: pnp_solver.cc.i
+
+.PHONY : pnp_solver.i
+
+# target to preprocess a source file
+pnp_solver.cc.i:
+	$(MAKE) -f CMakeFiles/pnp_solver.dir/build.make CMakeFiles/pnp_solver.dir/pnp_solver.cc.i
+.PHONY : pnp_solver.cc.i
+
+pnp_solver.s: pnp_solver.cc.s
+
+.PHONY : pnp_solver.s
+
+# target to generate assembly for a file
+pnp_solver.cc.s:
+	$(MAKE) -f CMakeFiles/pnp_solver.dir/build.make CMakeFiles/pnp_solver.dir/pnp_solver.cc.s
+.PHONY : pnp_solver.cc.s
 
 src/Drawer.o: src/Drawer.cc.o
 
@@ -204,6 +274,60 @@ src/Viewer.cc.s:
 	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/Viewer.cc.s
 .PHONY : src/Viewer.cc.s
 
+src/frame.o: src/frame.cc.o
+
+.PHONY : src/frame.o
+
+# target to build an object file
+src/frame.cc.o:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/frame.cc.o
+.PHONY : src/frame.cc.o
+
+src/frame.i: src/frame.cc.i
+
+.PHONY : src/frame.i
+
+# target to preprocess a source file
+src/frame.cc.i:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/frame.cc.i
+.PHONY : src/frame.cc.i
+
+src/frame.s: src/frame.cc.s
+
+.PHONY : src/frame.s
+
+# target to generate assembly for a file
+src/frame.cc.s:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/frame.cc.s
+.PHONY : src/frame.cc.s
+
+src/homography_solver.o: src/homography_solver.cc.o
+
+.PHONY : src/homography_solver.o
+
+# target to build an object file
+src/homography_solver.cc.o:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/homography_solver.cc.o
+.PHONY : src/homography_solver.cc.o
+
+src/homography_solver.i: src/homography_solver.cc.i
+
+.PHONY : src/homography_solver.i
+
+# target to preprocess a source file
+src/homography_solver.cc.i:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/homography_solver.cc.i
+.PHONY : src/homography_solver.cc.i
+
+src/homography_solver.s: src/homography_solver.cc.s
+
+.PHONY : src/homography_solver.s
+
+# target to generate assembly for a file
+src/homography_solver.cc.s:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/homography_solver.cc.s
+.PHONY : src/homography_solver.cc.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -211,17 +335,30 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... viewer"
 	@echo "... edit_cache"
+	@echo "... viewer"
+	@echo "... pnp_solver"
+	@echo "... home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.o"
+	@echo "... home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.i"
+	@echo "... home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... pnp_solver.o"
+	@echo "... pnp_solver.i"
+	@echo "... pnp_solver.s"
 	@echo "... src/Drawer.o"
 	@echo "... src/Drawer.i"
 	@echo "... src/Drawer.s"
 	@echo "... src/Viewer.o"
 	@echo "... src/Viewer.i"
 	@echo "... src/Viewer.s"
+	@echo "... src/frame.o"
+	@echo "... src/frame.i"
+	@echo "... src/frame.s"
+	@echo "... src/homography_solver.o"
+	@echo "... src/homography_solver.i"
+	@echo "... src/homography_solver.s"
 .PHONY : help
 
 
