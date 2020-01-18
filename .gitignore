@@ -2,7 +2,6 @@
 /pose_estimation/build
 /bundleAdjust/build
 /self_targeting/build
-!/bundleAdjust/cmake_modules
 *.*
 !*.md
 !*.cc
@@ -12,3 +11,4 @@
 !*.h
 !*.txt
 !.gitignore
+!*.cmake
