@@ -214,6 +214,9 @@ CSPARSE_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libcxsparse.so
 //The directory containing a CMake configuration file for CSparse.
 CSparse_DIR:PATH=CSparse_DIR-NOTFOUND
 
+//The directory containing a CMake configuration file for Cholmod.
+Cholmod_DIR:PATH=Cholmod_DIR-NOTFOUND
+
 //Path to a file.
 EIGEN3_INCLUDE_DIR:PATH=/usr/include/eigen3
 

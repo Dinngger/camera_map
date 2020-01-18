@@ -1,7 +1,6 @@
 #ifndef homography_solver
 #define homography_solver
 
-#include <queue>
 #include <thread>
 #include "frame.h"
 

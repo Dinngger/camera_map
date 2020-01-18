@@ -1,5 +1,6 @@
 /build
 /pose_estimation/build
+/bundleAdjust/build
 *.*
 !*.md
 !*.cc

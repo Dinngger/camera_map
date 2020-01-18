@@ -123,32 +123,32 @@ g2o_test/fast:
 	$(MAKE) -f CMakeFiles/g2o_test.dir/build.make CMakeFiles/g2o_test.dir/build
 .PHONY : g2o_test/fast
 
-ba_g2o.o: ba_g2o.cc.o
+ba_demo.o: ba_demo.cpp.o
 
-.PHONY : ba_g2o.o
+.PHONY : ba_demo.o
 
 # target to build an object file
-ba_g2o.cc.o:
-	$(MAKE) -f CMakeFiles/g2o_test.dir/build.make CMakeFiles/g2o_test.dir/ba_g2o.cc.o
-.PHONY : ba_g2o.cc.o
+ba_demo.cpp.o:
+	$(MAKE) -f CMakeFiles/g2o_test.dir/build.make CMakeFiles/g2o_test.dir/ba_demo.cpp.o
+.PHONY : ba_demo.cpp.o
 
-ba_g2o.i: ba_g2o.cc.i
+ba_demo.i: ba_demo.cpp.i
 
-.PHONY : ba_g2o.i
+.PHONY : ba_demo.i
 
 # target to preprocess a source file
-ba_g2o.cc.i:
-	$(MAKE) -f CMakeFiles/g2o_test.dir/build.make CMakeFiles/g2o_test.dir/ba_g2o.cc.i
-.PHONY : ba_g2o.cc.i
+ba_demo.cpp.i:
+	$(MAKE) -f CMakeFiles/g2o_test.dir/build.make CMakeFiles/g2o_test.dir/ba_demo.cpp.i
+.PHONY : ba_demo.cpp.i
 
-ba_g2o.s: ba_g2o.cc.s
+ba_demo.s: ba_demo.cpp.s
 
-.PHONY : ba_g2o.s
+.PHONY : ba_demo.s
 
 # target to generate assembly for a file
-ba_g2o.cc.s:
-	$(MAKE) -f CMakeFiles/g2o_test.dir/build.make CMakeFiles/g2o_test.dir/ba_g2o.cc.s
-.PHONY : ba_g2o.cc.s
+ba_demo.cpp.s:
+	$(MAKE) -f CMakeFiles/g2o_test.dir/build.make CMakeFiles/g2o_test.dir/ba_demo.cpp.s
+.PHONY : ba_demo.cpp.s
 
 # Help Target
 help:
@@ -159,9 +159,9 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... g2o_test"
 	@echo "... edit_cache"
-	@echo "... ba_g2o.o"
-	@echo "... ba_g2o.i"
-	@echo "... ba_g2o.s"
+	@echo "... ba_demo.o"
+	@echo "... ba_demo.i"
+	@echo "... ba_demo.s"
 .PHONY : help
 
 
