@@ -1,3 +1,0 @@
-/home/sentinel/vscode/CMakeFiles/edit_cache.dir
-/home/sentinel/vscode/CMakeFiles/rebuild_cache.dir
-/home/sentinel/vscode/CMakeFiles/Task1.dir

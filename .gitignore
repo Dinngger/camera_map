@@ -1,6 +1,7 @@
 /build
 /pose_estimation/build
 /bundleAdjust/build
+/self_targeting/build
 *.*
 !*.md
 !*.cc

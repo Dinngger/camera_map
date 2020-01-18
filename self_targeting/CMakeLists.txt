@@ -22,6 +22,7 @@ link_directories(
     /opt/MVS/lib/64
     /opt/MVS/lib/32
 )
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
 # Declare the executable target built from your sources
 add_executable(Task1 testAngle.cpp)
 TARGET_LINK_LIBRARIES(Task1
