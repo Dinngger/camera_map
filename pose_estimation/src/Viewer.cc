@@ -24,6 +24,11 @@ Viewer::Viewer():
     mViewpointF = 500;
 }
 
+void Viewer::clear()
+{
+    mDrawer.clear();
+}
+
 void Viewer::Run()
 {
     mbFinished = false;
@@ -92,7 +97,7 @@ void Viewer::Run()
 
         d_cam.Activate(s_cam);
         glClearColor(1.0f,1.0f,1.0f,1.0f);
-
+        //std::cout << "Twcs.size(): " << Twcs.size() <<std::endl;
         for(int i=0;i<Twcs.size();i++){
             mDrawer.DrawCurrentCamera(Twcs[i]);
         }

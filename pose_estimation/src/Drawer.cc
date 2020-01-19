@@ -2,11 +2,20 @@
 #include <pangolin/pangolin.h>
 #include <mutex>
 
+// #define HAVE_GLES
+
 Drawer::Drawer()
 {
     mGraphLineWidth = 0.9;
-    mCameraSize = 0.08;
+    mCameraSize = 0.8;
     mCameraLineWidth = 3;
+    reset_flag = false;
+}
+
+void Drawer::reset(){
+    glPopMatrix();
+    glLoadIdentity();
+    glPushMatrix();
 }
 
 void Drawer::DrawCurrentCamera(pangolin::OpenGlMatrix &Twc)
@@ -14,41 +23,44 @@ void Drawer::DrawCurrentCamera(pangolin::OpenGlMatrix &Twc)
     const double &w = mCameraSize;
     const double h = w*0.75;
     const double z = w*0.6;
-    
-    glPushMatrix();
+    if(reset_flag)
+        glLoadIdentity();
+    else{
+        glPushMatrix();
 
-#ifdef HAVE_GLES
-        glMultMatrixf(Twc.m);
-#else
-        glMultMatrixd(Twc.m);
-#endif
+        #ifdef HAVE_GLES
+            glMultMatrixf(Twc.m);
+        #else
+            glMultMatrixd(Twc.m);
+        #endif
 
-    glLineWidth(mCameraLineWidth);
-    glColor3f(0.0f,1.0f,0.0f);
-    glBegin(GL_LINES);
-    glVertex3f(0,0,0);
-    glVertex3f(w,h,z);
-    glVertex3f(0,0,0);
-    glVertex3f(w,-h,z);
-    glVertex3f(0,0,0);
-    glVertex3f(-w,-h,z);
-    glVertex3f(0,0,0);
-    glVertex3f(-w,h,z);
+        glLineWidth(mCameraLineWidth);
+        glColor3f(0.0f,1.0f,0.0f);
+        glBegin(GL_LINES);
+        glVertex3f(0,0,0);
+        glVertex3f(w,h,z);
+        glVertex3f(0,0,0);
+        glVertex3f(w,-h,z);
+        glVertex3f(0,0,0);
+        glVertex3f(-w,-h,z);
+        glVertex3f(0,0,0);
+        glVertex3f(-w,h,z);
 
-    glVertex3f(w,h,z);
-    glVertex3f(w,-h,z);
+        glVertex3f(w,h,z);
+        glVertex3f(w,-h,z);
 
-    glVertex3f(-w,h,z);
-    glVertex3f(-w,-h,z);
+        glVertex3f(-w,h,z);
+        glVertex3f(-w,-h,z);
 
-    glVertex3f(-w,h,z);
-    glVertex3f(w,h,z);
+        glVertex3f(-w,h,z);
+        glVertex3f(w,h,z);
 
-    glVertex3f(-w,-h,z);
-    glVertex3f(w,-h,z);
-    glEnd();
+        glVertex3f(-w,-h,z);
+        glVertex3f(w,-h,z);
+        glEnd();
 
-    glPopMatrix();
+        glPopMatrix();
+    }
 }
 
 void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws)
@@ -97,6 +109,7 @@ void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws)
 
     //计算每帧到已知装甲板的变换矩阵
     mArmorPoses.clear();
+    // std::cout << "Tcws.size(): " << Tcws.size() <<std::endl;
     for(int i=0;i<Tcws.size();i++){
         mArmorPoses.push_back(Tcws[i].clone());
     }
@@ -108,6 +121,8 @@ void Drawer::GetCurrentOpenGLCameraMatrix(std::vector<pangolin::OpenGlMatrix> &M
     {
         cv::Mat Rwc(3,3,CV_64F);
         cv::Mat twc(3,1,CV_64F);
+        
+        //std::cout << "mArmorPoses.size(): " << mArmorPoses.size() <<std::endl;
         for(int i=0;i<mArmorPoses.size();i++){
             pangolin::OpenGlMatrix M;
             {
@@ -141,6 +156,7 @@ void Drawer::GetCurrentOpenGLCameraMatrix(std::vector<pangolin::OpenGlMatrix> &M
             M.m[15]  = 1.0;
             Ms.push_back(M);
         }
+        //std::cout << "Ms: " << Ms.size() <<std::endl;
     }
     else{
         pangolin::OpenGlMatrix M;

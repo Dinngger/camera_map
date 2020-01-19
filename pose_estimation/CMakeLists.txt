@@ -39,9 +39,6 @@ find_package(Pangolin REQUIRED)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}/include
-${PROJECT_SOURCE_DIR}/../include
-${PROJECT_SOURCE_DIR}/../self_targeting/include/detection
-${PROJECT_SOURCE_DIR}/../self_targeting/include/universal
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 /opt/MVS/include
@@ -54,7 +51,7 @@ link_directories(/opt/MVS/lib/64)
 
 add_executable(viewer
 pose_estimate.cc
-${PROJECT_SOURCE_DIR}/../armorDetection/ArmorDetect.cpp
+#${PROJECT_SOURCE_DIR}/../armorDetection/ArmorDetect.cpp
 ${VIEWER_SRC}
 )
 
@@ -64,12 +61,12 @@ ${Pangolin_LIBRARIES}
 ${OpenCV_LIBS}
 )
 
-add_executable(pnp_solver
-pnp_solver.cc
-${PROJECT_SOURCE_DIR}/../armorDetection/ArmorDetect.cpp
-)
-
-target_link_libraries(pnp_solver
-MvCameraControl
-${OpenCV_LIBS}
-)
+## add_executable(pnp_solver
+## pnp_solver.cc
+## ${PROJECT_SOURCE_DIR}/../armorDetection/ArmorDetect.cpp
+## )
+## 
+## target_link_libraries(pnp_solver
+## MvCameraControl
+## ${OpenCV_LIBS}
+## )

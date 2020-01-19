@@ -14,6 +14,7 @@ public:
     bool isFinished();
     bool isStopped();
     void Release();
+    void clear();
     Drawer mDrawer;
 private:
     bool Stop();

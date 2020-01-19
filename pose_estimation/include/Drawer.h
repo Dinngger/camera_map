@@ -10,10 +10,12 @@ class Drawer
 {
 public:
     Drawer();
-
+    void clear() {mArmorPoses.clear();}
+    void reset();
     void DrawCurrentCamera(pangolin::OpenGlMatrix &Twc);
     void SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws);
     void GetCurrentOpenGLCameraMatrix(std::vector<pangolin::OpenGlMatrix> &Ms, float &mViewpointX, float &mViewpointY, float &mViewpointZ);
+    bool reset_flag;
 private:
     float mGraphLineWidth;
     float mCameraSize;
