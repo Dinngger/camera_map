@@ -166,33 +166,6 @@ home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.s:
 	$(MAKE) -f CMakeFiles/pnp_solver.dir/build.make CMakeFiles/pnp_solver.dir/home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.s
 .PHONY : home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.cpp.s
 
-main.o: main.cc.o
-
-.PHONY : main.o
-
-# target to build an object file
-main.cc.o:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/main.cc.o
-.PHONY : main.cc.o
-
-main.i: main.cc.i
-
-.PHONY : main.i
-
-# target to preprocess a source file
-main.cc.i:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/main.cc.i
-.PHONY : main.cc.i
-
-main.s: main.cc.s
-
-.PHONY : main.s
-
-# target to generate assembly for a file
-main.cc.s:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/main.cc.s
-.PHONY : main.cc.s
-
 pnp_solver.o: pnp_solver.cc.o
 
 .PHONY : pnp_solver.o
@@ -220,113 +193,32 @@ pnp_solver.cc.s:
 	$(MAKE) -f CMakeFiles/pnp_solver.dir/build.make CMakeFiles/pnp_solver.dir/pnp_solver.cc.s
 .PHONY : pnp_solver.cc.s
 
-src/Drawer.o: src/Drawer.cc.o
+pose_estimate.o: pose_estimate.cc.o
 
-.PHONY : src/Drawer.o
-
-# target to build an object file
-src/Drawer.cc.o:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/Drawer.cc.o
-.PHONY : src/Drawer.cc.o
-
-src/Drawer.i: src/Drawer.cc.i
-
-.PHONY : src/Drawer.i
-
-# target to preprocess a source file
-src/Drawer.cc.i:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/Drawer.cc.i
-.PHONY : src/Drawer.cc.i
-
-src/Drawer.s: src/Drawer.cc.s
-
-.PHONY : src/Drawer.s
-
-# target to generate assembly for a file
-src/Drawer.cc.s:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/Drawer.cc.s
-.PHONY : src/Drawer.cc.s
-
-src/Viewer.o: src/Viewer.cc.o
-
-.PHONY : src/Viewer.o
+.PHONY : pose_estimate.o
 
 # target to build an object file
-src/Viewer.cc.o:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/Viewer.cc.o
-.PHONY : src/Viewer.cc.o
+pose_estimate.cc.o:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/pose_estimate.cc.o
+.PHONY : pose_estimate.cc.o
 
-src/Viewer.i: src/Viewer.cc.i
+pose_estimate.i: pose_estimate.cc.i
 
-.PHONY : src/Viewer.i
-
-# target to preprocess a source file
-src/Viewer.cc.i:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/Viewer.cc.i
-.PHONY : src/Viewer.cc.i
-
-src/Viewer.s: src/Viewer.cc.s
-
-.PHONY : src/Viewer.s
-
-# target to generate assembly for a file
-src/Viewer.cc.s:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/Viewer.cc.s
-.PHONY : src/Viewer.cc.s
-
-src/frame.o: src/frame.cc.o
-
-.PHONY : src/frame.o
-
-# target to build an object file
-src/frame.cc.o:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/frame.cc.o
-.PHONY : src/frame.cc.o
-
-src/frame.i: src/frame.cc.i
-
-.PHONY : src/frame.i
+.PHONY : pose_estimate.i
 
 # target to preprocess a source file
-src/frame.cc.i:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/frame.cc.i
-.PHONY : src/frame.cc.i
+pose_estimate.cc.i:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/pose_estimate.cc.i
+.PHONY : pose_estimate.cc.i
 
-src/frame.s: src/frame.cc.s
+pose_estimate.s: pose_estimate.cc.s
 
-.PHONY : src/frame.s
-
-# target to generate assembly for a file
-src/frame.cc.s:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/frame.cc.s
-.PHONY : src/frame.cc.s
-
-src/homography_solver.o: src/homography_solver.cc.o
-
-.PHONY : src/homography_solver.o
-
-# target to build an object file
-src/homography_solver.cc.o:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/homography_solver.cc.o
-.PHONY : src/homography_solver.cc.o
-
-src/homography_solver.i: src/homography_solver.cc.i
-
-.PHONY : src/homography_solver.i
-
-# target to preprocess a source file
-src/homography_solver.cc.i:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/homography_solver.cc.i
-.PHONY : src/homography_solver.cc.i
-
-src/homography_solver.s: src/homography_solver.cc.s
-
-.PHONY : src/homography_solver.s
+.PHONY : pose_estimate.s
 
 # target to generate assembly for a file
-src/homography_solver.cc.s:
-	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/src/homography_solver.cc.s
-.PHONY : src/homography_solver.cc.s
+pose_estimate.cc.s:
+	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/pose_estimate.cc.s
+.PHONY : pose_estimate.cc.s
 
 # Help Target
 help:
@@ -341,24 +233,12 @@ help:
 	@echo "... home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.o"
 	@echo "... home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.i"
 	@echo "... home/xjturm/rm2020/camera_map/armorDetection/ArmorDetect.s"
-	@echo "... main.o"
-	@echo "... main.i"
-	@echo "... main.s"
 	@echo "... pnp_solver.o"
 	@echo "... pnp_solver.i"
 	@echo "... pnp_solver.s"
-	@echo "... src/Drawer.o"
-	@echo "... src/Drawer.i"
-	@echo "... src/Drawer.s"
-	@echo "... src/Viewer.o"
-	@echo "... src/Viewer.i"
-	@echo "... src/Viewer.s"
-	@echo "... src/frame.o"
-	@echo "... src/frame.i"
-	@echo "... src/frame.s"
-	@echo "... src/homography_solver.o"
-	@echo "... src/homography_solver.i"
-	@echo "... src/homography_solver.s"
+	@echo "... pose_estimate.o"
+	@echo "... pose_estimate.i"
+	@echo "... pose_estimate.s"
 .PHONY : help
 
 

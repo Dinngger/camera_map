@@ -40,6 +40,8 @@ find_package(Pangolin REQUIRED)
 include_directories(
 ${PROJECT_SOURCE_DIR}/include
 ${PROJECT_SOURCE_DIR}/../include
+${PROJECT_SOURCE_DIR}/../self_targeting/include/detection
+${PROJECT_SOURCE_DIR}/../self_targeting/include/universal
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 /opt/MVS/include
@@ -51,7 +53,7 @@ aux_source_directory(src/ VIEWER_SRC)
 link_directories(/opt/MVS/lib/64)
 
 add_executable(viewer
-main.cc
+pose_estimate.cc
 ${PROJECT_SOURCE_DIR}/../armorDetection/ArmorDetect.cpp
 ${VIEWER_SRC}
 )

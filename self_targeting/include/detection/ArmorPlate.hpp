@@ -10,13 +10,16 @@
  * 
  */
 
+#ifndef __ARMOR_PLATE_HPP
+#define __ARMOR_PLATE_HPP
+
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <vector>
 #include "../universal/GetPos.hpp"             //给pnp解算函数预留的位置
-#include "../universal/Numrcgn.hpp"
+// #include "../universal/Numrcgn.hpp"
 #define NULL_RECT cv::RotatedRect(cv::Point2f(0.0, 0.0), cv::Size(0,0), 0.0)
 #define VALID_RATIO         3.8             //装甲板长宽比上限
 #define ANGLE_THRESH        12.0             //装甲板灯条角度差阈值
@@ -26,7 +29,7 @@
 #else
     #define print(...)
 #endif
-
+/*
 struct Target{
     cv::RotatedRect rect;
     int light_pos1 = 0;                     //灯条1的储存位置
@@ -47,7 +50,7 @@ struct Target{
     }
 
 };
-
+*/
 class ArmorPlate{
 public:
     ArmorPlate();
@@ -72,7 +75,7 @@ private:
     cv::Mat getNumImg(cv::Mat src, cv::RotatedRect rect);                                 //装甲板预选区切下一块ROI作为数字识别区
     cv::RotatedRect getArmorPlate(cv::RotatedRect r1, cv::RotatedRect r2);  //灯条匹配装甲板                         
 private:
-    Numrcgn classifier;                                     //数字分类器     
+    // Numrcgn classifier;                                     //数字分类器     
 };
 
 ArmorPlate::ArmorPlate(){
@@ -139,7 +142,7 @@ void ArmorPlate::match(cv::Mat src, cv::RotatedRect r1, cv::RotatedRect r2, int 
         rect.points(pts);
         print("Pushed in.(%d, %d).\n", pos1, pos2);
         tar_list.push_back(Target(rect, pos1, pos2, 
-            classifier.Recognize(pts, getNumImg(src, rect))));  //输入rect, 灯条位置以及数字识别结果
+            0)); //classifier.Recognize(pts, getNumImg(src, rect))));  //输入rect, 灯条位置以及数字识别结果
     }
     else{
         print("Ratio dismatch.(%d, %d).\n", pos1, pos2);
@@ -242,3 +245,4 @@ bool ArmorPlate::close2White(cv::Mat src, cv::Point2f p1, cv::Point2f p2){
 	return (blue_aver1 >= blue_aver2);							//true则说明p1周围更接近白色
 }
 
+#endif // __ARMOR_PLATE_HPP
