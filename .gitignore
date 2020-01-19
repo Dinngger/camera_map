@@ -11,3 +11,4 @@
 !*.h
 !*.txt
 !.gitignore
+!*.cmake

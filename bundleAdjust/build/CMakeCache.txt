@@ -211,15 +211,6 @@ CSPARSE_INCLUDE_DIR:PATH=/usr/include/suitesparse
 //Path to a library.
 CSPARSE_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libcxsparse.so
 
-//The directory containing a CMake configuration file for CSparse.
-CSparse_DIR:PATH=CSparse_DIR-NOTFOUND
-
-//The directory containing a CMake configuration file for Cholmod.
-Cholmod_DIR:PATH=Cholmod_DIR-NOTFOUND
-
-//Path to a file.
-EIGEN3_INCLUDE_DIR:PATH=/usr/include/eigen3
-
 //The directory containing a CMake configuration file for Eigen3.
 Eigen3_DIR:PATH=/usr/lib/cmake/eigen3
 
@@ -234,9 +225,6 @@ G2O_CORE_LIBRARY:FILEPATH=/usr/local/lib/libg2o_core.so
 
 //Path to a library.
 G2O_CORE_LIBRARY_DEBUG:FILEPATH=G2O_CORE_LIBRARY_DEBUG-NOTFOUND
-
-//The directory containing a CMake configuration file for G2O.
-G2O_DIR:PATH=G2O_DIR-NOTFOUND
 
 //Path to a file.
 G2O_INCLUDE_DIR:PATH=/usr/local/include
@@ -483,12 +471,8 @@ CMAKE_STRIP-ADVANCED:INTERNAL=1
 CMAKE_UNAME:INTERNAL=/bin/uname
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: EIGEN3_INCLUDE_DIR
-EIGEN3_INCLUDE_DIR-ADVANCED:INTERNAL=1
 //Details about finding CHOLMOD
 FIND_PACKAGE_MESSAGE_DETAILS_CHOLMOD:INTERNAL=[/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libcholmod.so;/usr/lib/x86_64-linux-gnu/libamd.so;/usr/lib/x86_64-linux-gnu/libcolamd.so;/usr/lib/x86_64-linux-gnu/libcamd.so;/usr/lib/x86_64-linux-gnu/libccolamd.so;/usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so][v()]
 //Details about finding CSPARSE
 FIND_PACKAGE_MESSAGE_DETAILS_CSPARSE:INTERNAL=[/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libcxsparse.so][v()]
-//Details about finding Eigen3
-FIND_PACKAGE_MESSAGE_DETAILS_Eigen3:INTERNAL=[/usr/include/eigen3][TRUE][v(2.91.0)]
 
