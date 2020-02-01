@@ -8,7 +8,7 @@ set( OpenCV_DIR C:/opencv/build )
 
 find_package( OpenCV REQUIRED )
 
-include_directories( ${OpenCV_INCLUDE_DIRS} include )
+include_directories( ${OpenCV_INCLUDE_DIRS} include ../pose_estimation/include )
 
 LINK_DIRECTORIES( C:/opencv/build/install/x64/mingw/lib )
 

@@ -71,7 +71,7 @@ void LightMatch::findPossible(cv::Mat src){					//找出所有可能灯条，使
 	cv::split(src, channels);
 	cv::Mat gray = channels[0];
 	cv::Mat binary;
-	cv::threshold(gray, binary, 128, 255, CV_THRESH_BINARY);
+	cv::threshold(gray, binary, 128, 255, cv::THRESH_BINARY);
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
 	for (int i = 0; i < contours.size(); ++i) {

@@ -22,13 +22,11 @@ public:
 	void drawJudge(cv::Mat &src);					                //绘制裁判系统
 public:
 	std::vector<cv::RotatedRect> blues;							    //蓝色矩形集合
-    std::vector<cv::RotatedRect> judges;							    //裁判系统集合
+    std::vector<cv::RotatedRect> judges;							//裁判系统集合
 
 private:
 	void reset();													//重置
     bool DoesRectangleContainPoint(cv::RotatedRect rectangle, cv::Point2f point);    //判断某个点是否在某个旋转矩形内
-private:	
-	float mean_val;													//均值
 };
 
 JudgeDetection::JudgeDetection(){
