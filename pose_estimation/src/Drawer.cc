@@ -70,10 +70,10 @@ void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws)
 
     /*
     // 计算两帧之间的变换矩阵
-    cv::Mat last_Rwc(3,3,CV_32F);
-    cv::Mat last_twc(3,1,CV_32F);
-    cv::Mat Rwc(3,3,CV_32F);
-    cv::Mat twc(3,1,CV_32F);
+    cv::Mat last_Rwc(3,3,CV_64F);
+    cv::Mat last_twc(3,1,CV_64F);
+    cv::Mat Rwc(3,3,CV_64F);
+    cv::Mat twc(3,1,CV_64F);
     cv::Mat temp_Rwc;
     std::vector<cv::Mat> adjacent_frames_Tcw;
     if(mArmorPoses.size()){

@@ -27,12 +27,14 @@ int main(int argc, char* argv[])
     std::cout<<"frame: -1"<<std::endl;
     std::cout<<totalFrameNumber<<std::endl;
 
-    std::vector<cv::Mat> mats {cv::Mat(4, 4, CV_32F),cv::Mat(4, 4, CV_32F),cv::Mat(4, 4, CV_32F),cv::Mat(4, 4, CV_32F)};
+    std::vector<cv::Mat> mats {cv::Mat(4, 4, CV_64F),cv::Mat(4, 4, CV_64F),cv::Mat(4, 4, CV_64F),cv::Mat(4, 4, CV_64F)};
     cv::Mat frame;
     bool reset;
     for (int w = 0; w < totalFrameNumber; w++)
     {
+        std::cout<<w<<std::endl;
         cap.read(frame);
+        if(w<15) continue;
 		t_start = cv::getTickCount();
 		if(frame.empty())
             break;
@@ -45,14 +47,22 @@ int main(int argc, char* argv[])
         test_count++;
         std::vector<cv::Mat> rMats = amp.rMats;
         std::vector<cv::Mat> tMats = amp.tMats;
+        cv::namedWindow("disp",0);
+        cv::resizeWindow("disp",720,1080);
         cv::imshow("disp", frame);
         std::vector<cv::Mat> Twcs;
         if(rMats.size() == 0){
             viewer->mDrawer.reset_flag = true;
             continue;
         }
+        /*
+        if(rMats.size() == 2){
+            std::cout<<tMats[0]<<std::endl;
+            std::cout<<tMats[1]<<std::endl;
+        }
+        */
         //std::cout <<"rMats: "<< rMats.size() << std::endl;
-        for(int i=0; i<1; i++){
+        for(int i=0; i<rMats.size(); i++){
             cv::Mat temp =(cv::Mat_<double>(1,4)<<0,0,0,1);
             cv::Mat temp2, Twc;
             cv::hconcat(rMats[i], tMats[i], temp2);

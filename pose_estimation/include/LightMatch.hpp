@@ -22,8 +22,8 @@ last date of modification:2020.1.16 22:30
 #include <iostream>
 #include <vector>
 #include <cmath>
-#define PARAM1 10
-#define PARAM2 6
+#define PARAM1 2.5
+#define PARAM2 2.5
 
 class LightMatch{
 public:

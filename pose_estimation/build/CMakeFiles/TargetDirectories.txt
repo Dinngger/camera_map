@@ -1,3 +1,0 @@
-/home/xjturm/rm2020/camera_map/pose_estimation/build/CMakeFiles/rebuild_cache.dir
-/home/xjturm/rm2020/camera_map/pose_estimation/build/CMakeFiles/viewer.dir
-/home/xjturm/rm2020/camera_map/pose_estimation/build/CMakeFiles/edit_cache.dir
