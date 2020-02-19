@@ -47,7 +47,7 @@ struct pnpTarget{
     pnpTarget(cv::Point2f _pts[4], int _l1, int _l2, int _pNum):
         light_pos1(_l1), light_pos2(_l2), plate_num(_pNum), valid(true){
 			for(int i=0; i<4;++i) pts[i]=_pts[i];							//逐点复制
-            cv::Point2f ctr = (_pts[0]+_pts[1]+_pts[2]+_pts[3])/4;			//求中心位置（也许鸡肋）
+            ctr = (_pts[0]+_pts[1]+_pts[2]+_pts[3])/4;			//求中心位置（也许鸡肋）
         }
     
     bool operator == (pnpTarget tar){    //两个装甲板（是否不等：只要没有公用的灯条，就不相等）

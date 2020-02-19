@@ -22,7 +22,7 @@
 #include "MatchLight.hpp"
 
 #define VALID_RATIO         3.8             //装甲板长宽比上限
-#define ANGLE_THRESH        12.0             //装甲板灯条角度差阈值
+#define ANGLE_THRESH        5.0             //装甲板灯条角度差阈值
 
 #ifdef DEBUG
     #define print printf
@@ -110,6 +110,8 @@ void ArmorPlate::drawArmorPlates(cv::Mat &src){
     cv::line(src, cv::Point(720, 0), cv::Point(720, 1080), cv::Scalar(255, 0, 0));
 	cv::line(src, cv::Point(0, 540), cv::Point(1440, 540), cv::Scalar(255, 0, 0));
     if(tar_list.size()){
+        if (tar_list.size()==2)
+        std::cout<<"----------------------------"<<std::endl;
         rMats.clear();
         tMats.clear();
         for (pnpTarget tar : tar_list) {
@@ -123,8 +125,12 @@ void ArmorPlate::drawArmorPlates(cv::Mat &src){
 		    	//绘制打击中心，绘制测距信息
 		    	cv::circle(src, tar.ctr, 2, cv::Scalar(0, 0, 255), -1);
 		    	pos_getter.getDistance(tar);
-                rMats.push_back(pos_getter.rMat);
-                tMats.push_back(pos_getter.tVec);
+                cv::Mat temp=pos_getter.rMat.clone();
+                cv::Mat temp2=pos_getter.tVec.clone();
+                tMats.push_back(temp2);
+                rMats.push_back(temp);
+                //if (tar_list.size()==2)
+                //std::cout<<rMats[0]<<std::endl;
 		    	snprintf(str, 20, "Delta pitch:%f", pos_getter.now_pitch);
 		    	cv::putText(src, str,cv::Point(30, 330),
 		    		cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 100, 0));
@@ -171,7 +177,7 @@ void ArmorPlate::getArmorPlate(cv::RotatedRect r1, cv::RotatedRect r2){
 
 //-----------------------------------------------------------
 
-bool ArmorPlate::isRatioValid(){                    //对边中点连线的长度平方比值是否合适
+bool ArmorPlate::isRatioValid(){                 mkz     //对边中点连线的长度平方比值是否合适
     float len1 = getPointDist((points[0]+points[1])/2, (points[2]+points[3])/2),
          len2 = getPointDist((points[0]+points[3])/2, (points[1]+points[2])/2);
     return (len1/len2 < 16.0 && len1/len2 > 0.0625);
@@ -190,6 +196,7 @@ bool ArmorPlate::isEdgesValid(){  //对边长度平方比值是否合适
 bool ArmorPlate::isAngleMatch(cv::RotatedRect r1, cv::RotatedRect r2){
     float ang1 = r1.size.width > r1.size.height ? r1.angle : -r1.angle - 90;
 	float ang2 = r2.size.width > r2.size.height ? r2.angle : -r2.angle - 90;
+    //std::cout<<abs(ang1-ang2)<<std::endl;
     return abs(ang1-ang2)<ANGLE_THRESH;
 }
 

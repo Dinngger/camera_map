@@ -1,3 +1,0 @@
-/home/dinger/mine/opencvProj/camera_map/pose_estimation/build/CMakeFiles/rebuild_cache.dir
-/home/dinger/mine/opencvProj/camera_map/pose_estimation/build/CMakeFiles/viewer.dir
-/home/dinger/mine/opencvProj/camera_map/pose_estimation/build/CMakeFiles/edit_cache.dir

@@ -33,15 +33,16 @@ if(NOT OpenCV_FOUND)
    endif()
 endif()
 
-find_package(Eigen3 3.1.0 REQUIRED)
+#find_package(Eigen3 REQUIRED)
 find_package(Pangolin REQUIRED)
 # message(STATUS ${EIGEN3_INCLUDE_DIRS})
 
 include_directories(
 ${PROJECT_SOURCE_DIR}/include
-${EIGEN3_INCLUDE_DIR}
+#${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 /opt/MVS/include
+/home/zlq/Pangolin/include
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
