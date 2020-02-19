@@ -1,3 +1,3 @@
-/home/xjturm/rm2020/camera_map/bundleAdjust/build/CMakeFiles/rebuild_cache.dir
-/home/xjturm/rm2020/camera_map/bundleAdjust/build/CMakeFiles/g2o_test.dir
-/home/xjturm/rm2020/camera_map/bundleAdjust/build/CMakeFiles/edit_cache.dir
+/home/dinger/mine/opencvProj/camera_map/bundleAdjust/build/CMakeFiles/rebuild_cache.dir
+/home/dinger/mine/opencvProj/camera_map/bundleAdjust/build/CMakeFiles/g2o_test.dir
+/home/dinger/mine/opencvProj/camera_map/bundleAdjust/build/CMakeFiles/edit_cache.dir
