@@ -1,4 +1,4 @@
-/home/dinger/mine/opencvProj/pose_solver/build/CMakeFiles/rebuild_cache.dir
-/home/dinger/mine/opencvProj/pose_solver/build/CMakeFiles/edit_cache.dir
-/home/dinger/mine/opencvProj/pose_solver/build/CMakeFiles/viewer.dir
-/home/dinger/mine/opencvProj/pose_solver/build/CMakeFiles/test.dir
+/home/allegray/camera_map/pose_solver/build/CMakeFiles/rebuild_cache.dir
+/home/allegray/camera_map/pose_solver/build/CMakeFiles/edit_cache.dir
+/home/allegray/camera_map/pose_solver/build/CMakeFiles/viewer.dir
+/home/allegray/camera_map/pose_solver/build/CMakeFiles/test.dir

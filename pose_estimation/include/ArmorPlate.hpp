@@ -19,7 +19,6 @@
 #include <opencv2/imgproc.hpp>
 #include <vector>
 #include "GetPos.hpp"             //给pnp解算函数预留的位置
-#include "MatchLight.hpp"
 
 #define VALID_RATIO         3.8             //装甲板长宽比上限
 #define ANGLE_THRESH        5.0             //装甲板灯条角度差阈值
@@ -177,7 +176,7 @@ void ArmorPlate::getArmorPlate(cv::RotatedRect r1, cv::RotatedRect r2){
 
 //-----------------------------------------------------------
 
-bool ArmorPlate::isRatioValid(){                 mkz     //对边中点连线的长度平方比值是否合适
+bool ArmorPlate::isRatioValid(){                      //对边中点连线的长度平方比值是否合适
     float len1 = getPointDist((points[0]+points[1])/2, (points[2]+points[3])/2),
          len2 = getPointDist((points[0]+points[3])/2, (points[1]+points[2])/2);
     return (len1/len2 < 16.0 && len1/len2 > 0.0625);

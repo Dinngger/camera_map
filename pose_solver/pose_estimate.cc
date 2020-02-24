@@ -7,7 +7,7 @@
 
 int main(int argc, char* argv[])
 {
-    cv::VideoCapture cap("/mine/cv_output1.avi");
+    cv::VideoCapture cap("../../cv_output1.avi");
     ArmorPlate amp;
     LightMatch match;
     cv::Mat frame, screen;
@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     char key = 0;
 
     std::vector< cv::Point3f > p3d;
-    std::ifstream fp3d("./fp3d.txt");
+    std::ifstream fp3d("../fp3d.txt");
     if (!fp3d){
         std::cout << "No p3d.text file\n";
         return -1;
