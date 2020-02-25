@@ -27,8 +27,8 @@
 #include <iostream>
 #include <vector>
 #include <deque>
-#define _HALF_LENGTH 0.065			//70.00mm
-#define _HALF_HEIGHT 0.0285			//30.00mm
+#define _HALF_LENGTH 65			//70.00mm
+#define _HALF_HEIGHT 28.5			//30.00mm
 #define PI 3.1415926535897
 #define NULLPOINT cv::Point2f(0.0, 0.0)
 
@@ -130,9 +130,6 @@ GetPos::~GetPos(){;}
 //带有弹道模型的角度解算
 
 void GetPos::getDistance(pnpTarget tar) {
-#define n 50
-	static double lastz[n] = {0,};
-	static double z = 0;
 	//tVec.create(3, 1, CV_64F);
 	//rVec.create(3, 1, CV_64F);
 
@@ -150,17 +147,6 @@ void GetPos::getDistance(pnpTarget tar) {
 	// std::cout<<"tVec: "<<tVec<<std::endl;
 	
 	cv::Rodrigues(rVec, rMat);
-	double newz = tVec.at<double>(2, 0);
-	z = 0.99 * z;
-	for (int i=0; i<n; i++)
-		z += 0.01 / n * lastz[i];
-	if (z > 10000 || z < 0)
-		z = newz;
-	for (int i=0; i<n-1; i++)
-		lastz[i] = lastz[i+1];
-	lastz[n-1] = newz;
-	tVec.at<double>(2, 0) = z;
-	
 	old_yaw = now_yaw; old_pitch = now_pitch;
 	pitches.push_front(now_pitch);
 	yaws.push_front(now_yaw);

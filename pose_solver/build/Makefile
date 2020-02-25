@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/dinger/mine/opencvProj/pose_solver
+CMAKE_SOURCE_DIR = /home/dinger/mine/opencvProj/camera_map/pose_solver
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/dinger/mine/opencvProj/pose_solver/build
+CMAKE_BINARY_DIR = /home/dinger/mine/opencvProj/camera_map/pose_solver/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/dinger/mine/opencvProj/pose_solver/build/CMakeFiles /home/dinger/mine/opencvProj/pose_solver/build/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/dinger/mine/opencvProj/camera_map/pose_solver/build/CMakeFiles /home/dinger/mine/opencvProj/camera_map/pose_solver/build/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/dinger/mine/opencvProj/pose_solver/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/dinger/mine/opencvProj/camera_map/pose_solver/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -123,19 +123,6 @@ viewer/fast:
 	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/build
 .PHONY : viewer/fast
 
-#=============================================================================
-# Target rules for targets named test
-
-# Build rule for target.
-test: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 test
-.PHONY : test
-
-# fast build rule for target.
-test/fast:
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/build
-.PHONY : test/fast
-
 pose_estimate.o: pose_estimate.cc.o
 
 .PHONY : pose_estimate.o
@@ -162,33 +149,6 @@ pose_estimate.s: pose_estimate.cc.s
 pose_estimate.cc.s:
 	$(MAKE) -f CMakeFiles/viewer.dir/build.make CMakeFiles/viewer.dir/pose_estimate.cc.s
 .PHONY : pose_estimate.cc.s
-
-sampling.o: sampling.cc.o
-
-.PHONY : sampling.o
-
-# target to build an object file
-sampling.cc.o:
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/sampling.cc.o
-.PHONY : sampling.cc.o
-
-sampling.i: sampling.cc.i
-
-.PHONY : sampling.i
-
-# target to preprocess a source file
-sampling.cc.i:
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/sampling.cc.i
-.PHONY : sampling.cc.i
-
-sampling.s: sampling.cc.s
-
-.PHONY : sampling.s
-
-# target to generate assembly for a file
-sampling.cc.s:
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/sampling.cc.s
-.PHONY : sampling.cc.s
 
 src/Drawer.o: src/Drawer.cc.o
 
@@ -251,15 +211,11 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... edit_cache"
 	@echo "... viewer"
-	@echo "... test"
+	@echo "... edit_cache"
 	@echo "... pose_estimate.o"
 	@echo "... pose_estimate.i"
 	@echo "... pose_estimate.s"
-	@echo "... sampling.o"
-	@echo "... sampling.i"
-	@echo "... sampling.s"
 	@echo "... src/Drawer.o"
 	@echo "... src/Drawer.i"
 	@echo "... src/Drawer.s"

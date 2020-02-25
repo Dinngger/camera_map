@@ -70,11 +70,3 @@ ${OpenCV_LIBS}
 ${G2O_LIBS}
 ${CHOLMOD_LIBRARIES}
 )
-
-add_executable(test
-sampling.cc
-)
-
-target_link_libraries(test
-${OpenCV_LIBS}
-)

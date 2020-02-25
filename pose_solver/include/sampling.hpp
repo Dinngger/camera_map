@@ -1,3 +1,6 @@
+#ifndef __SAMPLING_HPP
+#define __SAMPLING_HPP
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -5,7 +8,7 @@
 #include <vector>
 #include <iostream>
 
-bool lowExposure(cv::Mat &src){
+bool isLowExposure(cv::Mat &src){
 	cv::Scalar mean_values;
 	cv::Mat channels[3];
 	cv::split(src, channels);
@@ -27,19 +30,4 @@ bool lowExposure(cv::Mat &src){
         return false;
 }
 
-int main(){
-    cv::VideoCapture cap("/mine/cv_output1.avi");
-    double totalFrameNumber = cap.get(cv::CAP_PROP_FRAME_COUNT);
-    cv::Mat frame;
-    for(int i=0;i<totalFrameNumber;i++){
-        cap.read(frame);
-
-        if(lowExposure(frame)){
-            imshow("low",frame);
-        } else {
-            imshow("high",frame);
-        }
-        cv::waitKey(1);
-    }
-    return 0;
-}
+#endif //__SAMPLING_HPP

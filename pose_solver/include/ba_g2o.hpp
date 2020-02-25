@@ -16,15 +16,19 @@
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/types/sba/types_six_dof_expmap.h>
 
+#include "CarModule.hpp"
+
 using namespace Eigen;
 
 using namespace cv;
 using namespace std;
 
+// TODO: change to fix the error.
+// need to get point2f and point3f from the input.
 void bundleAdjustment (
-        const vector< Point3f > points_3d,
-        const vector< Point2f > points_2d,
-        Mat& K   )
+    std::vector<LightBarP> &light_bars,
+    CarModule &module,
+    Mat &K)
 {
     // creat g2o
     // new g2o version. Ref:https://www.cnblogs.com/xueyuanaichiyu/p/7921382.html
