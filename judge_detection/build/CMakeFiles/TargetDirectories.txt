@@ -1,0 +1,3 @@
+/home/allegray/camera_map/judge_detection/build/CMakeFiles/rebuild_cache.dir
+/home/allegray/camera_map/judge_detection/build/CMakeFiles/judge_detection.dir
+/home/allegray/camera_map/judge_detection/build/CMakeFiles/edit_cache.dir

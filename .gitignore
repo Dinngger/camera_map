@@ -1,0 +1,15 @@
+/build
+/pose_estimation/build
+/bundleAdjust/build
+/self_targeting/build
+/pose_solver/build
+*.*
+!*.md
+!*.cc
+!*.cpp
+!*.hpp
+!*.xml
+!*.h
+!*.txt
+!.gitignore
+!*.cmake
