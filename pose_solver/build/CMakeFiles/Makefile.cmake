@@ -23,10 +23,17 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/usr/local/lib/cmake/Pangolin/PangolinConfigVersion.cmake"
   "/usr/local/lib/cmake/Pangolin/PangolinTargets-release.cmake"
   "/usr/local/lib/cmake/Pangolin/PangolinTargets.cmake"
+<<<<<<< HEAD
   "/usr/local/share/OpenCV/OpenCVConfig-version.cmake"
   "/usr/local/share/OpenCV/OpenCVConfig.cmake"
   "/usr/local/share/OpenCV/OpenCVModules-release.cmake"
   "/usr/local/share/OpenCV/OpenCVModules.cmake"
+=======
+  "/usr/local/lib/cmake/opencv4/OpenCVConfig-version.cmake"
+  "/usr/local/lib/cmake/opencv4/OpenCVConfig.cmake"
+  "/usr/local/lib/cmake/opencv4/OpenCVModules-release.cmake"
+  "/usr/local/lib/cmake/opencv4/OpenCVModules.cmake"
+>>>>>>> 44780ae6024e8dfc7982d0bda36550b6a8a885be
   "/usr/share/cmake-3.10/Modules/CMakeCCompiler.cmake.in"
   "/usr/share/cmake-3.10/Modules/CMakeCCompilerABI.c"
   "/usr/share/cmake-3.10/Modules/CMakeCInformation.cmake"

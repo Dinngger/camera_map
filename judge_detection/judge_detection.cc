@@ -2,9 +2,6 @@
 #include "LightMatch.hpp"
 #include "Judge.hpp"
 
-using namespace cv;
-using namespace std;
-
 ArmorPlate amp;
 LightMatch match;
 JudgeDetection judge;
@@ -17,7 +14,11 @@ char key = 0;
 int main()
 {
 	//读取视频或摄像头
-	cv::VideoCapture cap ("C:/Users/allegray/Videos/test.avi");
+	cv::VideoCapture cap("/home/allegray/视频/test.avi");
+    if(!cap.isOpened()){
+        std::cout << "Can't open video!" << std::endl;
+        return 0;
+    }
 	double totalFrameNumber = cap.get(cv::CAP_PROP_FRAME_COUNT);
     std::vector<cv::Mat>  point_answer;
 
@@ -39,7 +40,7 @@ int main()
         t_end = cv::getTickCount();
         if (test_count) t_sum += (t_end - t_start) / cv::getTickFrequency() * 1000;
         test_count++;
-        namedWindow("disp",0);//创建窗口
+        cv::namedWindow("disp",0);//创建窗口
         cv::resizeWindow("disp", 1080, 720); 
         cv::imshow("disp", frame);
         key = cv::waitKey(0);
