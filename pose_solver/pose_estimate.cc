@@ -4,7 +4,7 @@
 #include "ArmorPlate.hpp"
 #include "sampling.hpp"
 #include "CarModule.hpp"
-#include "ba_g2o.hpp"
+#include "BundleAdjust.hpp"
 #include <thread>
 
 

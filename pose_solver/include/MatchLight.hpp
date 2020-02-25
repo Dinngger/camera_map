@@ -232,7 +232,6 @@ void MatchLight::deCollision(cv::Mat src, int pos1, int pos2) {
 	}
 }
 
-//TODO:
 bool MatchLight::close2White(cv::Mat src, cv::Point p1, cv::Point p2) {
 	int blue_aver1 = 0, blue_aver2 = 0;
 	for (int i = p1.x - 1 >= 0 ? p1.x - 1 : 0; i < (p1.x + 2 <= 720 ? p1.x + 2 : 720); ++i) {

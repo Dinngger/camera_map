@@ -30,7 +30,7 @@ struct Car
 {
     int color=-1;
     int number=-1; // -1 means unknow
-    LightBar lb[4];
+    LightBar lb[8];
 };
 
 class CarModule
@@ -40,12 +40,12 @@ private:
     vector<LightBarP> predict2d;
 public:
     vector<Car> cars;
-    int add_car(vector<Point3f> armor);
+    int add_car(const vector<Point3f> &armor);
     int create_predict(double time);
     int find_light(LightBarP &lbp);
 };
 
-int CarModule::add_car(vector<Point3f> armor)
+int CarModule::add_car(const vector<Point3f> &armor)
 {
     Car c;
     // TODO: create a car behind the armor.
