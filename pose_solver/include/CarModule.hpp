@@ -13,6 +13,14 @@
 using namespace std;
 using namespace cv;
 
+
+double getDistance(cv::Point p1, cv::Point p2){
+	double distance;
+	distance = powf((p1.x - p2.x), 2) + powf((p1.y - p2.y), 2);
+	distance = sqrtf(distance);
+	return distance;
+}
+
 // p[0] is the upper point.
 struct LightBar
 {
@@ -60,7 +68,24 @@ int CarModule::add_car(vector<Point3f> armor)
 */
 int CarModule::find_light(LightBarP &lbp)
 {
-    // TODO: nearest search
+    double DISTANCE_THRESHOLD = 50;
+    if(predict2d.size()==0) return 0;
+    double min_distance = 100000, distance;
+    int min_index = -1;
+    for(int i=0;i<predict2d.size();i++){
+        distance = getDistance(predict2d[i].center, lbp.center);
+        if(distance < min_distance){
+            min_distance = distance;
+            min_index = i;
+        }
+    }
+    if(min_distance > DISTANCE_THRESHOLD) 
+        return 0;
+    else{
+        lbp.car_id = predict2d[min_index].car_id;
+        lbp.lb_id = predict2d[min_index].lb_id;
+        return 1;
+    }
 }
 
 #endif // __CAR_MODULE_HPP
