@@ -7,3 +7,6 @@ Positioning using fixed camera and calibrated map.
 >> * 修改了有关amp与match的接口，以及GetPos实例放在了ArmorPlate外部,解算与检测分离  
 >> * 更改了rMats与tMats的获取方法  
 > 2020.2.25 还需要做：装甲板检测角度匹配修改
+> 2020.2.26 修改
+>> * 修改了装甲板匹配算法ArmorPlate.hpp, 加入了两个点的角度计算，重新设置了比例以及角度阈值(ANGLE_THRESH),但是还是会有误判情况（比原来好了很多）（误判出现在视频后半段）
+>> * 修改了AimDeps.cc, 把装甲板结构体内的一个变量r_vec改为了Mat, 方便camera_map的操作
