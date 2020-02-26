@@ -1,5 +1,5 @@
 /**=================AIM_DEPENDENCIES================
- * @author hqy/gqr
+ * @author hqy
  * @date 2020.2.5
  * @brief 自瞄多个模块所依赖的结构
  * 最近修改：将会修改Target
@@ -17,6 +17,7 @@ namespace aim_deps{
 
 const cv::Point2f NULLPOINT2f = cv::Point2f(0.0, 0.0);
 const cv::Point3f NULLPOINT3f = cv::Point3f(0.0, 0.0, 0.0);
+const float RAD2DEG = 57.2958;     //(constant)(180/pi)
 
 enum PLATE_TYPE{
     UNKNOWN = 0,
@@ -57,9 +58,10 @@ struct Armor
 {
     //可能要删除的valid标签（只需要根据数字判断是否valid就好了）
     bool valid;
+    float ang_aver;                                 //平均灯条角度
+    cv::Mat r_vec;                                  //向量
     int armor_number;                              
     cv::Point3f t_vec;
-    cv::Point3f r_vec;
     cv::Point2f vertex[4];
     cv::Point2f center;                             //center of the armorplate
     Light left_light;

@@ -22,7 +22,7 @@ last date of modification:2020.1.16 22:30
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include "AimDeps.cc"
+#include "universal/AimDeps.cc"
 #define PARAM1 8.0
 #define PARAM2 4.8
 
@@ -162,11 +162,11 @@ void LightMatch::drawLights(cv::Mat &src){
 		possibles[i].box.points(pts);
 		for(int j=0; j<4;++j){
 			cv::line(src, pts[j], pts[(j+1)%4], cv::Scalar(0, 0, 255));
-			snprintf(str, 4, "%d", j);
-			cv::putText(src, str, pts[j]+cv::Point2f(1,1), cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
+			//snprintf(str, 4, "%d", j);
+			//cv::putText(src, str, pts[j]+cv::Point2f(1,1), cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
 		}
-		//snprintf(str, 4, "%d", i);
-		//cv::putText(src, str, pts[3], cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
+		snprintf(str, 4, "%d", i);
+		cv::putText(src, str, pts[3], cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
 	}
 }
 
