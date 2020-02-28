@@ -1,4 +1,4 @@
-# camera_map
+# camera_map_pose_solver
 Positioning using fixed camera and calibrated map. 
 > * 2020.2.25 修改  
 >> * 加入了一个branch文件夹，其中有最新的ArmorPlate.hpp, LightMatch.hpp, GetPos.hpp  
