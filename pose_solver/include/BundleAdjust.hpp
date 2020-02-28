@@ -26,9 +26,9 @@ using namespace std;
 // TODO: change to fix the error.
 // need to get point2f and point3f from the input.
 void bundleAdjustment (
-    std::vector<LightBarP> &light_bars,
-    CarModule &module,
-    Mat &K)
+    const std::vector<LightBarP> &light_bars,
+    const CarModule &module,
+    const Mat &K)
 {
     // creat g2o
     // new g2o version. Ref:https://www.cnblogs.com/xueyuanaichiyu/p/7921382.html

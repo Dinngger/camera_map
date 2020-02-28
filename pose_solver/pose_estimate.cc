@@ -3,8 +3,12 @@
 #include "branch/GetPos.hpp"
 #include "sampling.hpp"
 #include "CarModule.hpp"
+<<<<<<< HEAD
 #include "include/Viewer.h"
 #include "include/ba_g2o.hpp"
+=======
+#include "BundleAdjust.hpp"
+>>>>>>> 9eb986808903e962185a5c785d614f211d8063a0
 #include <thread>
 #include <mutex>
 
