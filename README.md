@@ -11,3 +11,5 @@ Positioning using fixed camera and calibrated map.
 > * 2020.2.26 修改
 >> * 修改了装甲板匹配算法ArmorPlate.hpp, 加入了两个点的角度计算，重新设置了比例以及角度阈值(ANGLE_THRESH),但是还是会有误判情况（比原来好了很多）（误判出现在视频后半段）
 >> * 修改了AimDeps.cc, 把装甲板结构体内的一个变量r_vec改为了Mat, 方便camera_map的操作
+> * 2020.2.27 & 2020.2.28 早上修改
+>> * 加入LightMatch敌方颜色更改，AimDeps.hpp整合了一些参数
