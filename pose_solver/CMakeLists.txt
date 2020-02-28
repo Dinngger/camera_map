@@ -26,9 +26,9 @@ else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
-find_package(OpenCV 4 REQUIRED)
+find_package(OpenCV 3 REQUIRED)
 if(NOT OpenCV_FOUND)
-   message(FATAL_ERROR "OpenCV > 4 not found.")
+   message(FATAL_ERROR "OpenCV > 3 not found.")
 endif()
 
 find_package(Eigen3 3 REQUIRED)
@@ -75,4 +75,6 @@ ${Pangolin_LIBRARIES}
 ${OpenCV_LIBS}
 ${G2O_LIBS}
 ${CHOLMOD_LIBRARIES}
+#this is only for hqy's computer with stupid anaconda.
+#/usr/lib/x86_64-linux-gnu/libtiff.so.5.2.4
 )
