@@ -13,26 +13,23 @@ int main(int argc, char* argv[])
     std::vector<aim_deps::Armor> tar_list(16);                  /// tar_list不再是match内部的成员，而是一个更高层的类的成员
     tar_list.clear();                                           /// 
     cv::VideoCapture cap("/mine/cv_output1.avi");
-    //CarModule module;
+    cv::Mat K = (cv::Mat_<double> (3, 3) << 1776.67168581218, 0, 720,
+                                            0, 1778.59375346543, 540,
+                                            0, 0, 1 );
+    //CarModule module(K);
     ArmorPlate amp;
     LightMatch match;
     cv::Mat frame, screen;
     GetPos pos_getter;                                          /// PNP解算模块
-    Viewer *viewer = new Viewer();
+    Viewer *viewer = new Viewer(K.at<double>(0, 0), K.at<double>(1, 1));
     std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
 
-    cv::Mat K = (cv::Mat_<double> (3, 3) << 1776.67168581218, 0, 720,
-                                            0, 1778.59375346543, 540,
-                                            0, 0, 1 );
-    std::vector<cv::Mat> armor3dpoints;
-    std::vector<cv::RotatedRect> result;                        ///这个与上面这一行原来就有，但是好像暂时没作用？
     double totalFrameNumber = cap.get(cv::CAP_PROP_FRAME_COUNT);
     std::vector<cv::Mat>  point_answer;
     std::cout<<"frame: -1"<<std::endl;
     std::cout<<totalFrameNumber<<std::endl;
 
     ///ArmorPlate中rMats与tMats的替代：
-
 
     int count = 0;
     for (int w = 0; w < totalFrameNumber; w++)
@@ -46,14 +43,14 @@ int main(int argc, char* argv[])
 
         ///原有的LightMatch中又一次对frame做了split
         ///在isLowExposure中做一次split后，单通道图像被保存在proced中（相当于原来的LightMatch的gray），不用再传入frame
-        match.findPossible();                         
+        match.findPossible();
 
         ///原有的ArmorPlate需要输入frame进行装甲板匹配判定，现在不需要了
         ///由于tar_list在外部，所以需要传入 
         amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
 
         //module.create_predict(count);
-        std::vector<LightBarP> light_bars;
+        //std::vector<LightBarP> light_bars;
         // TODO: add items into light_bars and do predict.
         // TODO: use armors failed to predict to areate new car module.
         //bundleAdjustment(light_bars, module, K);

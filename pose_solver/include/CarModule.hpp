@@ -24,7 +24,6 @@
 using namespace Eigen;
 using namespace std;
 using namespace cv;
-typedef g2o::BlockSolver<g2o::BlockSolverTraits<6,3>> Block63;  // pose 维度为 6, landmark 维度为 3
 
 // p[0] is the upper point.
 struct LightBar
@@ -40,44 +39,47 @@ struct LightBarP
 };
 
 // lb[0] was the first light bar to be seen.
-class Car
+struct Car
 {
-private:
-    Block63::LinearSolverType* linearSolver;
-    Block63* solver_ptr;
-    g2o::OptimizationAlgorithmLevenberg* solver;
-    g2o::SparseOptimizer optimizer;
-    g2o::VertexSE3Expmap* pose;
-public:
     int color=-1;
     int number=-1; // -1 means unknow
     LightBar lbs[8];
-
-    Car(Mat &K);
-    void bundleAdjustment(const std::vector<LightBarP> &light_bars);
 };
 
-Car::Car(Mat &K)
+class CarModule
 {
+private:
+    double module_time;
+    vector<LightBarP> predict2d;
+    Mat K;
+
+public:
+    CarModule(const Mat &K) {this->K = K;}
+    vector<Car> cars;
+    int add_car(const vector<Point3f> &armor);
+    int create_predict(double time);
+    int find_light(LightBarP &lbp);
+    int bundleAdjustment(const vector<LightBarP> &light_bars);
+};
+
+int CarModule::bundleAdjustment(const vector<LightBarP> &light_bars)
+{
+    typedef g2o::BlockSolver<g2o::BlockSolverTraits<6,3>> Block63;  // pose 维度为 6, landmark 维度为 3
     // 创建一个线性求解器LinearSolver
-    linearSolver = new g2o::LinearSolverCSparse<Block63::PoseMatrixType>();
+    Block63::LinearSolverType* linearSolver = new g2o::LinearSolverCSparse<Block63::PoseMatrixType>();
 
     // 创建BlockSolver。并用上面定义的线性求解器初始化
-    solver_ptr = new Block63 (  std::unique_ptr<Block63::LinearSolverType>(linearSolver) );
+    Block63* solver_ptr = new Block63 (  std::unique_ptr<Block63::LinearSolverType>(linearSolver) );
 
     // 创建总求解器solver。并从GN, LM, DogLeg 中选一个，再用上述块求解器BlockSolver初始化
-    solver = new g2o::OptimizationAlgorithmLevenberg ( std::unique_ptr<Block63>(solver_ptr) );
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg ( std::unique_ptr<Block63>(solver_ptr) );
 
+    g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(solver);
 
     // 定义图的顶点和边。并添加到SparseOptimizer中
-    pose = new g2o::VertexSE3Expmap();//初始位姿为单位矩阵
-    // Eigen::Matrix3d R;//默认是单位矩阵
-    // R <<1,0,0,0,1,0,0,0,1;
+/*    g2o::VertexSE3Expmap* pose = new g2o::VertexSE3Expmap();//初始位姿为单位矩阵
     pose->setId (0);
-    //  pose->setEstimate ( g2o::SE3Quat (R,Eigen::Vector3d ( 0,0,1 ) ) );//这是不对的
-
-    // pose->setEstimate ( g2o::SE3Quat (R,Eigen::Vector3d ( 0,0,0 ) ) );//这是对的
     pose->setEstimate ( g2o::SE3Quat() );
     optimizer.addVertex ( pose);
 
@@ -86,14 +88,12 @@ Car::Car(Mat &K)
             K.at<double> ( 0,0 ), Eigen::Vector2d ( K.at<double> ( 0,2 ), K.at<double> ( 1,2 ) ), 0);
     camera->setId(0);
     optimizer.addParameter ( camera );
-}
 
-void Car::bundleAdjustment (const std::vector<LightBarP> &light_bars)
-{
+
     int index=1;
     for(const LightBarP lbp:light_bars)
     {
-        LightBar lb = lbs[lbp.lb_id];
+        LightBar lb = cars[lbp.car_id].lbs[lbp.lb_id];
         for (int i=0; i<2; i++) {
             g2o::VertexSBAPointXYZ* point = new g2o::VertexSBAPointXYZ();
             point->setId(index);
@@ -121,28 +121,13 @@ void Car::bundleAdjustment (const std::vector<LightBarP> &light_bars)
 
     // 输出优化结果
     cout<<endl<<"after optimization:"<<endl;
-    cout<<"T="<<endl<<Eigen::Isometry3d ( pose->estimate() ).matrix() <<endl;
+    cout<<"T="<<endl<<Eigen::Isometry3d ( pose->estimate() ).matrix() <<endl;*/
+    return 0;
 }
-
-class CarModule
-{
-private:
-    double module_time;
-    vector<LightBarP> predict2d;
-    Mat K;
-
-public:
-    CarModule() {}
-    vector<Car> cars;
-    int add_car(const vector<Point3f> &armor);
-    int create_predict(double time);
-    int find_light(LightBarP &lbp);
-    void setK(const Mat &K) {this->K = K;}
-};
 
 int CarModule::add_car(const vector<Point3f> &armor)
 {
-    Car c(K);
+    Car c;
 
     double x1,x2,y1,y2;
     x1=armor[0].x;

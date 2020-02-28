@@ -4,19 +4,20 @@
 #include <unistd.h>
 #include <mutex>
 
-Viewer::Viewer():
+Viewer::Viewer(double fu, double fv, int w, int h):
     mbFinishRequested(false),
     mbFinished(true),
     mbStopped(true),
-    mbStopRequested(false)
+    mbStopRequested(false),
+    w(w),
+    h(h),
+    fu(fu),
+    fv(fv)
 {
     float fps = 30;
     if(fps<1)
         fps=30;
     mT = 1e3/fps;
-
-    mImageWidth = 640;
-    mImageHeight = 480;
 }
 
 void Viewer::clear()
@@ -44,9 +45,8 @@ void Viewer::Run()
 
 
     // Define Camera Render Object (for view / scene browsing)
-    // TODO: change to use the outer K
     pangolin::OpenGlRenderState s_cam(
-                pangolin::ProjectionMatrix(1024,768,1776.67168581218,1778.59375346543,512,389,0.1,1000),
+                pangolin::ProjectionMatrix(w,h,fu,fv,w/2,h/2,0.1,1000),
                 pangolin::ModelViewLookAt(0,0,0, 0,0,1, 0.0,-1.0,0.0)
                 );
 
