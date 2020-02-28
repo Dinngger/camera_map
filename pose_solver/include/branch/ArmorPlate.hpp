@@ -14,7 +14,6 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include "../universal/AimDeps.cc"
-#define ANGLE_THRESH        10.0             //装甲板灯条角度差阈值(12.0)
 #define ARMORPLATE_DEBUG 
 #ifdef ARMORPLATE_DEBUG
     #define amp_debug printf
@@ -22,20 +21,9 @@
     #define amp_debug(...)
 #endif
 
-#define TEST_ARMOR_MODE_ACCURATE            //如果需要大阈值，则注释此行
-#ifdef TEST_ARMOR_MODE_ACCURATE
-    #define OPS_RATIO_HEIGHT 9.0          //对边宽比例
-    #define OPS_RATIO_WIDTH 1.44            //对边长比例
-    #define NEAR_RATIO 9.0                  //邻边装甲板比例
-#else
-    #define OPS_RATIO_HEIGHT 16.0           //对边宽比例
-    #define OPS_RATIO_WIDTH 4.0             //对边长比例
-    #define NEAR_RATIO 25.0                 //邻边装甲板比例
-#endif
-
 class ArmorPlate{
 public:
-    ArmorPlate();
+    ArmorPlate();         
     ~ArmorPlate();
 public:
 
@@ -81,15 +69,16 @@ private:
     bool isAngleMatch();                       
     /** 获得两个点对应直线（灯条的简化表征）的角度 */
     inline static float getAngle(const cv::Point2f p1, const cv::Point2f p2);
-    inline static float angleDiff(const cv::RotatedRect r1, const cv::RotatedRect r2);//求两灯条的角度差
     inline static float getPointDist(const cv::Point2f p1, const cv::Point2f p2);          //返回两点距离的平方
 private:
-    cv::Point2f points[4];                                              //装甲板点列的临时容器
+    bool _is_enemy_blue;                                                //敌人颜色
     float _average_ang;                                                 //计算的平局角度储存在这里
+    cv::Point2f points[4];                                              //装甲板点列的临时容器
+    aim_deps::Distance_Params params;                                   //装甲板匹配参数
 };
 
 ArmorPlate::ArmorPlate(){
-    for(int i=0;i<4;++i) points[i] = aim_deps::NULLPOINT2f;
+    for(int i=0; i<4 ;++i) points[i] = aim_deps::NULLPOINT2f;
     _average_ang = 0.0;
 }
 
@@ -109,14 +98,7 @@ void ArmorPlate::matchAll(
             amp_debug("\033[32mMatched:(%d), with matches(%d, %d).\n\033[0m", i, matches[i].x, matches[i].y);
         }
     }
-    filter(tar_list);
-    //=============debug:计算出最后有多少个valid的装甲板==================
-    #ifdef DEBUG
-    int _cnt = 0;
-    for(int i=0;i<tar_list.size();++i){
-        if(tar_list[i].valid) ++_cnt;
-    }
-    #endif
+    filter(tar_list);                   //过滤无效装甲板
     //amp_debug("Target list size(%d), valid size(%d).\n", tar_list.size(), _cnt);
 }
 
@@ -217,7 +199,7 @@ bool ArmorPlate::getArmorPlate(cv::RotatedRect r1, cv::RotatedRect r2){
 bool ArmorPlate::isRatioValid(){                    //对边中点连线的长度平方比值是否合适
     float len1 = getPointDist((points[0]+points[1])/2, (points[2]+points[3])/2),
          len2 = getPointDist((points[0]+points[3])/2, (points[1]+points[2])/2);
-    return (len1/len2 < NEAR_RATIO && len1/len2 > 1.0/NEAR_RATIO);
+    return (len1/len2 < params.NEAR_RATIO && len1/len2 > 1.0/params.NEAR_RATIO);
 }
 
 //从最左上角开始的点，逆时针方向标号是0,1,2,3
@@ -226,10 +208,10 @@ bool ArmorPlate::isEdgesValid(){  //对边长度平方比值是否合适
     for(int i = 0; i<4;++i){
         edges[i]=getPointDist(points[i], points[(i+1)%4]);
     }
-    bool judge1 = (edges[0]/edges[2] < OPS_RATIO_HEIGHT &&
-        edges[0]/edges[2] > 1.0 / OPS_RATIO_HEIGHT),     //宽对边比值范围大
-        judge2 = (edges[1]/edges[3] < OPS_RATIO_WIDTH &&
-        edges[1]/edges[3] > 1.0 / OPS_RATIO_WIDTH);   //长对边比值范围小
+    bool judge1 = (edges[0]/edges[2] < params.OPS_RATIO_HEIGHT &&
+        edges[0]/edges[2] > 1.0 / params.OPS_RATIO_HEIGHT),     //宽对边比值范围大
+        judge2 = (edges[1]/edges[3] < params.OPS_RATIO_WIDTH &&
+        edges[1]/edges[3] > 1.0 / params.OPS_RATIO_WIDTH);   //长对边比值范围小
     amp_debug("\033[30;47mJudge:(%d, %d)\n\033[0m", judge1, judge2);
     return judge1 && judge2;
 }
@@ -240,7 +222,7 @@ bool ArmorPlate::isAngleMatch(){
     // |1        2|
     float ang1 = getAngle(points[0], points[1]),
         ang2 = getAngle(points[3], points[2]);      
-    if (abs(ang1-ang2) < ANGLE_THRESH){
+    if (abs(ang1-ang2) < params.ANGLE_THRESH){
         _average_ang = (ang1 + ang2)/2;
         return true;
     }
@@ -253,12 +235,6 @@ float ArmorPlate::getAngle(const cv::Point2f p1, const cv::Point2f p2){
     ang =  atan2f(dx, dy) * aim_deps::RAD2DEG;
     amp_debug("Angle for this light: %f\n", ang);
     return ang;
-}
-
-float ArmorPlate::angleDiff(const cv::RotatedRect r1, const cv::RotatedRect r2){
-    float ang1 = r1.size.width > r1.size.height ? r1.angle : -r1.angle - 90;
-	float ang2 = r2.size.width > r2.size.height ? r2.angle : -r2.angle - 90;
-    return abs(ang1-ang2);
 }
 
 float ArmorPlate::getPointDist(const cv::Point2f p1, const cv::Point2f p2){

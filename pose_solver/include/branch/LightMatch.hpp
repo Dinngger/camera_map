@@ -23,17 +23,17 @@ last date of modification:2020.1.16 22:30
 #include <vector>
 #include <cmath>
 #include "universal/AimDeps.cc"
-#define PARAM1 8.0
-#define PARAM2 4.8
 
 class LightMatch{
 public:
     LightMatch();
     ~LightMatch();
+	void setEnemyColor(const bool _enemy_blue = false);					//重新设置敌人的颜色
 	void findPossible();											//找到图上所有可能的灯条
 	void drawLights(cv::Mat &src);									//绘制灯条
 	bool lowExposure(cv::Mat src);									//图像预处理
 public:
+	bool enemy_blue;												//敌人是否是蓝色的
 	bool low_exposure;												//曝光率设置flag
 	std::vector<aim_deps::Light> possibles;									//预选区集合
 
@@ -47,18 +47,35 @@ private:
 		const std::vector<cv::Point2f> &trapezoid);					//点集是否能被梯形包围
 	static float getDistance(cv::Point p1, cv::Point p2);			//图像两点间距离
 private:	
+	//=================颜色参数==========================//
+	int thresh_low;													//二值化阈值
+	int thresh_high;												//二值化阈值
+	//==================================================//
 	float mean_val;													//均值
 	cv::Mat proced;
 	std::vector<std::vector<cv::Point2f>> trapezoids;				//灯条梯形集合
 };
 
 LightMatch::LightMatch(){
-	mean_val = 40.0;
-	low_exposure = false;
+	low_exposure 	= false;
+	mean_val 		= aim_deps::LIGHT_mean;
+	setEnemyColor(true);											//初始设置敌人颜色
 }
 
 LightMatch::~LightMatch(){
 	;
+}
+
+void LightMatch::setEnemyColor(const bool _enemy_blue){
+	enemy_blue = _enemy_blue;
+	if(enemy_blue){								//设置颜色阈值
+		thresh_low = aim_deps::light_params.blue_thresh_low;
+		thresh_high = aim_deps::light_params.blue_thresh_high;	
+	}
+	else{
+		thresh_low = aim_deps::light_params.red_thresh_low;
+		thresh_high = aim_deps::light_params.red_thresh_high;
+	}
 }
 
 void LightMatch::reset(){
@@ -70,7 +87,7 @@ void LightMatch::reset(){
 void LightMatch::findPossible(){								//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
 	reset();
 	cv::Mat binary;
-	cv::threshold(proced, binary, 120, 250, CV_THRESH_BINARY);		///THRESHOLD修改
+	cv::threshold(proced, binary, thresh_low, thresh_high, CV_THRESH_BINARY);		///THRESHOLD修改
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
 	for (int i = 0, _cnt = 0; i < contours.size(); ++i) {
@@ -94,7 +111,8 @@ bool LightMatch::lowExposure(cv::Mat src){
 	cv::Scalar mean_values;
 	cv::Mat channels[3];
 	cv::split(src, channels);
-	proced = channels[0];										//取出蓝色通道
+	if(enemy_blue) proced = channels[0];						//取出蓝色通道
+	else proced = channels[2];									//取出红色通道
 	mean_values=cv::mean(proced);
 	bool res=mean_values.val[0]< mean_val;
 	mean_val=mean_val*0.9 + 0.1*mean_values.val[0];				//自适应时间
@@ -140,17 +158,18 @@ void LightMatch::getTrapezoids(cv::Point2f corners[4]){
 	midpoints[0] = (corners[i0] + corners[i0 + 1]) / 2;			//获得旋转矩形两条长上的中点
 	midpoints[1] = (corners[i0 + 2] + corners[(i0 + 3) % 4]) / 2;
 	cv::Point2f vertical_vector = (midpoints[1]) - (midpoints[0]);	//获得垂直长方向的方向向量
-	vertical_vector = (i0 == 0 ? d1 : d2) * PARAM1 * vertical_vector / sqrt(vertical_vector.x*vertical_vector.x + vertical_vector.y*vertical_vector.y);
+	vertical_vector = (i0 == 0 ? d1 : d2) * aim_deps::LIGHT_PARAM1 * vertical_vector /
+		sqrt(vertical_vector.x*vertical_vector.x + vertical_vector.y*vertical_vector.y);
 	direction_vectors[0] = corners[i0 + 1] - corners[i0];
 	direction_vectors[1] = corners[(i0 + 3) % 4] - corners[i0 + 2];
 	left_trapezoid.emplace_back(corners[i0]);
 	left_trapezoid.emplace_back(corners[i0 + 1]);
-	left_trapezoid.emplace_back(midpoints[0] - vertical_vector + PARAM2 * direction_vectors[0]);
-	left_trapezoid.emplace_back(midpoints[0] - vertical_vector - PARAM2 * direction_vectors[0]);
+	left_trapezoid.emplace_back(midpoints[0] - vertical_vector + aim_deps::LIGHT_PARAM2 * direction_vectors[0]);
+	left_trapezoid.emplace_back(midpoints[0] - vertical_vector - aim_deps::LIGHT_PARAM2 * direction_vectors[0]);
 	right_trapezoid.emplace_back(corners[i0 + 2]);
 	right_trapezoid.emplace_back(corners[(i0 + 3) % 4]);
-	right_trapezoid.emplace_back(midpoints[1] + vertical_vector + PARAM2 * direction_vectors[1]);
-	right_trapezoid.emplace_back(midpoints[1] + vertical_vector - PARAM2 * direction_vectors[1]);
+	right_trapezoid.emplace_back(midpoints[1] + vertical_vector + aim_deps::LIGHT_PARAM2 * direction_vectors[1]);
+	right_trapezoid.emplace_back(midpoints[1] + vertical_vector - aim_deps::LIGHT_PARAM2 * direction_vectors[1]);
 	trapezoids.emplace_back(left_trapezoid);						//灯条左右两边将会拓展出两个梯形
 	trapezoids.emplace_back(right_trapezoid);
 }
