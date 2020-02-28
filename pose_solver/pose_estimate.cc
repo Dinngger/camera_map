@@ -4,7 +4,7 @@
 #include "sampling.hpp"
 #include "CarModule.hpp"
 #include "include/Viewer.h"
-#include "include/ba_g2o.hpp"
+//#include "include/ba_g2o.hpp"
 #include <thread>
 #include <mutex>
 
@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
     std::vector<aim_deps::Armor> tar_list(16);                  /// tar_list不再是match内部的成员，而是一个更高层的类的成员
     tar_list.clear();                                           /// 
     cv::VideoCapture cap("/mine/cv_output1.avi");
-    CarModule module;
+    //CarModule module;
     ArmorPlate amp;
     LightMatch match;
     cv::Mat frame, screen;
@@ -53,11 +53,11 @@ int main(int argc, char* argv[])
         ///由于tar_list在外部，所以需要传入 
         amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
 
-        module.create_predict(count);
+        //module.create_predict(count);
         std::vector<LightBarP> light_bars;
         // TODO: add items into light_bars and do predict.
         // TODO: use armors failed to predict to areate new car module.
-        bundleAdjustment(light_bars, module, K);
+        //bundleAdjustment(light_bars, module, K);
 
         // TODO: change to use the module to draw.
         ///注意这个地方：amp在我写的模块里没有rMats和tMats这两个成员，（原来PNP解算是在类内部，这样不方便）

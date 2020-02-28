@@ -26,7 +26,6 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <vector>
-#include <deque>
 #include "GimbalCtrl.hpp"
 #include "AimDeps.cc"
 #define _HALF_LENGTH 65.00			
@@ -53,7 +52,7 @@ public:
 	float getPitchRotation();						//实际偏移
 	float getYawRotation();							//实际偏移
 	void batchProcess(std::vector<aim_deps::Armor> &tar_list);	//批量solvePNP（但是不解算弹道）
-	void positionScore(aim_deps::Armor &tar);		//距离分数和旋转分数计算
+	void positionScore(aim_deps::Armor &tar);		//距离分数和旋转分数计算	
 
 	/**
 	 * @brief 从tar_list中获取rMats与tMats
@@ -169,7 +168,7 @@ void GetPos::positionScore(aim_deps::Armor &tar){
 		cv::OutputArray(rVec), cv::OutputArray(tVec),
 		false, cv::SOLVEPNP_ITERATIVE);
 	tar.t_vec = cv::Point3f(tVec.at<double>(0), tVec.at<double>(1), tVec.at<double>(2));
-	tar.r_vec = cv::Point3f(rVec.at<double>(0), rVec.at<double>(1), rVec.at<double>(2));
+	tar.r_vec = rVec.clone();
 }
 
 void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> tmats, 
@@ -178,19 +177,15 @@ void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> tmats,
 	rmats.clear();
 	tmats.clear();
 	for(int i = 0; i< tar_list.size(); ++i){
-		cv::Mat rVec(3, 1, CV_64F), tVec(3, 1, CV_64F);		
+		cv::Mat vecr(3, 1, CV_64F), vect(3, 1, CV_64F);		
 		/// cv::Point3f到cv::Mat
-		rVec.at<double>(0) = (double)tar_list[i].r_vec.x;
-		rVec.at<double>(1) = (double)tar_list[i].r_vec.y;
-		rVec.at<double>(2) = (double)tar_list[i].r_vec.z;
-		tVec.at<double>(0) = (double)tar_list[i].t_vec.x;
-		tVec.at<double>(1) = (double)tar_list[i].t_vec.y;
-		tVec.at<double>(2) = (double)tar_list[i].t_vec.z;
+		vect.at<double>(0) = (double)tar_list[i].t_vec.x;
+		vect.at<double>(1) = (double)tar_list[i].t_vec.y;
+		vect.at<double>(2) = (double)tar_list[i].t_vec.z;
 		cv::Mat rtmp;
-		cv::Rodrigues(rVec, rtmp);
+		cv::Rodrigues(tar_list[i].r_vec, rtmp);
 		rmats.emplace_back(rtmp);
 		tmats.emplace_back(tVec);
 	}
 }
-
 #endif //_GET_POS_HPP
