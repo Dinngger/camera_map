@@ -31,7 +31,7 @@ public:
 	void setEnemyColor(const bool _enemy_blue = false);					//重新设置敌人的颜色
 	void findPossible();											//找到图上所有可能的灯条
 	void drawLights(cv::Mat &src);									//绘制灯条
-	bool lowExposure(cv::Mat src);									//图像预处理
+	bool saveImg(cv::Mat src);									//图像预处理
 public:
 	bool enemy_blue;												//敌人是否是蓝色的
 	bool low_exposure;												//曝光率设置flag
@@ -106,17 +106,11 @@ void LightMatch::findPossible(){								//找出所有可能灯条，使用梯�
 	getRealLight(possibles.size());
 }
 
-bool LightMatch::lowExposure(cv::Mat src){
-	low_exposure = !low_exposure;								//2帧低曝光，1帧高曝光
-	cv::Scalar mean_values;
+bool LightMatch::saveImg(cv::Mat src){
 	cv::Mat channels[3];
 	cv::split(src, channels);
 	if(enemy_blue) proced = channels[0];						//取出蓝色通道
-	else proced = channels[2];									//取出红色通道
-	mean_values=cv::mean(proced);
-	bool res=mean_values.val[0]< mean_val;
-	mean_val=mean_val*0.9 + 0.1*mean_values.val[0];				//自适应时间
-	return res;			
+	else proced = channels[2];									//取出红色通道	
 }
 
 void LightMatch::getRealLight(int size){

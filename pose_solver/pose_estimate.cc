@@ -2,7 +2,7 @@
 #include "ArmorPlate.hpp"
 #include "GetPos.hpp"
 #include "sampling.hpp"
-#include "CarModule.hpp"
+//#include "CarModule.hpp"
 #include "Viewer.h"
 #include <thread>
 #include <mutex>
@@ -46,6 +46,7 @@ int main(int argc, char* argv[])
 
         ///原有的LightMatch中又一次对frame做了split
         ///在isLowExposure中做一次split后，单通道图像被保存在proced中（相当于原来的LightMatch的gray），不用再传入frame
+        match.saveImg(frame);
         match.findPossible();                         
 
         ///原有的ArmorPlate需要输入frame进行装甲板匹配判定，现在不需要了
