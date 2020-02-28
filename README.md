@@ -13,3 +13,5 @@ Positioning using fixed camera and calibrated map.
 >> * 修改了AimDeps.cc, 把装甲板结构体内的一个变量r_vec改为了Mat, 方便camera_map的操作
 > * 2020.2.27 & 2020.2.28 早上修改
 >> * 加入LightMatch敌方颜色更改，AimDeps.hpp整合了一些参数
+> * 2020.2.28 修改
+>> * pose_solver 删除了没用的代码
