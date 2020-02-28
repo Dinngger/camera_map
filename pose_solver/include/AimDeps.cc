@@ -6,9 +6,8 @@
  * 
 */
 
-
-#ifndef AIM_DEPS_CC
-#define AIM_DEPS_CC
+#ifndef __AIM_DEPS_CC
+#define __AIM_DEPS_CC
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
@@ -121,14 +120,15 @@ struct Light_Params{
     const int blue_exp_long     = 7000;         //曝光时间(长曝光)
     const int blue_r_balance     = 3600;         //白平衡（红色通道）
     const int blue_b_balance     = 0;            //白平衡（蓝色通道）
-}light_params;
+} light_params;
 
 struct Distance_Params{
     const float OPS_RATIO_HEIGHT    = 9.0;      //对边宽比例
     const float OPS_RATIO_WIDTH     = 1.44;     //对边长比例
     const float NEAR_RATIO          = 9.0;      //邻边装甲板比例
     const float ANGLE_THRESH        = 10.0;     //角度差阈值
-}distance_params;
+} distance_params;
 
 }   //namespace aim_deps
-#endif //AIM_DEPS_CC
+
+#endif //__AIM_DEPS_CC

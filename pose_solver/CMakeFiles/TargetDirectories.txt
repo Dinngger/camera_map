@@ -1,3 +1,0 @@
-/home/sentinel/camera_map/pose_solver/CMakeFiles/edit_cache.dir
-/home/sentinel/camera_map/pose_solver/CMakeFiles/GrabOpenCV.dir
-/home/sentinel/camera_map/pose_solver/CMakeFiles/rebuild_cache.dir
