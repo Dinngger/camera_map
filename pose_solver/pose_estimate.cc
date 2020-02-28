@@ -4,7 +4,7 @@
 #include "sampling.hpp"
 #include "CarModule.hpp"
 #include "include/Viewer.h"
-#include "BundleAdjust.hpp"
+//#include "BundleAdjust.hpp"
 //#include "include/ba_g2o.hpp"
 #include <thread>
 #include <mutex>
