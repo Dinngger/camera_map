@@ -26,12 +26,12 @@ else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
-find_package(OpenCV 4.2.0 REQUIRED)
+find_package(OpenCV 3.3.1 REQUIRED)
 if(NOT OpenCV_FOUND)
    message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
 endif()
 
-find_package(Eigen3 3.1.0 REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(Pangolin REQUIRED)
 # message(STATUS ${EIGEN3_INCLUDE_DIRS})
 
@@ -69,4 +69,6 @@ ${Pangolin_LIBRARIES}
 ${OpenCV_LIBS}
 ${G2O_LIBS}
 ${CHOLMOD_LIBRARIES}
+#this is only for hqy's computer with stupid anaconda.
+#/usr/lib/x86_64-linux-gnu/libtiff.so.5.2.4
 )
