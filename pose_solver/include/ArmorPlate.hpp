@@ -14,10 +14,10 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include "AimDeps.cc"
-
-// #define ARMORPLATE_DEBUG 
+#include "LOG.hpp"
+//#define ARMORPLATE_DEBUG 
 #ifdef ARMORPLATE_DEBUG
-    #define amp_debug printf
+    #define amp_debug rmlog::LOG::printc        //彩色输出
 #else
     #define amp_debug(...)
 #endif
@@ -96,7 +96,7 @@ void ArmorPlate::matchAll(
         if(isMatch(lights[matches[i].x],lights[matches[i].y])){
             tar_list.emplace_back(aim_deps::Armor(points, 0, lights[matches[i].x], lights[matches[i].y]));
             tar_list.back().ang_aver = abs(_average_ang);            //给新push的元素的平均灯条角度赋值
-            amp_debug("\033[32mMatched:(%d), with matches(%d, %d).\n\033[0m", i, matches[i].x, matches[i].y);
+            amp_debug(rmlog::F_GREEN, "Matched:(", i, "), with matches(", matches[i].x, ", ", matches[i].y,")");
         }
     }
     filter(tar_list);                   //过滤无效装甲板
@@ -112,15 +112,15 @@ bool ArmorPlate::isMatch(aim_deps::Light l1, aim_deps::Light l2)
         judge = getArmorPlate(l2.box, l1.box);                  //始终保持第一个入参是x轴坐标小的灯条
     if(!judge) return false;
     if(!isAngleMatch()){
-        amp_debug("\033[31mAngle dismatch.(%d, %d).\n\033[0m", l1.index, l2.index);
+        amp_debug(rmlog::F_RED, "Angle mismatch:(", l1.index, ", ", l2.index, ")");
         return false;
     }
     if(isRatioValid() && isEdgesValid()){
-        amp_debug("\033[33mPushed in.(%d, %d).\n\033[0m", l1.index, l2.index);
+        amp_debug(rmlog::F_BLUE, "Push in:(", l1.index, ", ", l2.index, ")");
         return true;
     }
     else{
-        amp_debug("\033[31mRatio dismatch.(%d, %d).\n\033[0m", l1.index, l2.index);
+        amp_debug(rmlog::F_RED, "Ratio mismatch:(", l1.index, ", ", l2.index, ")");
     }
     return false;
 }
@@ -182,7 +182,7 @@ void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list){
                         tar_list[i].ang_aver > tar_list[j].ang_aver ?       //灯条平均角度大的被过滤掉
                             tar_list[i].valid = false :
                             tar_list[j].valid = false;
-                        amp_debug("\033[34mOne false Armorplate is filtered.\n\033[0m");
+                        amp_debug(rmlog::F_BLUE, "One false armorplate is filtered.");
                     }
                 }
             }
@@ -213,7 +213,6 @@ bool ArmorPlate::isEdgesValid(){  //对边长度平方比值是否合适
         edges[0]/edges[2] > 1.0 / params.OPS_RATIO_HEIGHT),     //宽对边比值范围大
         judge2 = (edges[1]/edges[3] < params.OPS_RATIO_WIDTH &&
         edges[1]/edges[3] > 1.0 / params.OPS_RATIO_WIDTH);   //长对边比值范围小
-    amp_debug("\033[30;47mJudge:(%d, %d)\n\033[0m", judge1, judge2);
     return judge1 && judge2;
 }
 
@@ -234,7 +233,7 @@ float ArmorPlate::getAngle(const cv::Point2f p1, const cv::Point2f p2){
     //默认是p1是处于上方的点，p2是处于下方的点
     float dy = p2.y - p1.y, dx = p2.x - p1.x, ang = 0.0;
     ang =  atan2f(dx, dy) * aim_deps::RAD2DEG;
-    amp_debug("Angle for this light: %f\n", ang);
+    //amp_debug(rmlog::F_WHITE, "Angle for this light: ", ang);
     return ang;
 }
 
