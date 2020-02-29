@@ -61,14 +61,14 @@ void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws)
 
     //计算每帧到已知装甲板的变换矩阵
     mArmorPoses.clear();
-    for(int i=0;i<Tcws.size();i++){
+    for(size_t i=0; i<Tcws.size(); i++){
         mArmorPoses.push_back(Tcws[i].clone());
     }
 }
 
 void Drawer::GetCurrentOpenGLCameraMatrix(std::vector<pangolin::OpenGlMatrix> &Ms)
 {
-    for (int i=0; i<mArmorPoses.size(); i++) {
+    for (size_t i=0; i<mArmorPoses.size(); i++) {
         pangolin::OpenGlMatrix M;
         std::unique_lock<std::mutex> lock(mMutexCamera);
 

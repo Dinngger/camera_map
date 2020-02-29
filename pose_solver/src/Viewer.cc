@@ -5,14 +5,14 @@
 #include <mutex>
 
 Viewer::Viewer(double fu, double fv, int w, int h):
-    mbFinishRequested(false),
-    mbFinished(true),
-    mbStopped(true),
-    mbStopRequested(false),
     w(w),
     h(h),
     fu(fu),
-    fv(fv)
+    fv(fv),
+    mbFinishRequested(false),
+    mbFinished(true),
+    mbStopped(true),
+    mbStopRequested(false)
 {
     float fps = 30;
     if(fps<1)
@@ -67,7 +67,7 @@ void Viewer::Run()
         d_cam.Activate(s_cam);
         glClearColor(1.0f,1.0f,1.0f,1.0f);
         //std::cout << "Twcs.size(): " << Twcs.size() <<std::endl;
-        for(int i=0;i<Twcs.size();i++){
+        for(size_t i=0;i<Twcs.size();i++){
             mDrawer.DrawCurrentCamera(Twcs[i]);
         }
         pangolin::FinishFrame();

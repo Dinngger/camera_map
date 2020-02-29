@@ -73,7 +73,7 @@ struct Armor
     Light right_light;
     Armor(){}                                       //default
     Armor(cv::Point2f _pts[4], int _num, Light _l, Light _r):
-    armor_number(_num), left_light(_l), right_light(_r), valid(true)
+     valid(true), ang_aver(0), armor_number(_num), left_light(_l), right_light(_r)
     {
         for(int i=0; i<4;++i) vertex[i]=_pts[i];							//copy by points
         center = (_pts[0]+_pts[1]+_pts[2]+_pts[3])/4;			//calc center(maybe useless)

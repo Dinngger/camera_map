@@ -12,8 +12,8 @@ int main(int argc, char* argv[])
 {
     std::vector<aim_deps::Armor> tar_list(16);                  /// tar_list不再是match内部的成员，而是一个更高层的类的成员
     tar_list.clear();                                           /// 
-    cv::VideoCapture cap("cv_output1.avi");
-    if(!cap.isOpened()){
+    cv::VideoCapture cap("/mine/cv_output1.avi");
+    if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
     }
@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 
     double totalFrameNumber = cap.get(cv::CAP_PROP_FRAME_COUNT);
     std::vector<cv::Mat>  point_answer;
-    std::cout<<"frame: -1"<<std::endl;
+    std::cout<<"frame: ";
     std::cout<<totalFrameNumber<<std::endl;
 
     int count = 0;
@@ -57,20 +57,20 @@ int main(int argc, char* argv[])
         for (aim_deps::Light light : match.possibles) {
             LightBarP lbp(light.box);
             if (module.find_light(lbp))
-                light_bars.emplace_back(lbp);
+                light_bars.push_back(lbp);
             else {
-                // TODO: use armors failed to predict to areate new car module.
+                // TODO: use armors failed predict to areate new car module.
                 ;
             }
         }
-        //bundleAdjustment(light_bars, module, K);
+        module.bundleAdjustment(light_bars);
 
         // TODO: change to use the module to draw.
         std::vector<cv::Mat> rMats;
         std::vector<cv::Mat> tMats;
         std::vector<cv::Mat> Twcs;
         pos_getter.packUp(rMats, tMats, tar_list);      ///取得rMats, tMats(内部clear这两个Mat容器)
-        for(int i=0; i<rMats.size(); i++){
+        for(size_t i=0; i<rMats.size(); i++){
             cv::Mat temp =(cv::Mat_<double>(1,4)<<0,0,0,1);
             cv::Mat temp2, Twc;
             cv::hconcat(rMats[i], tMats[i] / 1000, temp2);
@@ -88,6 +88,9 @@ int main(int argc, char* argv[])
             break;
 	}
 
+    viewer->RequestFinish();
 	cv::destroyAllWindows();
+    while (mpViewer->joinable())
+        mpViewer->join();
     return 0;
 }

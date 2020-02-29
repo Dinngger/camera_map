@@ -184,7 +184,7 @@ LOG::~LOG(){
         std::string tmp = (*msg_que.begin());
         out.open(tmp, std::ios::out);                       //第一个入队的是文件名
         msg_que.pop_back();
-        for(int i = 1; i < msg_que.size(); ++i){
+        for(size_t i = 1; i < msg_que.size(); ++i){
             out << msg_que[i];
         }
         out << "\n====================The end of the log file====================\n";

@@ -1,8 +1,7 @@
 # Find the header files
 
-find_path(G2O_INCLUDE_DIR g2o/core/base_vertex.h
-  /usr/local/include
-  )
+# only for dinger's computer. if can't find g2o, delete NO_DEFAULT_PATH 
+find_path(G2O_INCLUDE_DIR g2o/core/base_vertex.h PATHS /mine/g2o NO_DEFAULT_PATH)
 
 # Macro to unify finding both the debug and release versions of the
 # libraries; this is adapted from the OpenSceneGraph FIND_LIBRARY

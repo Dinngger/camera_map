@@ -45,7 +45,7 @@ public:
      * @param optimal 最优装甲板的位置(使用绿色绘制)
      */
     void drawArmorPlates(cv::Mat &src, 
-        const std::vector<aim_deps::Armor> tar_list, const int optimal);                                            //消息发布
+        const std::vector<aim_deps::Armor> tar_list, const unsigned int optimal);                                            //消息发布
 private:
     bool isRatioValid();                                                //中点连线（平方）的比是否合适
     bool isEdgesValid();                                                //两对边(平方)的比是否合适
@@ -92,7 +92,7 @@ void ArmorPlate::matchAll(
 )
 {
     tar_list.clear();
-    for( int i = 0 ; i<matches.size() ; ++i){
+    for(size_t i = 0 ; i<matches.size() ; ++i){
         if(isMatch(lights[matches[i].x],lights[matches[i].y])){
             tar_list.emplace_back(aim_deps::Armor(points, 0, lights[matches[i].x], lights[matches[i].y]));
             tar_list.back().ang_aver = abs(_average_ang);            //给新push的元素的平均灯条角度赋值
@@ -126,11 +126,11 @@ bool ArmorPlate::isMatch(aim_deps::Light l1, aim_deps::Light l2)
 }
 
 void ArmorPlate::drawArmorPlates(cv::Mat &src, 
-    const std::vector<aim_deps::Armor> tar_list, const int optimal){
+    const std::vector<aim_deps::Armor> tar_list, const unsigned int optimal){
 	char str[2];
     cv::line(src, cv::Point(720, 0), cv::Point(720, 1080), cv::Scalar(255, 0, 0));
 	cv::line(src, cv::Point(0, 540), cv::Point(1440, 540), cv::Scalar(255, 0, 0));
-    for (int i = 0; i< tar_list.size(); ++i) {
+    for (size_t i = 0; i< tar_list.size(); ++i) {
         if(tar_list[i].armor_number != -1 && tar_list[i].valid){   //有意义的数字
             if(i != optimal){       //非最佳装甲板使用黄色绘制
                 for (int j = 0; j < 4; ++j){
@@ -174,9 +174,9 @@ void ArmorPlate::getMidPoints(cv::RotatedRect rect, cv::Point2f &p1, cv::Point2f
 }
 
 void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list){
-    for(int i = 0; i<tar_list.size(); ++i){
+    for(size_t i = 0; i<tar_list.size(); ++i){
         if(tar_list[i].valid){
-            for(int j = i+1; j<tar_list.size(); ++j){
+            for(size_t j = i+1; j<tar_list.size(); ++j){
                 if(tar_list[j].valid){
                     if(tar_list[i] == tar_list[j]){                         //装甲板有共灯条冲突
                         tar_list[i].ang_aver > tar_list[j].ang_aver ?       //灯条平均角度大的被过滤掉
