@@ -152,6 +152,8 @@ public:
 
 int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars)
 {
+    if (cars.size() < 1)
+        return 0;
     std::vector<LightBarP> light_bars_car[cars.size()];
     for (LightBarP lbp : light_bars) {
         light_bars_car[lbp.car_id].push_back(lbp);
