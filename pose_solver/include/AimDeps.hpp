@@ -6,8 +6,8 @@
  * 
 */
 
-#ifndef __AIM_DEPS_CC
-#define __AIM_DEPS_CC
+#ifndef __AIM_DEPS_HPP
+#define __AIM_DEPS_HPP
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
@@ -131,4 +131,4 @@ struct Distance_Params{
 
 }   //namespace aim_deps
 
-#endif //__AIM_DEPS_CC
+#endif //__AIM_DEPS_HPP

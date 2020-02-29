@@ -13,7 +13,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
-#include "AimDeps.cc"
+#include "AimDeps.hpp"
 
 // #define ARMORPLATE_DEBUG 
 #ifdef ARMORPLATE_DEBUG

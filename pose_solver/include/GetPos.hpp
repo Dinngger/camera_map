@@ -27,7 +27,7 @@
 #include <iostream>
 #include <vector>
 #include "GimbalCtrl.hpp"
-#include "AimDeps.cc"
+#include "AimDeps.hpp"
 #define _HALF_LENGTH 65.00			
 #define _HALF_HEIGHT 28.50			
 #define PI 3.1415926535897

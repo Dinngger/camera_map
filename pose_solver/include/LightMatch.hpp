@@ -22,7 +22,7 @@ last date of modification:2020.1.16 22:30
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include "AimDeps.cc"
+#include "AimDeps.hpp"
 
 class LightMatch{
 public:

@@ -2,7 +2,7 @@
 #include "ArmorPlate.hpp"
 #include "GetPos.hpp"
 #include "sampling.hpp"
-//#include "CarModule.hpp"
+#include "CarModule.hpp"
 #include "Viewer.h"
 #include <thread>
 #include <mutex>
@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
     cv::Mat K = (cv::Mat_<double> (3, 3) << 1776.67168581218, 0, 720,
                                             0, 1778.59375346543, 540,
                                             0, 0, 1 );
-    //CarModule module(K);
+    CarModule module(K);
     ArmorPlate amp;
     LightMatch match;
     cv::Mat frame, screen;
@@ -49,11 +49,22 @@ int main(int argc, char* argv[])
         ///原有的ArmorPlate需要输入frame进行装甲板匹配判定，现在不需要了
         ///由于tar_list在外部，所以需要传入 
         amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
+        pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
-        //module.create_predict(count);
-        //std::vector<LightBarP> light_bars;
-        // TODO: add items into light_bars and do predict.
-        // TODO: use armors failed to predict to areate new car module.
+        //传入时间预测此时装甲版的平面位置
+        module.create_predict(count);
+        //观测到的灯条
+        std::vector<LightBarP> light_bars;
+        // add items into light_bars and do predict.
+        for (aim_deps::Light light : match.possibles) {
+            LightBarP lbp(light.box);
+            if (module.find_light(lbp))
+                light_bars.emplace_back(lbp);
+            else {
+                // TODO: use armors failed to predict to areate new car module.
+                ;
+            }
+        }
         //bundleAdjustment(light_bars, module, K);
 
         // TODO: change to use the module to draw.
@@ -64,7 +75,6 @@ int main(int argc, char* argv[])
         std::vector<cv::Mat> rMats;
         std::vector<cv::Mat> tMats;
         std::vector<cv::Mat> Twcs;
-        pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
         pos_getter.packUp(rMats, tMats, tar_list);      ///取得rMats, tMats(内部clear这两个Mat容器)
         std::cout << "test point2\n";
         std::cout << "rMats: " << rMats.size() << "\ntMats: " << tMats.size() << "\n";
