@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
     std::vector<aim_deps::Armor> tar_list(16);                  /// tar_list不再是match内部的成员，而是一个更高层的类的成员
     tar_list.clear();                                           /// 
     cv::VideoCapture cap("cv_output1.avi");
-    if(!cap.open()){
+    if(!cap.isOpened()){
         printf("Unable to open video.\n");
         return 0;
     }

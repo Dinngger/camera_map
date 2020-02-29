@@ -77,5 +77,5 @@ ${G2O_LIBS}
 ${CHOLMOD_LIBRARIES}
 
 #this is only for hqy's computer with stupid anaconda.
-#/usr/lib/x86_64-linux-gnu/libtiff.so.5.2.4
+/usr/lib/x86_64-linux-gnu/libtiff.so.5.2.4
 )
