@@ -13,6 +13,10 @@ int main(int argc, char* argv[])
     std::vector<aim_deps::Armor> tar_list(16);                  /// tar_list不再是match内部的成员，而是一个更高层的类的成员
     tar_list.clear();                                           /// 
     cv::VideoCapture cap("cv_output1.avi");
+    if(!cap.open()){
+        printf("Unable to open video.\n");
+        return 0;
+    }
     cv::Mat K = (cv::Mat_<double> (3, 3) << 1776.67168581218, 0, 720,
                                             0, 1778.59375346543, 540,
                                             0, 0, 1 );
