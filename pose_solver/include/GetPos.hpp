@@ -60,7 +60,7 @@ public:
 	 * @param tmats tMats
 	 * @param tar_list 通过其中的Armor的属性解出旋转矩阵以及取出平移向量
 	 */
-	void packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> tmats, 
+	void packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> &tmats, 
 		const std::vector<aim_deps::Armor> tar_list);		
 public:
 	cv::Mat tVec;									//平移矩阵(x, y, z)
@@ -171,7 +171,7 @@ void GetPos::positionScore(aim_deps::Armor &tar){
 	tar.r_vec = rVec.clone();
 }
 
-void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> tmats, 
+void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> &tmats, 
 	const std::vector<aim_deps::Armor> tar_list)
 {
 	rmats.clear();
@@ -185,7 +185,7 @@ void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> tmats,
 		cv::Mat rtmp;
 		cv::Rodrigues(tar_list[i].r_vec, rtmp);
 		rmats.emplace_back(rtmp);
-		tmats.emplace_back(tVec);
+		tmats.emplace_back(vect);
 	}
 }
 #endif //_GET_POS_HPP

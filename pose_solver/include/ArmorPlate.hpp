@@ -15,7 +15,7 @@
 #include <opencv2/imgproc.hpp>
 #include "AimDeps.cc"
 
-#define ARMORPLATE_DEBUG 
+// #define ARMORPLATE_DEBUG 
 #ifdef ARMORPLATE_DEBUG
     #define amp_debug printf
 #else
