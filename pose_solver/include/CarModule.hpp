@@ -14,9 +14,9 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
-#include <g2o/core/base_vertex.h>
-#include <g2o/core/base_unary_edge.h>
+#include "g2o/core/solver.h"
 #include <g2o/core/block_solver.h>
+#include "g2o/core/robust_kernel_impl.h"
 #include <g2o/core/optimization_algorithm_levenberg.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/types/sba/types_six_dof_expmap.h>
@@ -59,7 +59,7 @@ public:
     int add_car(const std::vector<cv::Point3f> &armor);
     int create_predict(double time);
     int find_light(LightBarP &lbp);
-    // int bundleAdjustment(const std::vector<LightBarP> &light_bars);
+    int bundleAdjustment(const std::vector<LightBarP> &light_bars);
 };
 
 int CarModule::create_predict(double time)
@@ -68,19 +68,18 @@ int CarModule::create_predict(double time)
     return 0;
 }
 
-int bundleAdjustment(const std::vector<LightBarP> &light_bars)
+int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars)
 {
-    typedef g2o::BlockSolver<g2o::BlockSolverTraits<6,3>> Block63;  // pose 维度为 6, landmark 维度为 3
-    // 创建一个线性求解器LinearSolver
-    Block63::LinearSolverType* linearSolver = new g2o::LinearSolverCSparse<Block63::PoseMatrixType>();
-
-    // 创建BlockSolver。并用上面定义的线性求解器初始化
-    Block63* solver_ptr = new Block63 ( std::unique_ptr<Block63::LinearSolverType>(linearSolver) );
-
-    // 创建总求解器solver。并从GN, LM, DogLeg 中选一个，再用上述块求解器BlockSolver初始化
-    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg ( std::unique_ptr<Block63>(solver_ptr) );
-
     g2o::SparseOptimizer optimizer;
+    optimizer.setVerbose(false);
+    // pose 维度为 6, landmark 维度为 3
+    // 创建一个线性求解器LinearSolver
+    std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver =
+        g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>>();
+    // 创建总求解器solver。并从GN, LM, DogLeg 中选一个，再用上述块求解器BlockSolver初始化
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(
+        g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));
+
     optimizer.setAlgorithm(solver);
 
     // 定义图的顶点和边。并添加到SparseOptimizer中
@@ -88,7 +87,7 @@ int bundleAdjustment(const std::vector<LightBarP> &light_bars)
     pose->setId (0);
     pose->setEstimate ( g2o::SE3Quat() );
     optimizer.addVertex (pose);
-/*
+
     // 设置相机内参
     g2o::CameraParameters* camera = new g2o::CameraParameters (
             K.at<double> ( 0,0 ), Eigen::Vector2d ( K.at<double> ( 0,2 ), K.at<double> ( 1,2 ) ), 0);
@@ -120,13 +119,13 @@ int bundleAdjustment(const std::vector<LightBarP> &light_bars)
     }
 
     // 设置优化参数，开始执行优化
-    optimizer.setVerbose ( false );
     optimizer.initializeOptimization();
-    optimizer.optimize ( 100 );
+    optimizer.setVerbose(true);
+    optimizer.optimize(10);
 
     // 输出优化结果
-    cout<<endl<<"after optimization:"<<endl;
-    cout<<"T="<<endl<<Eigen::Isometry3d ( pose->estimate() ).matrix() <<endl;*/
+    std::cout << "after optimization:\n";
+    std::cout << "T =\n" << Eigen::Isometry3d ( pose->estimate() ).matrix() << std::endl;
     return 0;
 }
 
