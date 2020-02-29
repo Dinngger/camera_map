@@ -31,7 +31,7 @@ if(NOT OpenCV_FOUND)
    message(FATAL_ERROR "OpenCV > 3 not found.")
 endif()
 
-find_package(Eigen3 3 REQUIRED)
+find_package(Eigen3 REQUIRED)
 if(NOT Eigen3_FOUND)
    message(FATAL_ERROR "Eigen3 not found.")
 endif()
