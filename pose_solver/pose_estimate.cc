@@ -17,15 +17,15 @@ int main(int argc, char* argv[])
         printf("Unable to open video.\n");
         return 0;
     }
-    cv::Mat K = (cv::Mat_<double> (3, 3) << 1776.67168581218, 0, 720,
-                                            0, 1778.59375346543, 540,
-                                            0, 0, 1 );
+    cv::Matx<double, 3, 3> K  ( 1776.67168581218, 0, 720,
+                                0, 1778.59375346543, 540,
+                                0, 0, 1);
     CarModule module(K);
     ArmorPlate amp;
     LightMatch match;
     cv::Mat frame, screen;
     GetPos pos_getter;                                          /// PNP解算模块
-    Viewer *viewer = new Viewer(K.at<double>(0, 0), K.at<double>(1, 1));
+    Viewer *viewer = new Viewer(K(0, 0), K(1, 1));
     std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
 
     double totalFrameNumber = cap.get(cv::CAP_PROP_FRAME_COUNT);
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
             if (module.find_light(lbp))
                 light_bars.push_back(lbp);
             else {
-                // TODO: use armors failed predict to areate new car module.
+                // TODO: use armors failed predict to create new car module.
                 ;
             }
         }
