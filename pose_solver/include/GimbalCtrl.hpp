@@ -15,10 +15,10 @@
 
 namespace ballistic{                        //命名空间：弹道模型
 
-const double PI = 3.1415926536;
 const float GRAVITY = 9.7944;
 const float RAD2DEG = 57.29578;             //180/PI
-const float DEFAULT_K = 0.017772;
+const float DEFAULT_K_42 = 0.017772;        //42mm弹丸的初始k值
+const float DEFAULT_K_17 = 0.0;             //17MM弹丸的初始k值
 
 class GimbalCtrl{
 private:
@@ -54,7 +54,7 @@ private:
 
 public:
     /**
-     * @brief Init the Transformation matrix from camera to ballistic
+     * @brief Init the Transformation matrix from camera to ballistic //TODO: write in ros tf
      * @param x Translate x, 单位mm
      * @param y Translate y, 单位mm
      * @param z Translate z, 单位mm
@@ -63,7 +63,7 @@ public:
      * @param init_v 初速度，单位m/s
      * @param init_k 空气摩擦因数，默认为0.1
      */
-    void Init(float x,float y,float z,float pitch,float yaw, float init_v, float init_k = DEFAULT_K);
+    void Init(float x,float y,float z,float pitch,float yaw, float init_v, float init_k = DEFAULT_K_42);
 
 
     /**
