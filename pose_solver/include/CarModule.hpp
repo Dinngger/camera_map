@@ -201,7 +201,7 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars)
     for (size_t i=0; i<cars.size(); i++) {
         int size = light_bars_car[i].size();
         cars[i].info = (cars[i].info + size) / 2;
-        if (size > 0) 
+        if (size > 0)
             cars[i].bundleAdjustment(light_bars_car[i], K);
     }
     return 0;

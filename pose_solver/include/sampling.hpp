@@ -14,7 +14,7 @@
  * @param src/ @param enemy_blue 敌人是否是蓝色，默认为真
  * @return 如果本帧低曝光，返回真
  */
-bool isLowExposure(cv::Mat &src, const bool enemy_blue = true){
+bool isLowExposure(const cv::Mat &src, const bool enemy_blue = true){
 	cv::Scalar mean_values;
 	cv::Mat channels[3];
 	cv::split(src, channels);

@@ -54,7 +54,7 @@ private:
 
 public:
     /**
-     * @brief Init the Transformation matrix from camera to ballistic //TODO: write in ros tf
+     * @brief Init the Transformation matrix from camera to ballistic
      * @param x Translate x, 单位mm
      * @param y Translate y, 单位mm
      * @param z Translate z, 单位mm
