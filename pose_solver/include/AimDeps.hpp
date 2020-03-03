@@ -6,12 +6,13 @@
  * 
 */
 
-#ifndef __AIM_DEPS_HPP
-#define __AIM_DEPS_HPP
+
+#ifndef AIM_DEPS_CC
+#define AIM_DEPS_CC
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
-
+#define SENTRYDECISION
 namespace aim_deps{
 
 //=================通用的预设===============
@@ -33,11 +34,22 @@ enum PLATE_TYPE{
 //决策所需参数
 struct PnP_depended_param
 {
-    float Distant_base=0.1;
+    float Distant_base=0.01;
     float Rotation_base=1;
     float Size_base=1;
+    int Distance_multi=1;
+    int Sentry_score=1;
+    int Hero_score=1;
+    int Infantry_score=1;
+    int Dad_score=0;
+    int Base_score=10;
+    int None_score=0;
+} pnp_depended_param;
+struct Sentry_decision
+{
+    int blood_limit=50;
+    int bullet_limit=150;
 };
-
 //装甲板类别
 enum Armor_type
 {
@@ -63,6 +75,7 @@ struct Armor
 {
     //可能要删除的valid标签（只需要根据数字判断是否valid就好了）
     bool valid;
+    bool Isbigarmor;
     float ang_aver;                                 //平均灯条角度
     cv::Mat r_vec;                                  //向量
     int armor_number;                              
@@ -71,9 +84,9 @@ struct Armor
     cv::Point2f center;                             //center of the armorplate
     Light left_light;
     Light right_light;
-    Armor(){}                                       //default
+    Armor(){ valid = true; }                                       //default
     Armor(cv::Point2f _pts[4], int _num, Light _l, Light _r):
-     valid(true), ang_aver(0), armor_number(_num), left_light(_l), right_light(_r)
+    armor_number(_num), left_light(_l), right_light(_r), valid(true)
     {
         for(int i=0; i<4;++i) vertex[i]=_pts[i];							//copy by points
         center = (_pts[0]+_pts[1]+_pts[2]+_pts[3])/4;			//calc center(maybe useless)
@@ -100,6 +113,7 @@ struct Evaluated_armor
     float Distance_score;
     float Size_score;
     float Rotation_score;
+    float Type_score;
     float Total_score;
 };
 ////////////////////////////////////////////////////////////////////////////////
@@ -120,15 +134,69 @@ struct Light_Params{
     const int blue_exp_long     = 7000;         //曝光时间(长曝光)
     const int blue_r_balance     = 3600;         //白平衡（红色通道）
     const int blue_b_balance     = 0;            //白平衡（蓝色通道）
-} light_params;
+}light_params;
 
 struct Distance_Params{
     const float OPS_RATIO_HEIGHT    = 9.0;      //对边宽比例
     const float OPS_RATIO_WIDTH     = 1.44;     //对边长比例
     const float NEAR_RATIO          = 9.0;      //邻边装甲板比例
     const float ANGLE_THRESH        = 10.0;     //角度差阈值
-} distance_params;
+}distance_params;
 
+
+//储存检测装甲板的各种参数
+struct Vicinity_param
+{
+	//预处理信息
+	int brightness_threshold;    
+	int color_threshold;
+	float light_color_detect_extend_ratio;
+
+	//光条本体信息
+	float light_min_area;
+	float light_max_angle;
+	float light_min_size;
+	float light_contour_min_solidity;
+	float light_max_ratio;
+
+	//光条配对信息
+	float light_max_angle_diff_;		//光条最大倾斜角度
+	float light_max_height_diff_ratio_; // 光条最大宽高比
+	float light_max_y_diff_ratio_;		// 两光条最大y距离比
+	float light_min_x_diff_ratio_;		//两光条最大x距离比
+
+	//装甲板信息
+    float	armor_big_armor_ratio ;
+    float   armor_small_armor_ratio ;
+	float armor_min_aspect_ratio_; //装甲宽高比
+	float armor_max_aspect_ratio_;
+	int enemy_color; //目标颜色
+//
+		float sight_offset_normalized_base ;
+		float area_normalized_base ;
+	//构造函数
+	Vicinity_param()
+	{
+		brightness_threshold = 150;
+		color_threshold = 100;
+		light_color_detect_extend_ratio = 1.1;
+		light_min_area = 10;
+		light_max_angle = 45.0;
+		light_min_size = 5.0;
+		light_contour_min_solidity = 0.5;
+		light_max_ratio = 1.0;
+		light_max_angle_diff_ = 7.0;
+		light_max_height_diff_ratio_ = 0.2;
+		light_max_y_diff_ratio_ = 2.0;
+		light_min_x_diff_ratio_ = 0.8;
+	    armor_big_armor_ratio = 3.2;
+		armor_small_armor_ratio = 2;
+		armor_min_aspect_ratio_ = 1.0;
+		armor_max_aspect_ratio_ = 5.0;
+		enemy_color = 0;
+	    sight_offset_normalized_base = 200;
+		area_normalized_base = 1000;
+	}
+};
 }   //namespace aim_deps
-
-#endif //__AIM_DEPS_HPP
+#endif //AIM_DEPS_CC
