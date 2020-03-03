@@ -6,6 +6,21 @@
 #include "Viewer.h"
 #include <thread>
 #include <mutex>
+#include <opencv2/core/eigen.hpp>
+
+void get_lbs(CarModule module, std::vector<cv::Point3f> &lbs){
+    cv::Mat t(1,3,CV_64F);
+    for(int i=0;i<module.cars.size();i++){
+        for(int j=0;j<8;j++){
+            eigen2cv(module.cars[i].lbs[j].p[0], t);
+            lbs.push_back(cv::Point3f(t.at<double>(0), t.at<double>(1), t.at<double>(2)));
+            std::cout<<"cv::Point3f: "<<cv::Point3f(t.at<double>(0), t.at<double>(1), t.at<double>(2))<<std::endl;
+            eigen2cv(module.cars[i].lbs[j].p[1], t);
+            lbs.push_back(cv::Point3f(t.at<double>(0), t.at<double>(1), t.at<double>(2)));
+            std::cout<<"cv::Point3f: "<<cv::Point3f(t.at<double>(0), t.at<double>(1), t.at<double>(2))<<std::endl;
+        }
+    }
+}
 
 int main(int argc, char* argv[])
 {
@@ -105,10 +120,13 @@ int main(int argc, char* argv[])
         match.drawLights(frame);							//绘制所有灯条
         amp.drawArmorPlates(frame, tar_list, 0);							//绘制装甲板
 
-        std::vector<cv::Point3f> lbs;
-        module.get_lbs(lbs);
-        viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs);
 
+        std::vector<cv::Point3f> lbs;
+        get_lbs(module, lbs);
+        
+
+        std::cout<<"module.cars.size(): "<<module.cars.size()<<std::endl;
+        viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs);
         cv::imshow("disp", frame);
         char key = cv::waitKey(0);
         if(key==27)
