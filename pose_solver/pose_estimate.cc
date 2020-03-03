@@ -68,13 +68,38 @@ int main(int argc, char* argv[])
         //观测到的灯条
         std::vector<LightBarP> light_bars;
         // add items into light_bars and do predict.
-        for (aim_deps::Light light : match.possibles) {
-            LightBarP lbp(light.box);
-            if (module.find_light(lbp))
-                light_bars.push_back(lbp);
-            else {
-                // TODO: use armors failed predict to create new car module.
-                ;
+        std::vector<bool> failed(match.possibles.size());                //失败的标记
+        for(int i = 0; i<failed.size(); ++i){
+            failed[i] = true;
+        }
+        for (aim_deps::Armor armor: tar_list){
+            failed[armor.left_light.index] = false;
+            failed[armor.right_light.index] = false;
+            LightBarP lbp(armor.left_light.box);
+            if(module.find_light(lbp)){
+                light_bars.emplace_back(lbp);
+            }
+            else{
+                LightBarP t_lbp(armor.right_light.box);
+                if(module.find_light(t_lbp)){
+                    ///TODO: 一个找到一个没找到的函数
+                    ;
+                }
+                else{
+                    module.add_car(armor.vertex);
+                }
+            }
+        }
+        for(int i = 0; i<match.possibles.size(); ++i){
+            if(failed[i]){
+                LightBarP lbp(match.possibles[i].box);
+                if(module.find_light(lbp)){
+                    light_bars.emplace_back(lbp);
+                }
+                else{
+                    ///TODO: 单独的灯条（新出现的）
+                    ;
+                }
             }
         }
         std::cout<<"light_bars: "<<light_bars.size()<<std::endl;
