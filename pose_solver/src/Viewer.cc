@@ -68,7 +68,7 @@ void Viewer::Run()
         glClearColor(1.0f,1.0f,1.0f,1.0f);
         //std::cout << "Twcs.size(): " << Twcs.size() <<std::endl;
         mDrawer.DrawCurrentCamera(Twcs, mDrawer.mlbs);
-        
+
         pangolin::FinishFrame();
 
         if(Stop())
@@ -82,7 +82,7 @@ void Viewer::Run()
         if(CheckFinish())
             break;
     }
-    
+
     SetFinish();
 }
 

@@ -11,9 +11,9 @@
 #include <iostream>
 #include <vector>
 #include "GimbalCtrl.hpp"
-#include "../aim_deps/AimDeps.cc"
-#define _HALF_LENGTH 65.00			
-#define _HALF_HEIGHT 28.50			
+#include "AimDeps.hpp"
+#define _HALF_LENGTH 65.00
+#define _HALF_HEIGHT 28.50
 
 class GetPos{
 public:
