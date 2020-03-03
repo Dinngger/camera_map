@@ -12,9 +12,10 @@ public:
     Drawer();
     void clear() {mArmorPoses.clear();}
     void reset();
-    void DrawCurrentCamera(pangolin::OpenGlMatrix &Twc);
-    void SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws);
+    void DrawCurrentCamera(std::vector<pangolin::OpenGlMatrix> Twcs, std::vector<cv::Point3f> lbs);
+    void SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws, std::vector<cv::Point3f> lbs);
     void GetCurrentOpenGLCameraMatrix(std::vector<pangolin::OpenGlMatrix> &Ms);
+    std::vector<cv::Point3f> mlbs;
 private:
     std::vector<cv::Mat> mArmorPoses, adjacent_frames_Tcw;
     std::mutex mMutexCamera;

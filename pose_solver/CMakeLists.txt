@@ -26,7 +26,7 @@ else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV REQUIRED)
 if(NOT OpenCV_FOUND)
    message(FATAL_ERROR "OpenCV > 3 not found.")
 endif()
@@ -51,14 +51,14 @@ include_directories(
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
-${G2O_INCLUDE_DIR}
+${G2O_INCLUDE_DIRS}
 ${CSPARSE_INCLUDE_DIR}
 ${CHOLMOD_INCLUDE_DIR}
 )
 
 message(STATUS "G2O include path: " ${G2O_INCLUDE_DIR})
 
-link_directories(/mine/g2o/lib /usr/local/lib)
+link_directories(/usr/local/lib)
 SET(G2O_LIBS g2o_cli g2o_ext_freeglut_minimal g2o_simulator g2o_solver_slam2d_linear g2o_types_icp g2o_types_slam2d g2o_core g2o_interface g2o_solver_csparse g2o_solver_structure_only g2o_types_sba g2o_types_slam3d g2o_csparse_extension g2o_opengl_helper g2o_solver_dense g2o_stuff g2o_types_sclam2d g2o_parser g2o_solver_pcg g2o_types_data g2o_types_sim3 cxsparse )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})

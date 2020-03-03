@@ -87,7 +87,7 @@ void LightMatch::reset(){
 void LightMatch::findPossible(){								//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
 	reset();
 	cv::Mat binary;
-	cv::threshold(proced, binary, thresh_low, thresh_high, CV_THRESH_BINARY);		///THRESHOLD修改
+	cv::threshold(proced, binary, thresh_low, thresh_high, cv::THRESH_BINARY);		///THRESHOLD修改
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
 	for (size_t i = 0, _cnt = 0; i < contours.size(); ++i) {

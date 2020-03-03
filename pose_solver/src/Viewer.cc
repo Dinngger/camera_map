@@ -67,9 +67,8 @@ void Viewer::Run()
         d_cam.Activate(s_cam);
         glClearColor(1.0f,1.0f,1.0f,1.0f);
         //std::cout << "Twcs.size(): " << Twcs.size() <<std::endl;
-        for(size_t i=0;i<Twcs.size();i++){
-            mDrawer.DrawCurrentCamera(Twcs[i]);
-        }
+        mDrawer.DrawCurrentCamera(Twcs, mDrawer.mlbs);
+        
         pangolin::FinishFrame();
 
         if(Stop())

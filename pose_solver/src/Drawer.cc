@@ -14,48 +14,60 @@ void Drawer::reset(){
     glPushMatrix();
 }
 
-void Drawer::DrawCurrentCamera(pangolin::OpenGlMatrix &Twc)
+void Drawer::DrawCurrentCamera(std::vector<pangolin::OpenGlMatrix> Twcs, std::vector<cv::Point3f> lbs)
 {
     const double &w = 0.065;
     const double h = 0.0285;
     const double z = 0;
-    glPushMatrix();
+    
+    
+    
+    for(int i=0;i<Twcs.size();i++){
+        glPushMatrix();
+        #ifdef HAVE_GLES
+            glMultMatrixf(Twc.m);
+        #else
+            glMultMatrixd(Twcs[i].m);
+        #endif
+        glLineWidth(3);
+        glColor3f(0.0f,1.0f,0.0f);
+        glBegin(GL_LINES);
+        glVertex3f(0,0,0);
+        glVertex3f(w,h,z);
+        glVertex3f(0,0,0);
+        glVertex3f(w,-h,z);
+        glVertex3f(0,0,0);
+        glVertex3f(-w,-h,z);
+        glVertex3f(0,0,0);
+        glVertex3f(-w,h,z);
 
-    #ifdef HAVE_GLES
-        glMultMatrixf(Twc.m);
-    #else
-        glMultMatrixd(Twc.m);
-    #endif
+        glVertex3f(w,h,z);
+        glVertex3f(w,-h,z);
 
+        glVertex3f(-w,h,z);
+        glVertex3f(-w,-h,z);
+
+        glVertex3f(-w,h,z);
+        glVertex3f(w,h,z);
+
+        glVertex3f(-w,-h,z);
+        glVertex3f(w,-h,z);
+        glEnd();
+        glPopMatrix();
+    }
+    
+    
     glLineWidth(3);
-    glColor3f(0.0f,1.0f,0.0f);
+    glColor3f(0.0f,0.0f,1.0f);
     glBegin(GL_LINES);
-    glVertex3f(0,0,0);
-    glVertex3f(w,h,z);
-    glVertex3f(0,0,0);
-    glVertex3f(w,-h,z);
-    glVertex3f(0,0,0);
-    glVertex3f(-w,-h,z);
-    glVertex3f(0,0,0);
-    glVertex3f(-w,h,z);
-
-    glVertex3f(w,h,z);
-    glVertex3f(w,-h,z);
-
-    glVertex3f(-w,h,z);
-    glVertex3f(-w,-h,z);
-
-    glVertex3f(-w,h,z);
-    glVertex3f(w,h,z);
-
-    glVertex3f(-w,-h,z);
-    glVertex3f(w,-h,z);
+    for(int i=0;i<lbs.size();i+=2){
+        glVertex3f(lbs[i].x, lbs[i].y, lbs[i].z);
+        glVertex3f(lbs[i+1].x, lbs[i+1].y, lbs[i+1].z);
+    }
     glEnd();
-
-    glPopMatrix();
 }
 
-void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws)
+void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws, std::vector<cv::Point3f> lbs)
 {
     std::unique_lock<std::mutex> lock(mMutexCamera);
 
@@ -63,6 +75,9 @@ void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws)
     mArmorPoses.clear();
     for(size_t i=0; i<Tcws.size(); i++){
         mArmorPoses.push_back(Tcws[i].clone());
+    }
+    for(size_t i=0; i<lbs.size(); i++){
+        mlbs.push_back(lbs[i]);
     }
 }
 
