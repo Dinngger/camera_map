@@ -8,20 +8,6 @@
 #include <mutex>
 #include <opencv2/core/eigen.hpp>
 
-void get_lbs(CarModule module, std::vector<cv::Point3f> &lbs){
-    cv::Mat t(1,3,CV_64F);
-    for(int i=0;i<module.cars.size();i++){
-        for(int j=0;j<8;j++){
-            eigen2cv(module.cars[i].lbs[j].p[0], t);
-            lbs.push_back(cv::Point3f(t.at<double>(0), t.at<double>(1), t.at<double>(2)));
-            std::cout<<"cv::Point3f: "<<cv::Point3f(t.at<double>(0), t.at<double>(1), t.at<double>(2))<<std::endl;
-            eigen2cv(module.cars[i].lbs[j].p[1], t);
-            lbs.push_back(cv::Point3f(t.at<double>(0), t.at<double>(1), t.at<double>(2)));
-            std::cout<<"cv::Point3f: "<<cv::Point3f(t.at<double>(0), t.at<double>(1), t.at<double>(2))<<std::endl;
-        }
-    }
-}
-
 int main(int argc, char* argv[])
 {
     std::vector<aim_deps::Armor> tar_list(16);                  /// tar_list不再是match内部的成员，而是一个更高层的类的成员
@@ -67,42 +53,38 @@ int main(int argc, char* argv[])
         module.create_predict(count);
         //观测到的灯条
         std::vector<LightBarP> light_bars;
-        // add items into light_bars and do predict.
-        std::vector<bool> failed(match.possibles.size());                //失败的标记
-        for(int i = 0; i<failed.size(); ++i){
+        bool failed[match.possibles.size()];                //失败的标记
+        for (int i = 0; i<match.possibles.size(); ++i) {
             failed[i] = true;
         }
-        for (aim_deps::Armor armor: tar_list){
+        for (aim_deps::Armor armor: tar_list) {
             failed[armor.left_light.index] = false;
             failed[armor.right_light.index] = false;
             LightBarP lbp(armor.left_light.box);
-            if(module.find_light(lbp)){
+            if (module.find_light(lbp)) {
                 light_bars.emplace_back(lbp);
-            }
-            else{
+            } else {
                 LightBarP t_lbp(armor.right_light.box);
-                if(module.find_light(t_lbp)){
+                if (module.find_light(t_lbp)) {
                     ///TODO: 一个找到一个没找到的函数
                     ;
-                }
-                else{
+                } else {
                     module.add_car(armor.vertex);
                 }
             }
         }
-        for(int i = 0; i<match.possibles.size(); ++i){
-            if(failed[i]){
+        for (int i = 0; i<match.possibles.size(); ++i) {
+            if (failed[i]) {
                 LightBarP lbp(match.possibles[i].box);
-                if(module.find_light(lbp)){
+                if (module.find_light(lbp)) {
                     light_bars.emplace_back(lbp);
-                }
-                else{
+                } else {
                     ///TODO: 单独的灯条（新出现的）
                     ;
                 }
             }
         }
-        std::cout<<"light_bars: "<<light_bars.size()<<std::endl;
+        std::cout << "light_bars: " << light_bars.size() << std::endl;
         module.bundleAdjustment(light_bars);
 
         // TODO: change to use the module to draw.
@@ -122,11 +104,9 @@ int main(int argc, char* argv[])
 
 
         std::vector<cv::Point3f> lbs;
-        get_lbs(module, lbs);
-        
-
-        std::cout<<"module.cars.size(): "<<module.cars.size()<<std::endl;
+        module.get_lbs(lbs);
         viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs);
+
         cv::imshow("disp", frame);
         char key = cv::waitKey(0);
         if(key==27)

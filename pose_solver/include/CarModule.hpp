@@ -71,6 +71,7 @@ private:
 
     ArmorRule ar[4];
     Centroid cen[4];
+    Eigen::Vector3d centroid[4];
     SymmetryRule sr;
 public:
     double info=1;  // how much information we know about this car. it belongs to [0, 1].
@@ -78,7 +79,10 @@ public:
         for (int i=0; i<4; i++) {
             ar[i].setPoint(&lbs[i].p[0], &lbs[i].p[1], &lbs[i+1].p[0], &lbs[i+1].p[1],
                             lbs[i].info, lbs[i].info, lbs[i+1].info, lbs[i+1].info);
+            cen[i].setPoint(&lbs[i].p[0], &lbs[i].p[1], &lbs[i+1].p[0], &lbs[i+1].p[1],
+                            lbs[i].info, lbs[i].info, lbs[i+1].info, lbs[i+1].info);
         }
+        sr.setPoint(&centroid[0], &centroid[1], &centroid[2], &centroid[3], 1, 1, 1, 1);
     }
     int Regularzation();
     int bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen::Matrix3d &K);
@@ -120,7 +124,7 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
 
     int index=1;
     std::vector<g2o::VertexSBAPointXYZ*> points;
-    // TODO: add armor size edge.
+    ///TODO: add armor size edge.
     // TODO: add infomation and robust core.
     for (const LightBarP lbp:light_bars)
     {
