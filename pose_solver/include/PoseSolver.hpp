@@ -68,6 +68,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         if (find_right)
             light_bars.emplace_back(lbpr);
         if (!(find_left || find_right))
+            ///TODO: use pnp result to fix this error.
             module.add_car(armor.vertex);
     }
     for (int i = 0; i<match.possibles.size(); ++i) {

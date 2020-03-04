@@ -66,7 +66,7 @@ private:
     int number=-1; // -1 means unknow
     LightBar lbs[8];
 
-    Eigen::Quaternion<double> r;
+    Eigen::Quaterniond r;
     Eigen::Matrix<double, 3, 1> t;
 
     ArmorRule ar[4];
@@ -77,6 +77,7 @@ public:
     double info=1;  // how much information we know about this car. it belongs to [0, 1].
     Car() {
         for (int i=0; i<4; i++) {
+            ///TODO: change info to reference.
             ar[i].setPoint(&lbs[i].p[0], &lbs[i].p[1], &lbs[i+1].p[0], &lbs[i+1].p[1],
                             lbs[i].info, lbs[i].info, lbs[i+1].info, lbs[i+1].info);
             cen[i].setPoint(&lbs[i].p[0], &lbs[i].p[1], &lbs[i+1].p[0], &lbs[i+1].p[1],
@@ -84,51 +85,56 @@ public:
         }
         sr.setPoint(&centroid[0], &centroid[1], &centroid[2], &centroid[3], 1, 1, 1, 1);
     }
-    int Regularzation();
+    int regularzation();
+    int ruler();
     int bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen::Matrix3d &K);
-
     friend class CarModule;
 };
 
-int Car::Regularzation()
+int Car::regularzation()
 {
-    // TODO: make t be the mid of the lbs, and the lbs[0] is the light bar faced to -z.
-    // calculate before update
+    // update t
     Eigen::Vector3d armor_center[4];
+    for(int i=0; i<4; i++) {
+        armor_center[i] = cen[i].error();
+    }
+    Eigen::Vector3d car_center = (armor_center[0] + armor_center[1] + armor_center[2] + armor_center[3]) / 4;
+    t += car_center;
+    for (int i=0; i<8; i++) {
+        lbs[i].p[0] -= car_center;
+        lbs[i].p[1] -= car_center;
+    }
+
+    // update r
     double t_len[4];
-    for(int i=0;i<4;i++)
-    {  
-        armor_center[i]=(lbs[2*i].p[0]+lbs[2*i].p[1]+lbs[2*i+1].p[0]+lbs[2*i+1].p[1])/4;
-        t_len[i]=armor_center[i].norm();
+    for(int i=0; i<4; i++) {
+        armor_center[i] -= car_center;
+        t_len[i] = armor_center[i].norm();
     }
-    Eigen::Vector3d car_center=(armor_center[0]+armor_center[1]+armor_center[2]+armor_center[3])/4;
-    Eigen::Matrix<double,3,1> t_reset[4];
-    t_reset[0]<<(0,0,-t_len[0]);
-    t_reset[1]<<(t_len[1],0,0);
-    t_reset[2]<<(0,0,t_len[2]);
-    t_reset[3]<<(-t_len[3],0,0);
+    Eigen::Matrix<double, 3, 1> t_reset[4];
+    t_reset[0] << (0, 0, -t_len[0]);
+    t_reset[1] << (t_len[1], 0, 0);
+    t_reset[2] << (0, 0, t_len[2]);
+    t_reset[3] << (-t_len[3], 0, 0);
     Eigen::Matrix<double,3,3> T;
-    for(int i=0;i<4;i++)
-    {
-        T+=t_reset[i]*armor_center[i].transpose()/4;
+    for (int i=0; i<4; i++)
+        T += t_reset[i] * armor_center[i].transpose();
+    T /= 4;
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(T, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Eigen::Matrix<double,3,3> R = svd.matrixU() * svd.matrixV().transpose();
+
+    for (int i=0; i<8; i++) {
+        lbs[i].p[0] = R * lbs[i].p[0];
+        lbs[i].p[1] = R * lbs[i].p[1];
     }
-    JacobiSVD<MatrixXd> svd(T, ComputeThinU | ComputeThinV);
-    U = svd.matrixU();
-    V = svd.matrixV();
-    A = svd.singularValues();
-    Eigen::Matrix<double,3,3> R=U*V.transpose();
-    //update t and lbs
-    t+=car_center;
-    for(int i=0;i<8;i++)
-    {
-        lbs[i].p[0]-=car_center;
-        lbs[i].p[1]-=car_center;
-        lbs[i].p[0]=R*lbs[i].p[0];
-        lbs[i].p[1]=R*lbs[i].p[1];
-    }
-    //update r
     Eigen::Quaterniond q(R);
-    r=q*r;
+    r = q * r;
+    return 0;
+}
+
+int Car::ruler()
+{
+    ///TODO: compute error and fix error.
     return 0;
 }
 
@@ -205,7 +211,7 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
         }
     }
 
-    Regularzation();
+    regularzation();
     return 0;
 }
 
@@ -245,13 +251,15 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars)
 
 int CarModule::create_predict(double time)
 {
-    // TODO: 计算此时的pose，投影出平面的装甲板
+    ///TODO: 计算此时的pose
+    ///TODO: 投影出平面的装甲板,每辆车显示4个灯条。
     return 0;
 }
 
 int CarModule::add_car(const std::vector<cv::Point3f> &armor)
 {
     Car c;
+    ///TODO: 设置初始装甲板，调用ruler修正。
     cars.push_back(c);
     return 0;
 }
