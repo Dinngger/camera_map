@@ -93,6 +93,42 @@ public:
 int Car::Regularzation()
 {
     // TODO: make t be the mid of the lbs, and the lbs[0] is the light bar faced to -z.
+    // calculate before update
+    Eigen::Vector3d armor_center[4];
+    double t_len[4];
+    for(int i=0;i<4;i++)
+    {  
+        armor_center[i]=(lbs[2*i].p[0]+lbs[2*i].p[1]+lbs[2*i+1].p[0]+lbs[2*i+1].p[1])/4;
+        t_len[i]=armor_center[i].norm();
+    }
+    Eigen::Vector3d car_center=(armor_center[0]+armor_center[1]+armor_center[2]+armor_center[3])/4;
+    Eigen::Matrix<double,3,1> t_reset[4];
+    t_reset[0]<<(0,0,-t_len[0]);
+    t_reset[1]<<(t_len[1],0,0);
+    t_reset[2]<<(0,0,t_len[2]);
+    t_reset[3]<<(-t_len[3],0,0);
+    Eigen::Matrix<double,3,3> T;
+    for(int i=0;i<4;i++)
+    {
+        T+=t_reset[i]*armor_center[i].transpose()/4;
+    }
+    JacobiSVD<MatrixXd> svd(T, ComputeThinU | ComputeThinV);
+    U = svd.matrixU();
+    V = svd.matrixV();
+    A = svd.singularValues();
+    Eigen::Matrix<double,3,3> R=U*V.transpose();
+    //update t and lbs
+    t+=car_center;
+    for(int i=0;i<8;i++)
+    {
+        lbs[i].p[0]-=car_center;
+        lbs[i].p[1]-=car_center;
+        lbs[i].p[0]=R*lbs[i].p[0];
+        lbs[i].p[1]=R*lbs[i].p[1];
+    }
+    //update r
+    Eigen::Quaterniond q(R);
+    r=q*r;
     return 0;
 }
 
