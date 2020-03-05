@@ -16,7 +16,7 @@
 class PoseSolver
 {
 private:
-    std::vector<Eigen::Vector3d> armor_module;
+    Eigen::Vector3d armor_module[4];
     std::vector<aim_deps::Armor> tar_list;
     cv::Matx<double, 3, 3> K;
     CarModule module;
@@ -36,17 +36,15 @@ PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K) :
     K (K),
     module(K)
 {
-    armor_module.emplace_back(-0.065,  0.0285, 0);
-    armor_module.emplace_back(-0.065, -0.0285, 0);
-    armor_module.emplace_back( 0.065,  0.0285, 0);
-    armor_module.emplace_back( 0.065, -0.0285, 0);
+    armor_module[0] = Eigen::Vector3d(-0.065,  0.0285, 0);
+    armor_module[1] = Eigen::Vector3d(-0.065, -0.0285, 0);
+    armor_module[2] = Eigen::Vector3d( 0.065,  0.0285, 0);
+    armor_module[3] = Eigen::Vector3d( 0.065, -0.0285, 0);
     tar_list.clear();
 }
 
 int PoseSolver::run(const cv::Mat &frame, double time)
 {
-    if (!isLowExposure(frame))
-        return 0;
     match.saveImg(frame);
     match.findPossible();
 
@@ -58,7 +56,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     //观测到的灯条
     std::vector<LightBarP> light_bars;
     bool failed[match.possibles.size()];                //失败的标记
-    for (int i = 0; i<match.possibles.size(); ++i) {
+    for (size_t i = 0; i<match.possibles.size(); ++i) {
         failed[i] = true;
     }
     for (aim_deps::Armor armor: tar_list) {
@@ -73,7 +71,9 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         if (find_right)
             light_bars.emplace_back(lbpr);
         if (!(find_left || find_right)) {
-            std::vector<Eigen::Vector3d> _armor = armor_module;
+            Eigen::Vector3d _armor[4];
+            for (int i=0; i<4; i++)
+                _armor[i] = armor_module[i];
             Eigen::Vector3d t_eigen(armor.t_vec.x, armor.t_vec.y, armor.t_vec.z);
             cv::Mat rotation;
 		    cv::Rodrigues(armor.r_vec, rotation);
@@ -86,7 +86,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
             module.add_car(_armor);
         }
     }
-    for (int i = 0; i<match.possibles.size(); ++i) {
+    for (size_t i = 0; i<match.possibles.size(); ++i) {
         if (failed[i]) {
             LightBarP lbp(match.possibles[i].box);
             if (module.find_light(lbp)) {
@@ -97,7 +97,8 @@ int PoseSolver::run(const cv::Mat &frame, double time)
             }
         }
     }
-    module.bundleAdjustment(light_bars);
+    module.bundleAdjustment(light_bars, time);
+    return 0;
 }
 
 int PoseSolver::getTwcs(std::vector<cv::Mat> &Twcs)

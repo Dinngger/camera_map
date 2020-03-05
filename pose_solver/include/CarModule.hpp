@@ -33,11 +33,11 @@ double getDistance(const cv::Point2f p1, const cv::Point2f p2) {
 // p[0] is the upper point.
 struct LightBar
 {
-    double info;
+    double info;    // info belongs to [0, 1], 0 means perfectly know, 1 means know nothing.
     Eigen::Vector3d p[2];
     LightBar (  Eigen::Vector3d p1=Eigen::Vector3d::Zero(),
                 Eigen::Vector3d p2=Eigen::Vector3d::Zero()) :
-        info(-1) {
+        info(1) {
         p[0] = p1;
         p[1] = p2;
     }
@@ -143,7 +143,7 @@ int Car::update_state(double delta_time)
     return 0;
 }
 
-int Car::predict(double delta_time, Eigen::Quaterniond &pre_r, Eigen::Vector3d &pre_t, bool linear=false) const
+int Car::predict(double delta_time, Eigen::Quaterniond &pre_r, Eigen::Vector3d &pre_t, bool linear) const
 {
     pre_t = t + dt * delta_time;
     if (!linear)
@@ -173,10 +173,10 @@ int Car::regularzation()
         t_len[i] = armor_center[i].norm();
     }
     Eigen::Matrix<double, 3, 1> t_reset[4];
-    t_reset[0] << (0, 0, -t_len[0]);
-    t_reset[1] << (t_len[1], 0, 0);
-    t_reset[2] << (0, 0, t_len[2]);
-    t_reset[3] << (-t_len[3], 0, 0);
+    t_reset[0] << 0, 0, -t_len[0];
+    t_reset[1] << t_len[1], 0, 0;
+    t_reset[2] << 0, 0, t_len[2];
+    t_reset[3] << -t_len[3], 0, 0;
     Eigen::Matrix<double,3,3> T;
     for (int i=0; i<4; i++)
         T += t_reset[i] * armor_center[i].transpose();
@@ -283,7 +283,8 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
             index++;
         }
     }
-    ruler();
+    double error = ruler();
+    while (abs(ruler() - error) > 0.5);
     regularzation();
     update_state(delta_time);
     return 0;
@@ -300,7 +301,7 @@ private:
 
 public:
     CarModule(cv::Matx<double, 3, 3> &K) : K(K.val) {std::cout << "K: \n" << K << std::endl;}
-    int add_car(const std::vector<Eigen::Vector3d> &armor);
+    int add_car(const Eigen::Vector3d armor[4]);
     int create_predict(double time);
     int find_light(LightBarP &lbp);
     int bundleAdjustment(const std::vector<LightBarP> &light_bars, double time);
@@ -321,6 +322,10 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars, double
     std::vector<LightBarP> light_bars_car[cars.size()];
     for (LightBarP lbp : light_bars) {
         light_bars_car[lbp.car_id].push_back(lbp);
+        double* infop = &(cars[lbp.car_id].lbs[lbp.lb_id].info);
+        *infop *= 0.9;
+        if (*infop < 0.1)
+            *infop = 0.1;
     }
     for (size_t i=0; i<cars.size(); i++) {
         int size = light_bars_car[i].size();
@@ -334,12 +339,16 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars, double
 
 int CarModule::create_predict(double time)
 {
-    for (int c=0; c < cars.size(); c++) {
+    for (size_t c=0; c < cars.size(); c++) {
         Eigen::Quaterniond pre_r;
         Eigen::Vector3d pre_t;
         cars[c].predict(time - module_time, pre_r, pre_t);
         LightBar rotated_lbs[8];
         for (int i=0; i<8; i++) {
+            double* infop = &(cars[c].lbs[i].info);
+            *infop *= 1.2;
+            if (*infop > 1)
+                *infop = 1;
             rotated_lbs[i] = LightBar(pre_r * cars[c].lbs[i].p[0], pre_r * cars[c].lbs[i].p[1]);
             if (rotated_lbs[i].center()(2) <= 0) {
                 Eigen::Vector2d lbp[2];
@@ -352,7 +361,7 @@ int CarModule::create_predict(double time)
     return 0;
 }
 
-int CarModule::add_car(const std::vector<Eigen::Vector3d> &armor)
+int CarModule::add_car(const Eigen::Vector3d armor[4])
 {
     Car c;
     c.t = (armor[0] + armor[1] + armor[2] + armor[3]) / 4 + Eigen::Vector3d(0, 0, 0.5);
@@ -362,6 +371,7 @@ int CarModule::add_car(const std::vector<Eigen::Vector3d> &armor)
     }
     Eigen::AngleAxisd eaa(M_PI / 2, Eigen::Vector3d(0, -1, 0));
     Eigen::Matrix3d K = eaa.matrix();
+    std::cout << "add car K:\n" << K << "\n";
     for (int i=2; i<8; i++) {
         for (int j=0; j<2; j++)
             c.lbs[i].p[j] = K * c.lbs[i-2].p[j];
@@ -401,7 +411,7 @@ int CarModule::find_light(LightBarP &lbp)
 }
 
 void CarModule::get_lbs(std::vector<cv::Point3d> &lbs) {
-    for (int i=0; i<cars.size(); i++) {
+    for (size_t i=0; i<cars.size(); i++) {
         for (int j=0; j<8; j++) {
             for (int k=0; k<2; k++) {
                 Eigen::Vector3d tmp = cars[i].lbs[j].p[k];

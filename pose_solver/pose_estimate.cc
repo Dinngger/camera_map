@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
 #endif
 
-    cv::VideoCapture cap("../../cv_output1.avi");
+    cv::VideoCapture cap("/mine/cv_output1.avi");
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
@@ -38,6 +38,8 @@ int main(int argc, char* argv[])
         cap.read(frame);
 		if(frame.empty())
             break;
+        if(isLowExposure(frame))
+            continue;
         count++;
         ps.run(frame, count);
 

@@ -20,7 +20,7 @@ void Drawer::DrawCurrentCamera(const std::vector<pangolin::OpenGlMatrix> &Twcs, 
     const double h = 0.0285;
     const double z = 0;
 
-    for(int i=0;i<Twcs.size();i++){
+    for(size_t i=0; i<Twcs.size(); i++){
         glPushMatrix();
         #ifdef HAVE_GLES
             glMultMatrixf(Twc.m);
@@ -58,7 +58,7 @@ void Drawer::DrawCurrentCamera(const std::vector<pangolin::OpenGlMatrix> &Twcs, 
     glLineWidth(3);
     glColor3f(0.0f,0.0f,1.0f);
     glBegin(GL_LINES);
-    for(int i=0;i<lbs.size();i+=2){
+    for(size_t i=0; i<lbs.size(); i+=2){
         glVertex3f(lbs[i].x, lbs[i].y, lbs[i].z);
         glVertex3f(lbs[i+1].x, lbs[i+1].y, lbs[i+1].z);
     }

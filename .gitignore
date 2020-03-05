@@ -13,3 +13,4 @@
 !*.txt
 !.gitignore
 !*.cmake
+!*.sh
