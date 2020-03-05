@@ -338,7 +338,6 @@ int CarModule::create_predict(double time)
         Eigen::Quaterniond pre_r;
         Eigen::Vector3d pre_t;
         cars[c].predict(time - module_time, pre_r, pre_t);
-        ///TODO: 投影出平面的装甲板,每辆车显示4个灯条。
         LightBar rotated_lbs[8];
         for (int i=0; i<8; i++) {
             rotated_lbs[i] = LightBar(pre_r * cars[c].lbs[i].p[0], pre_r * cars[c].lbs[i].p[1]);
@@ -356,9 +355,16 @@ int CarModule::create_predict(double time)
 int CarModule::add_car(const std::vector<Eigen::Vector3d> &armor)
 {
     Car c;
+    c.t = (armor[0] + armor[1] + armor[2] + armor[3]) / 4 + Eigen::Vector3d(0, 0, 0.5);
     for (int i=0; i<2; i++) {
         for (int j=0; j<2; j++)
-            c.lbs[i].p[j] = armor[2*i+j];
+            c.lbs[i].p[j] = armor[2*i+j] - c.t;
+    }
+    Eigen::AngleAxisd eaa(M_PI / 2, Eigen::Vector3d(0, -1, 0));
+    Eigen::Matrix3d K = eaa.matrix();
+    for (int i=2; i<8; i++) {
+        for (int j=0; j<2; j++)
+            c.lbs[i].p[j] = K * c.lbs[i-2].p[j];
     }
     double error = c.ruler();
     while (abs(c.ruler() - error) > 0.5);

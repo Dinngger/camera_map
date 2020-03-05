@@ -43,7 +43,8 @@ public:
     Eigen::Vector3d error() const {
         return (*p[0] + *p[1] + *p[2] + *p[3]) / 4;
     }
-    int backPropagate(const Eigen::Vector3d &error) override;
+    int backPropagate(const Eigen::Vector3d &error) override {
+    }
 };
 
 class SymmetryRule : public FourPointRule<double>
@@ -60,11 +61,11 @@ class ArmorRule : public FourPointRule<double>
 {
 public:
     double error() const {
-        return ((*p[1] - *p[0]).norm() - 0.057 +
-                (*p[3] - *p[2]).norm() - 0.057 +
-                (*p[2] - *p[0]).norm() - 0.13 +
-                (*p[3] - *p[1]).norm() - 0.13 +
-                (*p[3] - *p[0]).norm() - (*p[2] - *p[1]).norm());
+        return (abs((*p[1] - *p[0]).norm() - 0.057) +
+                abs((*p[3] - *p[2]).norm() - 0.057) +
+                abs((*p[2] - *p[0]).norm() - 0.13) +
+                abs((*p[3] - *p[1]).norm() - 0.13) +
+                abs((*p[3] - *p[0]).norm() - (*p[2] - *p[1]).norm()));
     }
     int backPropagate() override;
 };
