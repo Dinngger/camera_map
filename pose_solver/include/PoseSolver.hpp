@@ -16,6 +16,7 @@
 class PoseSolver
 {
 private:
+    std::vector<Eigen::Vector3d> armor_module;
     std::vector<aim_deps::Armor> tar_list;
     cv::Matx<double, 3, 3> K;
     CarModule module;
@@ -27,7 +28,7 @@ public:
     int run(const cv::Mat &frame, double time);
     int getTwcs(std::vector<cv::Mat> &Twcs);
     int draw(cv::Mat &frame);
-    int get_lbs(std::vector<cv::Point3f> &lbs);
+    int get_lbs(std::vector<cv::Point3d> &lbs);
 };
 
 PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K) :
@@ -35,6 +36,10 @@ PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K) :
     K (K),
     module(K)
 {
+    armor_module.emplace_back(-0.065,  0.0285, 0);
+    armor_module.emplace_back(-0.065, -0.0285, 0);
+    armor_module.emplace_back( 0.065,  0.0285, 0);
+    armor_module.emplace_back( 0.065, -0.0285, 0);
     tar_list.clear();
 }
 
@@ -67,9 +72,19 @@ int PoseSolver::run(const cv::Mat &frame, double time)
             light_bars.emplace_back(lbpl);
         if (find_right)
             light_bars.emplace_back(lbpr);
-        if (!(find_left || find_right))
-            ///TODO: use pnp result to fix this error.
-            module.add_car(armor.vertex);
+        if (!(find_left || find_right)) {
+            std::vector<Eigen::Vector3d> _armor = armor_module;
+            Eigen::Vector3d t_eigen(armor.t_vec.x, armor.t_vec.y, armor.t_vec.z);
+            cv::Mat rotation;
+		    cv::Rodrigues(armor.r_vec, rotation);
+            std::cout << "cvMat: \n" << rotation << std::endl;
+            Eigen::Map<Eigen::Matrix3d> eR((double*)rotation.data);
+            std::cout << "EigenMat: \n" << eR << std::endl;
+            for (int i=0; i<4; i++) {
+                _armor[i] = eR * _armor[i] + t_eigen;
+            }
+            module.add_car(_armor);
+        }
     }
     for (int i = 0; i<match.possibles.size(); ++i) {
         if (failed[i]) {
@@ -77,7 +92,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
             if (module.find_light(lbp)) {
                 light_bars.emplace_back(lbp);
             } else {
-                ///TODO: 单独的灯条（新出现的）
+                // 单独的灯条（新出现的）
                 ;
             }
         }
@@ -89,8 +104,8 @@ int PoseSolver::getTwcs(std::vector<cv::Mat> &Twcs)
 {
     std::vector<cv::Mat> rMats, tMats;
     pos_getter.packUp(rMats, tMats, tar_list);   ///取得rMats, tMats(内部clear这两个Mat容器)
-    for(size_t i=0; i<rMats.size(); i++){
-        cv::Mat temp =(cv::Mat_<double>(1,4)<<0,0,0,1);
+    for (size_t i=0; i<rMats.size(); i++) {
+        cv::Mat temp =(cv::Mat_<double>(1,4) << 0,0,0,1);
         cv::Mat temp2, Twc;
         cv::hconcat(rMats[i], tMats[i] / 1000, temp2);
         cv::vconcat(temp2, temp, Twc);
@@ -106,7 +121,7 @@ int PoseSolver::draw(cv::Mat &frame)
     return 0;
 }
 
-int PoseSolver::get_lbs(std::vector<cv::Point3f> &lbs)
+int PoseSolver::get_lbs(std::vector<cv::Point3d> &lbs)
 {
     module.get_lbs(lbs);
     return 0;

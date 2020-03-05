@@ -23,6 +23,9 @@
 
 #include "Ruler.hpp"
 
+///IMPORTENT: change this to the average time between two frames.
+#define DELTA_TIME 1
+
 double getDistance(const cv::Point2f p1, const cv::Point2f p2) {
     return ((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
 }
@@ -30,8 +33,17 @@ double getDistance(const cv::Point2f p1, const cv::Point2f p2) {
 // p[0] is the upper point.
 struct LightBar
 {
-    double info=-1;
+    double info;
     Eigen::Vector3d p[2];
+    LightBar (  Eigen::Vector3d p1=Eigen::Vector3d::Zero(),
+                Eigen::Vector3d p2=Eigen::Vector3d::Zero()) :
+        info(-1) {
+        p[0] = p1;
+        p[1] = p2;
+    }
+    Eigen::Vector3d center() {
+        return (p[0] + p[1]) / 2;
+    }
 };
 
 struct LightBarP
@@ -55,6 +67,14 @@ struct LightBarP
             p[0] = Eigen::Vector2d(tmp_p1.x, tmp_p1.y);
             p[1] = Eigen::Vector2d(tmp_p2.x, tmp_p2.y);
         }
+        center = (p[0] + p[1]) / 2;
+    }
+    LightBarP(int car_id, int lb_id, Eigen::Vector2d p0, Eigen::Vector2d p1) :
+        car_id(car_id),
+        lb_id(lb_id) {
+        p[0] = p0;
+        p[1] = p1;
+        center = (p0 + p1) / 2;
     }
 };
 
@@ -66,8 +86,14 @@ private:
     int number=-1; // -1 means unknow
     LightBar lbs[8];
 
+    Eigen::Quaterniond dr;
+    Eigen::Quaterniond last_r;
     Eigen::Quaterniond r;
-    Eigen::Matrix<double, 3, 1> t;
+    Eigen::Vector3d ddt;
+    Eigen::Vector3d last_dt;
+    Eigen::Vector3d dt;
+    Eigen::Vector3d last_t;
+    Eigen::Vector3d t;
 
     ArmorRule ar[4];
     Centroid cen[4];
@@ -77,19 +103,54 @@ public:
     double info=1;  // how much information we know about this car. it belongs to [0, 1].
     Car() {
         for (int i=0; i<4; i++) {
-            ///TODO: change info to reference.
             ar[i].setPoint(&lbs[i].p[0], &lbs[i].p[1], &lbs[i+1].p[0], &lbs[i+1].p[1],
-                            lbs[i].info, lbs[i].info, lbs[i+1].info, lbs[i+1].info);
+                            &lbs[i].info, &lbs[i].info, &lbs[i+1].info, &lbs[i+1].info);
             cen[i].setPoint(&lbs[i].p[0], &lbs[i].p[1], &lbs[i+1].p[0], &lbs[i+1].p[1],
-                            lbs[i].info, lbs[i].info, lbs[i+1].info, lbs[i+1].info);
+                            &lbs[i].info, &lbs[i].info, &lbs[i+1].info, &lbs[i+1].info);
         }
-        sr.setPoint(&centroid[0], &centroid[1], &centroid[2], &centroid[3], 1, 1, 1, 1);
+        sr.setPoint(&centroid[0], &centroid[1], &centroid[2], &centroid[3]);
+        ddt = Eigen::Vector3d::Zero();
+        last_dt = Eigen::Vector3d::Zero();
+        dt = Eigen::Vector3d::Zero();
+        last_t = Eigen::Vector3d::Zero();
+        last_r.setIdentity();
+        dr.setIdentity();
     }
     int regularzation();
-    int ruler();
-    int bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen::Matrix3d &K);
+    double ruler();
+    int bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen::Matrix3d &K, double delta_time);
+    int update_state();
+    int update_state(double delta_time);    // time from last update;
+    int predict(double delta_time, Eigen::Quaterniond &pre_r, Eigen::Vector3d &pre_t, bool linear=false) const;     // time to the future
     friend class CarModule;
 };
+
+int Car::update_state()
+{
+    last_t = t;
+    last_r = r;
+    return 0;
+}
+
+int Car::update_state(double delta_time)
+{
+    dt = 0.5 * dt + (last_t - t) / delta_time;
+    last_t = t;
+    ddt = 0.5 * ddt + (last_dt - dt) / delta_time;
+    last_dt = dt;
+    dr = dr.slerp(0.5, Eigen::Quaterniond::Identity().slerp(DELTA_TIME/delta_time, (last_r.inverse() * r)));
+    last_r = r;
+    return 0;
+}
+
+int Car::predict(double delta_time, Eigen::Quaterniond &pre_r, Eigen::Vector3d &pre_t, bool linear=false) const
+{
+    pre_t = t + dt * delta_time;
+    if (!linear)
+        pre_t += ddt * delta_time * delta_time / 2;
+    pre_r = last_r.inverse() * r * r;
+    return 0;
+}
 
 int Car::regularzation()
 {
@@ -132,13 +193,25 @@ int Car::regularzation()
     return 0;
 }
 
-int Car::ruler()
+// return error.
+double Car::ruler()
 {
-    ///TODO: compute error and fix error.
-    return 0;
+    double error_sum = 0;
+    for (int i=0; i<4; i++) {
+        error_sum += ar[i].error();
+        ar[i].backPropagate();
+        centroid[i] = cen[i].error();
+    }
+    error_sum += sr.error();
+    sr.backPropagate();
+    for (int i=0; i<4; i++) {
+        cen[i].backPropagate(centroid[i]);
+    }
+    std::cout << "error: " << error_sum << std::endl;
+    return error_sum;
 }
 
-int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen::Matrix3d &K)
+int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen::Matrix3d &K, double delta_time)
 {
     g2o::SparseOptimizer optimizer;
     optimizer.setVerbose(false);
@@ -167,7 +240,7 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
     int index=1;
     std::vector<g2o::VertexSBAPointXYZ*> points;
     ///TODO: add armor size edge.
-    // TODO: add infomation and robust core.
+    ///TODO: add infomation and robust core.
     for (const LightBarP lbp:light_bars)
     {
         LightBar lb = lbs[lbp.lb_id];
@@ -210,8 +283,9 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
             index++;
         }
     }
-
+    ruler();
     regularzation();
+    update_state(delta_time);
     return 0;
 }
 
@@ -222,18 +296,26 @@ private:
     std::vector<LightBarP> predict2d;
     Eigen::Matrix3d K;
     std::vector<Car> cars;
+    Eigen::Vector2d projectPoint(Eigen::Vector3d p3);
 
 public:
     CarModule(cv::Matx<double, 3, 3> &K) : K(K.val) {std::cout << "K: \n" << K << std::endl;}
-    int add_car(const std::vector<cv::Point3f> &armor);
+    int add_car(const std::vector<Eigen::Vector3d> &armor);
     int create_predict(double time);
     int find_light(LightBarP &lbp);
-    int bundleAdjustment(const std::vector<LightBarP> &light_bars);
-    void get_lbs(std::vector<cv::Point3f> &lbs);
+    int bundleAdjustment(const std::vector<LightBarP> &light_bars, double time);
+    void get_lbs(std::vector<cv::Point3d> &lbs);
 };
 
-int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars)
+Eigen::Vector2d CarModule::projectPoint(Eigen::Vector3d p3)
 {
+    p3 = K * p3 / p3(2);
+    return Eigen::Vector2d(p3(0), p3(1));
+}
+
+int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars, double time)
+{
+    double delta_time = time - module_time;
     if (cars.size() < 1)
         return 0;
     std::vector<LightBarP> light_bars_car[cars.size()];
@@ -244,22 +326,44 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars)
         int size = light_bars_car[i].size();
         cars[i].info = (cars[i].info + size) / 2;
         if (size > 0)
-            cars[i].bundleAdjustment(light_bars_car[i], K);
+            cars[i].bundleAdjustment(light_bars_car[i], K, delta_time);
     }
+    module_time = time;
     return 0;
 }
 
 int CarModule::create_predict(double time)
 {
-    ///TODO: 计算此时的pose
-    ///TODO: 投影出平面的装甲板,每辆车显示4个灯条。
+    for (int c=0; c < cars.size(); c++) {
+        Eigen::Quaterniond pre_r;
+        Eigen::Vector3d pre_t;
+        cars[c].predict(time - module_time, pre_r, pre_t);
+        ///TODO: 投影出平面的装甲板,每辆车显示4个灯条。
+        LightBar rotated_lbs[8];
+        for (int i=0; i<8; i++) {
+            rotated_lbs[i] = LightBar(pre_r * cars[c].lbs[i].p[0], pre_r * cars[c].lbs[i].p[1]);
+            if (rotated_lbs[i].center()(2) <= 0) {
+                Eigen::Vector2d lbp[2];
+                lbp[0] = projectPoint(rotated_lbs[i].p[0] + pre_t);
+                lbp[1] = projectPoint(rotated_lbs[i].p[1] + pre_t);
+                predict2d.emplace_back(c, i, lbp[0], lbp[1]);
+            }
+        }
+    }
     return 0;
 }
 
-int CarModule::add_car(const std::vector<cv::Point3f> &armor)
+int CarModule::add_car(const std::vector<Eigen::Vector3d> &armor)
 {
     Car c;
-    ///TODO: 设置初始装甲板，调用ruler修正。
+    for (int i=0; i<2; i++) {
+        for (int j=0; j<2; j++)
+            c.lbs[i].p[j] = armor[2*i+j];
+    }
+    double error = c.ruler();
+    while (abs(c.ruler() - error) > 0.5);
+    c.regularzation();
+    c.update_state();
     cars.push_back(c);
     return 0;
 }
@@ -272,7 +376,7 @@ int CarModule::find_light(LightBarP &lbp)
     double DISTANCE_THRESHOLD = 50;
     if (predict2d.size() == 0)
         return -1;
-    double min_distance = 100000, distance;
+    double min_distance = 1000, distance;
     int min_index = -1;
     for (size_t i=0; i<predict2d.size(); i++){
         distance = (predict2d[i].center - lbp.center).norm();
@@ -290,7 +394,7 @@ int CarModule::find_light(LightBarP &lbp)
     }
 }
 
-void CarModule::get_lbs(std::vector<cv::Point3f> &lbs) {
+void CarModule::get_lbs(std::vector<cv::Point3d> &lbs) {
     for (int i=0; i<cars.size(); i++) {
         for (int j=0; j<8; j++) {
             for (int k=0; k<2; k++) {

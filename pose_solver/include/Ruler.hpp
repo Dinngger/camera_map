@@ -16,12 +16,13 @@ class FourPointRule
 {
 protected:
     Eigen::Vector3d* p[4];
-    double info[4];
+    double* info[4];
 public:
     FourPointRule();
     int setPoint (  Eigen::Vector3d* p1, Eigen::Vector3d* p2,
                     Eigen::Vector3d* p3, Eigen::Vector3d* p4,
-                    double info1, double info2, double info3, double info4) {
+                    double* info1=nullptr, double* info2=nullptr,
+                    double* info3=nullptr, double* info4=nullptr) {
         p[0] = p1;
         p[1] = p2;
         p[2] = p3;
@@ -57,6 +58,7 @@ public:
 
 class ArmorRule : public FourPointRule<double>
 {
+public:
     double error() const {
         return ((*p[1] - *p[0]).norm() - 0.057 +
                 (*p[3] - *p[2]).norm() - 0.057 +

@@ -8,7 +8,7 @@
 #include <vector>
 #include <iostream>
 
-///TODO: 对于敌人是红色/蓝色可能的参数调整
+///TODO: 改为对多个通道取平均
 /**
  * @brief 判断本帧是否是低曝光/ @author Dingger
  * @param src/ @param enemy_blue 敌人是否是蓝色，默认为真

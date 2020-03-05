@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
         std::vector<cv::Mat> Twcs;
         ps.getTwcs(Twcs);
         // std::cout <<"Twcs[0]: "<< Twcs[0] << std::endl;
-        std::vector<cv::Point3f> lbs;
+        std::vector<cv::Point3d> lbs;
         ps.get_lbs(lbs);
         viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs);
 #endif
