@@ -22,38 +22,41 @@ last date of modification:2020.1.16 22:30
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include "AimDeps.hpp"
+#include "../aim_deps/AimDeps.cc"
+
+#define LIGHT_MATCH_DEBUG
 
 class LightMatch{
 public:
     LightMatch();
     ~LightMatch();
-	void setEnemyColor(const bool _enemy_blue = false);					//重新设置敌人的颜色
-	void findPossible();											//找到图上所有可能的灯条
-	void drawLights(cv::Mat &src);									//绘制灯条
+	void setEnemyColor(const bool _enemy_blue = false);			//重新设置敌人的颜色
+	void findPossible(const float _a = 0.0);										//找到图上所有可能的灯条						
+	void drawLights(cv::Mat &src);								//绘制灯条
 	bool saveImg(cv::Mat src);									//图像预处理
-public:
-	bool enemy_blue;												//敌人是否是蓝色的
-	bool low_exposure;												//曝光率设置flag
-	std::vector<aim_deps::Light> possibles;									//预选区集合
-
-	//灯条匹配装甲板函数将会使用此配对信息，以及灯条来匹配装甲板
-	std::vector<cv::Point> matches;									//会配对的数组
-private:
-	void reset();													//重置
-	void getRealLight(int size);									//找到预选灯条中实际的灯条
-	void getTrapezoids(cv::Point2f corners[4]);						//取出灯条拓展梯形
-	static bool isInTrapezoid(cv::Point2f corners[4], 
-		const std::vector<cv::Point2f> &trapezoid);					//点集是否能被梯形包围
-	static float getDistance(cv::Point p1, cv::Point p2);			//图像两点间距离
-private:	
-	//=================颜色参数==========================//
-	int thresh_low;													//二值化阈值
-	int thresh_high;												//二值化阈值
-	//==================================================//
-	float mean_val;													//均值
-	cv::Mat proced;
-	std::vector<std::vector<cv::Point2f>> trapezoids;				//灯条梯形集合
+public:															
+	bool enemy_blue;											//敌人是否是蓝色的
+	bool low_exposure;											//曝光率设置flag
+	std::vector<aim_deps::Light> possibles;								//预选区集合
+	//=================颜色参数==========================//		 
+	int thresh_low;												//二值化阈值
+	int thresh_high;											//二值化阈值
+	//==================================================//				
+																
+	//灯条匹配装甲板函数将会使用此配对信息，以及灯条来匹配装甲板							
+	std::vector<cv::Point> matches;								//会配对的数组
+private:														
+	void reset();												//重置
+	void getRealLight(int size);								//找到预选灯条中实际的灯条
+	void getTrapezoids(cv::Point2f corners[4]);					//取出灯条拓展梯形
+	static bool isInTrapezoid(cv::Point2f corners[4], 			
+		const std::vector<cv::Point2f> &trapezoid);				//点集是否能被梯形包围
+	static float getDistance(cv::Point p1, cv::Point p2);		//图像两点间距离
+	inline static int getThreshold(const float _a);			//通过灯条平均面积计算二值化阈值
+private:														
+	float mean_val;												//均值
+	cv::Mat proced;												
+	std::vector<std::vector<cv::Point2f>> trapezoids;			//灯条梯形集合
 };
 
 LightMatch::LightMatch(){
@@ -84,21 +87,26 @@ void LightMatch::reset(){
 	trapezoids.clear();
 }
 
-void LightMatch::findPossible(){								//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
+void LightMatch::findPossible(const float _a){								//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
 	reset();
 	cv::Mat binary;
-	cv::threshold(proced, binary, thresh_low, thresh_high, cv::THRESH_BINARY);		///THRESHOLD修改
+	thresh_low = getThreshold(_a);
+	cv::threshold(proced, binary, thresh_low, thresh_high, CV_THRESH_BINARY);		///THRESHOLD修改
+	#ifdef LIGHT_MATCH_DEBUG
+		cv::imshow("binary", binary);
+	#endif
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
-	for (size_t i = 0, _cnt = 0; i < contours.size(); ++i) {
+
+	for (int i = 0, _cnt = 0; i < contours.size(); ++i) {
 		double area = cv::contourArea(contours[i]);
-		if (area) {		
+		if (area) {						//小于3*3像素的不被考虑	
 			cv::RotatedRect light = cv::minAreaRect(contours[i]);
 			possibles.emplace_back(aim_deps::Light(_cnt, light));
 			++_cnt;
 		}
 	}
-	for (size_t i = 0; i < possibles.size(); ++i) {
+	for (int i = 0; i < possibles.size(); ++i) {
 		cv::Point2f corners[4];
 		possibles[i].box.points(corners);
 		getTrapezoids(corners);								
@@ -111,7 +119,6 @@ bool LightMatch::saveImg(cv::Mat src){
 	cv::split(src, channels);
 	if(enemy_blue) proced = channels[0];						//取出蓝色通道
 	else proced = channels[2];									//取出红色通道	
-	return true;
 }
 
 void LightMatch::getRealLight(int size){
@@ -146,7 +153,7 @@ void LightMatch::getTrapezoids(cv::Point2f corners[4]){
 	std::vector<cv::Point2f> right_trapezoid;
 	double d1 = getDistance(corners[0], corners[1]);
 	double d2 = getDistance(corners[1], corners[2]);
-	// cv::Point2f trapezoid_points[4];								//梯形角点
+	cv::Point2f trapezoid_points[4];								//梯形角点
 	cv::Point2f direction_vectors[2];								//方向向量
 	cv::Point2f midpoints[2];										//中点
 	int i0 = d1<d2? 1:0;										//长所在边第一个顶点的位置
@@ -172,24 +179,23 @@ void LightMatch::getTrapezoids(cv::Point2f corners[4]){
 void LightMatch::drawLights(cv::Mat &src){
 	cv::Point2f pts[4];
 	char str[4];
-	for(size_t i=0; i<possibles.size(); ++i){
+	for(int i=0;i<possibles.size();++i){
 		possibles[i].box.points(pts);
 		for(int j=0; j<4;++j){
 			cv::line(src, pts[j], pts[(j+1)%4], cv::Scalar(0, 0, 255));
 			//snprintf(str, 4, "%d", j);
 			//cv::putText(src, str, pts[j]+cv::Point2f(1,1), cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
 		}
-		snprintf(str, 4, "%lu", i);
+		snprintf(str, 4, "%d", i);
 		cv::putText(src, str, pts[3], cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
 	}
 }
 
 bool LightMatch::isInTrapezoid(cv::Point2f corners[4], const std::vector<cv::Point2f> &trapezoid){
 	int count = 0;
-	for (int i = 0; i<4; i++) {
+	for (int i = 0; i<4; ++i) {
 		if (cv::pointPolygonTest(trapezoid, corners[i], false) >= 0)
-			count++;
-	}
+			++count;	}
 	if (count == 4) {
 		return true;
 	}
@@ -201,6 +207,14 @@ float LightMatch::getDistance(cv::Point p1, cv::Point p2){
 	distance = powf((p1.x - p2.x), 2) + powf((p1.y - p2.y), 2);
 	distance = sqrtf(distance);
 	return distance;
+}
+
+int LightMatch::getThreshold(const float _a){
+	if(_a >= 150.0) return 135;
+	else if(_a == 0.0) return 120;				//为0一般就是上一帧没有找到装甲板
+	else if(_a <= 25.0) return 115;
+	int res = (int)(-6.48011782e-04 * _a * _a + 2.76877761e-01 * _a + 1.08195876e+02);	//一个拟合函数
+	return res;
 }
 
 #endif //_LIGHT_MATCH_HPP

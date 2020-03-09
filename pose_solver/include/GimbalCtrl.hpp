@@ -7,6 +7,7 @@
 #ifndef _GIMBAL_CTRL_HPP
 #define _GIMBAL_CTRL_HPP
 //#define DEBUG
+//#define SINGLE_DIRECTION
 
 #include <iostream>
 #include <cmath>
@@ -22,14 +23,16 @@ const float DEFAULT_K_17 = 0.0;             //17MM弹丸的初始k值
 
 class GimbalCtrl{
 private:
+
     /**
-     * @brief Calculate the actual y value with air resistance
-     * @param x the distance
-     * @param v Projectile velocity
-     * @param angle Pitch angle
-     * @return The actual y value in the ballistic coordinate
+     * @fn BulletModel:定义了SIGNGLE_DIRECTION是，定义是单向空气阻力模型，否则为双向空气阻力模型
+     * @brief 完全的弹道模型（考虑x与y方向上的空气阻力）
+     * @param x x方向上的位移（敌方装甲板到枪口的距离，tVec的[0]位置）
+     * @param v 子弹出射初速度
+     * @param angle 迭代当前pitch角度
+     * @return 本次迭代所计算的pitch实际值（位置）
      */
-    float BulletModel(float x,float v,float angle);
+    float BulletModel(float x, float v, float angle) const;
 
     /**
      * @brief Get the ballistic control angle
@@ -41,20 +44,9 @@ private:
      */
     float GetPitch(float x,float y,float v, float &t);
 
-    float GetPitch(float x, float y);                       //GetPitch重载
-
-    /**
-     * @brief 完全的弹道模型（考虑x与y方向上的空气阻力）
-     * @param x x方向上的位移（敌方装甲板到枪口的距离，tVec的[0]位置）
-     * @param v 子弹出射初速度
-     * @param angle 迭代当前pitch角度
-     * @return 本次迭代所计算的pitch实际值（位置）
-     */
-    float BulletModel_c(float x, float angle) const;
-
 public:
     /**
-     * @brief Init the Transformation matrix from camera to ballistic
+     * @brief Init the Transformation matrix from camera to ballistic //TODO: write in ros tf
      * @param x Translate x, 单位mm
      * @param y Translate y, 单位mm
      * @param z Translate z, 单位mm
@@ -81,7 +73,7 @@ public:
      * @param x 到带打击装甲板的距离
      * @angle 当前仰角
      */
-    inline float calcTime(const float x, const float angle);                    
+    inline float calcTime(const float x, const float v, const float angle);                    
 private:
     //! Transformation matrix between camera coordinate system and ballistic coordinate system.
     //! Translation unit: cm
@@ -115,20 +107,21 @@ void GimbalCtrl::Init(float x,float y,float z,float pitch,float yaw, float init_
     init_k_ = init_k;
 }
 
+#ifdef SINGLE_DIRECTION
 //air friction is considered
 float GimbalCtrl::BulletModel(float x, float v, float angle) { //x:m,v:m/s,angle:rad
-    float t, y;
+    float t;
     t = (float)((exp(init_k_ * x) - 1) / (init_k_ * v * cos(angle)));
-    y = (float)(v * sin(angle) * t - GRAVITY * t * t / 2);
-    return y;
+    return (float)(v * sin(angle) * t - GRAVITY * t * t / 2);
 }
-
+#else
 //(air friction) of x/y directions is considered
 //直接返回y
-float GimbalCtrl::BulletModel_c(float x, float angle) const {
-    return x * GRAVITY/(init_k_ * init_v_ * cos(angle)) + tan(angle) * x +
-        1/(init_k_ * init_k_) * GRAVITY * log(1-init_k_ * x/ (init_v_ * cos(angle)));
+float GimbalCtrl::BulletModel(float x, float v, float angle) const {
+    return x * GRAVITY/(init_k_ * v * cos(angle)) + tan(angle) * x +
+        1/(init_k_ * init_k_) * GRAVITY * log(1-init_k_ * x/ (v * cos(angle)));
 }
+#endif
 
 
 //x:distance , y: height
@@ -146,41 +139,24 @@ float GimbalCtrl::GetPitch(float x, float y, float v, float &t) {
             break;
         }
     }
-    t = calcTime(x, a);           //计算shoot_delay
-    return a*RAD2DEG;             //转为角度
-}
-
-float GimbalCtrl::GetPitch(float x, float y){
-    float y_temp, y_actual, dy;
-    float a;
-    y_temp = y;
-    // by iteration
-    for (int i = 0; i < 25; ++i) {
-        a = (float) atan2(y_temp, x);
-        y_actual = BulletModel_c(x, a);             //全方向空气阻力模型
-        dy = y - y_actual;
-        y_temp = y_temp + dy;
-        if (fabsf(dy) < 0.001) {
-            break;
-        }
-        #ifdef DEBUG
-        printf("Iteration times: %d, error: %f, ang: %f.\n", i, dy, a);
-        #endif
-    }
-    printf("Ultimate result angle: %f.\n", a*RAD2DEG);
+    t = calcTime(x, v, a);           //计算shoot_delay
     return a*RAD2DEG;             //转为角度
 }
 
 void GimbalCtrl::Transform(cv::Point3f postion, float &pitch, float &yaw, float &delay) {
     //y取负数是因为，图像中tVec为正时，装甲板在摄像头正对处下方
     pitch = GetPitch((postion.z + offset_.z) / 1000, -(postion.y + offset_.y) / 1000, init_v_, delay)
-                + (float)(offset_pitch_);
+                + (float)(offset_pitch_);           //加上一个初始的摄像头角度偏置
     //yaw轴是逆时针为正
     yaw = -(float) (atan2(postion.x + offset_.x, postion.z + offset_.z))*RAD2DEG + (float)(offset_yaw_);
 }
 
-float GimbalCtrl::calcTime(const float x, const float angle){
-    return -1/(init_k_) * log(1-init_k_ * x/ (init_v_ * cos(angle)));
+float GimbalCtrl::calcTime(const float x, const float v, const float angle){
+    #ifdef SINGLE_DIRECTION
+        return (float)((exp(init_k_ * x) - 1) / (init_k_ * v * cos(angle)));
+    #else
+        return (float)(-1/(init_k_) * log(1-init_k_ * x/ (v * cos(angle))));
+    #endif  //SINGLE_DIRECTION
 }
 } // ballistic
 
