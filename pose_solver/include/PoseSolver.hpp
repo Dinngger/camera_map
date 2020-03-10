@@ -74,7 +74,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
             Eigen::Vector3d _armor[4];
             for (int i=0; i<4; i++)
                 _armor[i] = armor_module[i];
-            Eigen::Vector3d t_eigen(armor.t_vec.x, armor.t_vec.y, armor.t_vec.z);
+            Eigen::Vector3d t_eigen(armor.t_vec.x / 1000, armor.t_vec.y / 1000, armor.t_vec.z / 1000);
             cv::Mat rotation;
 		    cv::Rodrigues(armor.r_vec, rotation);
             // std::cout << "cvMat: \n" << rotation << std::endl;

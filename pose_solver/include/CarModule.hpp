@@ -177,19 +177,19 @@ int Car::regularzation()
     t_reset[1] << t_len[1], 0, 0;
     t_reset[2] << 0, 0, t_len[2];
     t_reset[3] << -t_len[3], 0, 0;
-    Eigen::Matrix<double,3,3> T;
+    Eigen::Matrix3d T = Eigen::Matrix3d::Zero();
     for (int i=0; i<4; i++)
         T += t_reset[i] * armor_center[i].transpose();
     T /= 4;
     Eigen::JacobiSVD<Eigen::MatrixXd> svd(T, Eigen::ComputeThinU | Eigen::ComputeThinV);
-    Eigen::Matrix<double,3,3> R = svd.matrixU() * svd.matrixV().transpose();
+    Eigen::Matrix3d R = svd.matrixU() * svd.matrixV().transpose();
 
     for (int i=0; i<8; i++) {
         lbs[i].p[0] = R * lbs[i].p[0];
         lbs[i].p[1] = R * lbs[i].p[1];
     }
-    Eigen::Quaterniond q(R);
-    r = q * r;
+    Eigen::Quaterniond q(r.matrix() * R.inverse());
+    r = q;
     return 0;
 }
 
@@ -216,7 +216,7 @@ double Car::ruler()
 int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen::Matrix3d &K, double delta_time)
 {
     g2o::SparseOptimizer optimizer;
-    optimizer.setVerbose(false);
+    optimizer.setVerbose(true);    //关提示
     // pose 维度为 6, landmark 维度为 3
     // 创建一个线性求解器LinearSolver
     std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver =
@@ -251,7 +251,6 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
             point->setId(index);
             point->setEstimate(Eigen::Vector3d(lb.p[i](0), lb.p[i](1), lb.p[i](2)));
             point->setMarginalized(true);
-            // point->setInformation(Eigen::Matrix3d::Identity());
             optimizer.addVertex(point);
             points.push_back(point);
 
@@ -261,7 +260,9 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
             edge->setVertex(1, pose);
             edge->setMeasurement(Eigen::Vector2d(lbp.p[i](0), lbp.p[i](1)));  //设置观测值
             edge->setParameterId(0,0);
-            edge->setInformation(Eigen::Matrix2d::Identity());
+            Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
+            info(0, 0) = 0.1;
+            edge->setInformation(info);
             optimizer.addEdge(edge);
             index++;
         }
@@ -285,8 +286,8 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
             index++;
         }
     }
-    double error = ruler();
-    while (abs(ruler() - error) > 0.5);
+    // double error = ruler();
+    // while (abs(ruler() - error) > 0.5);
     regularzation();
     update_state(delta_time);
     return 0;
@@ -302,10 +303,13 @@ private:
     Eigen::Vector2d projectPoint(Eigen::Vector3d p3);
 
 public:
-    CarModule(cv::Matx<double, 3, 3> &K) : K(K.val) {std::cout << "K: \n" << K << std::endl;}
+    CarModule(cv::Matx<double, 3, 3> &K) : K(K.val) {
+        this->K.transposeInPlace();
+        std::cout << "K: \n" << this->K << std::endl;
+    }
     int add_car(const Eigen::Vector3d armor[4]);
     int create_predict(double time);
-    int find_light(LightBarP &lbp);
+    bool find_light(LightBarP &lbp);
     int bundleAdjustment(const std::vector<LightBarP> &light_bars, double time);
     void get_lbs(std::vector<cv::Point3d> &lbs);
 };
@@ -313,6 +317,7 @@ public:
 Eigen::Vector2d CarModule::projectPoint(Eigen::Vector3d p3)
 {
     p3 = K * p3 / p3(2);
+    // std::cout << "plane point :" << p3 << std::endl;
     return Eigen::Vector2d(p3(0), p3(1));
 }
 
@@ -351,8 +356,8 @@ int CarModule::create_predict(double time)
             *infop *= 1.2;
             if (*infop > 1)
                 *infop = 1;
-            rotated_lbs[i] = LightBar(  pre_r * cars[c].lbs[i].p[0] * pre_r.inverse(),
-                                        pre_r * cars[c].lbs[i].p[1] * pre_r.inverse());
+            rotated_lbs[i] = LightBar(  pre_r.matrix() * cars[c].lbs[i].p[0],
+                                        pre_r.matrix() * cars[c].lbs[i].p[1]);
             if (rotated_lbs[i].center()(2) <= 0) {
                 Eigen::Vector2d lbp[2];
                 lbp[0] = projectPoint(rotated_lbs[i].p[0] + pre_t);
@@ -367,7 +372,7 @@ int CarModule::create_predict(double time)
 int CarModule::add_car(const Eigen::Vector3d armor[4])
 {
     Car c;
-    c.t = (armor[0] + armor[1] + armor[2] + armor[3]) / 4 + Eigen::Vector3d(0, 0, 0.5);
+    c.t = (armor[0] + armor[1] + armor[2] + armor[3]) / 4 + Eigen::Vector3d(0, 0, 0.3);
     for (int i=0; i<2; i++) {
         for (int j=0; j<2; j++)
             c.lbs[i].p[j] = armor[2*i+j] - c.t;
@@ -389,22 +394,20 @@ int CarModule::add_car(const Eigen::Vector3d armor[4])
     // while (abs(c.ruler() - error) > 0.5);
     std::cout << "successfully ruler!\n";
     c.regularzation();
-    std::cout << "successfully regularzation!\n";
     c.update_state();
-    std::cout << "successfully update state!\n";
     cars.push_back(c);
-    std::cout << "successfully add car!\n";
+    std::cout << "successfully add a car!\n";
     return 0;
 }
 
 /**@return if or not found
  * @lbp input light bar info and output the id
 */
-int CarModule::find_light(LightBarP &lbp)
+bool CarModule::find_light(LightBarP &lbp)
 {
     double DISTANCE_THRESHOLD = 50;
     if (predict2d.size() == 0)
-        return 0;
+        return false;
     double min_distance = 1000, distance;
     int min_index = -1;
     for (size_t i=0; i<predict2d.size(); i++){
@@ -415,11 +418,11 @@ int CarModule::find_light(LightBarP &lbp)
         }
     }
     if (min_distance > DISTANCE_THRESHOLD) 
-        return 0;
+        return false;
     else {
         lbp.car_id = predict2d[min_index].car_id;
         lbp.lb_id = predict2d[min_index].lb_id;
-        return 1;
+        return true;
     }
 }
 
