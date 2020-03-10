@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
         cap.read(frame);
 		if(frame.empty())
             break;
-        if(isLowExposure(frame))
+        if(!isLowExposure(frame))
             continue;
         count++;
         ps.run(frame, count);

@@ -18,8 +18,9 @@ protected:
     Eigen::Vector3d* p[4];
     double* info[4];
     double rate;
+    bool inner_info;
 public:
-    FourPointRule(double rate=0.1) : rate(rate) {}
+    FourPointRule(double rate=1) : rate(rate) {}
     int setPoint (  Eigen::Vector3d* p1, Eigen::Vector3d* p2,
                     Eigen::Vector3d* p3, Eigen::Vector3d* p4,
                     double* info1=nullptr, double* info2=nullptr,
@@ -32,6 +33,7 @@ public:
         info[1] = info2;
         info[2] = info3;
         info[3] = info4;
+        inner_info = !(info1 && info2 && info3 && info4);
         return 0;
     }
     virtual ErrorType error() const;
@@ -47,7 +49,10 @@ public:
     }
     int backPropagate(const Eigen::Vector3d &error) override {
         for (int i=0; i<4; i++) {
-            *p[i] += error * *info[i] * rate;
+            if (inner_info)
+                *p[i] += error * rate;
+            else
+                *p[i] += error * *info[i] * rate;
         }
         return 0;
     }
@@ -66,8 +71,13 @@ public:
         p_reset[1] << (*p[1]).norm(), 0, 0;
         p_reset[2] << 0, 0, (*p[2]).norm();
         p_reset[3] << -(*p[3]).norm(), 0, 0;
-        for (int i=0; i<4; i++)
-            *p[i] = *p[i] * (1 - rate * *info[i]) + p_reset[i] * rate * *info[i];
+        std::cout << "srbp testpoint 1\n";
+        for (int i=0; i<4; i++) {
+            if (inner_info)
+                *p[i] = *p[i] * (1 - rate) + p_reset[i] * rate;
+            else
+                *p[i] = *p[i] * (1 - rate * *info[i]) + p_reset[i] * rate * *info[i];
+        }
         return 0;
     }
 };
@@ -99,8 +109,12 @@ public:
         T /= 4;
         Eigen::JacobiSVD<Eigen::MatrixXd> svd(T, Eigen::ComputeThinU | Eigen::ComputeThinV);
         Eigen::Matrix<double,3,3> R = svd.matrixU() * svd.matrixV().transpose();
-        for (int i=0; i<4; i++)
-            *p[i] = *p[i] * (1 - rate * *info[i]) + (R * _armor_module[i] + middle) * rate * *info[i];
+        for (int i=0; i<4; i++) {
+            if (inner_info)
+                *p[i] = *p[i] * (1 - rate) + (R * _armor_module[i] + middle) * rate;
+            else
+                *p[i] = *p[i] * (1 - rate * *info[i]) + (R * _armor_module[i] + middle) * rate * *info[i];
+        }
         return 0;
     }
 };

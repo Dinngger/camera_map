@@ -77,9 +77,10 @@ int PoseSolver::run(const cv::Mat &frame, double time)
             Eigen::Vector3d t_eigen(armor.t_vec.x, armor.t_vec.y, armor.t_vec.z);
             cv::Mat rotation;
 		    cv::Rodrigues(armor.r_vec, rotation);
-            std::cout << "cvMat: \n" << rotation << std::endl;
+            // std::cout << "cvMat: \n" << rotation << std::endl;
             Eigen::Map<Eigen::Matrix3d> eR((double*)rotation.data);
-            std::cout << "EigenMat: \n" << eR << std::endl;
+            eR.transposeInPlace();
+            std::cout << "Add car Mat: \n" << eR << std::endl;
             for (int i=0; i<4; i++) {
                 _armor[i] = eR * _armor[i] + t_eigen;
             }

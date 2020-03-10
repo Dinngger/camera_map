@@ -172,7 +172,7 @@ int Car::regularzation()
         armor_center[i] -= car_center;
         t_len[i] = armor_center[i].norm();
     }
-    Eigen::Matrix<double, 3, 1> t_reset[4];
+    Eigen::Vector3d t_reset[4];
     t_reset[0] << 0, 0, -t_len[0];
     t_reset[1] << t_len[1], 0, 0;
     t_reset[2] << 0, 0, t_len[2];
@@ -202,12 +202,14 @@ double Car::ruler()
         ar[i].backPropagate();
         centroid[i] = cen[i].error();
     }
+    std::cout << "ruler testpoint 1\n";
     error_sum += sr.error();
+    std::cout << "ruler testpoint 2\n";
     sr.backPropagate();
+    std::cout << "ruler testpoint 3\n";
     for (int i=0; i<4; i++) {
         cen[i].backPropagate(centroid[i]);
     }
-    std::cout << "error: " << error_sum << std::endl;
     return error_sum;
 }
 
@@ -369,18 +371,28 @@ int CarModule::add_car(const Eigen::Vector3d armor[4])
         for (int j=0; j<2; j++)
             c.lbs[i].p[j] = armor[2*i+j] - c.t;
     }
-    Eigen::AngleAxisd eaa(M_PI / 2, Eigen::Vector3d(0, -1, 0));
-    Eigen::Matrix3d K = eaa.matrix();
-    std::cout << "add car K:\n" << K << "\n";
+    // Eigen::AngleAxisd eaa(M_PI / 2, Eigen::Vector3d(0, -1, 0));
+    // Eigen::Matrix3d K = eaa.matrix();
+    Eigen::Matrix3d K;
+    K << 0, 0, -1,
+         0, 1, 0,
+         1, 0, 0;
+    // std::cout << "add car K:\n" << K << "\n";
     for (int i=2; i<8; i++) {
         for (int j=0; j<2; j++)
             c.lbs[i].p[j] = K * c.lbs[i-2].p[j];
     }
-    double error = c.ruler();
-    while (abs(c.ruler() - error) > 0.5);
+    // double error = c.ruler();
+    // std::cout << "error: " << error << std::endl;
+    std::cout << "successfully ruler!\n";
+    // while (abs(c.ruler() - error) > 0.5);
+    std::cout << "successfully ruler!\n";
     c.regularzation();
+    std::cout << "successfully regularzation!\n";
     c.update_state();
+    std::cout << "successfully update state!\n";
     cars.push_back(c);
+    std::cout << "successfully add car!\n";
     return 0;
 }
 
@@ -391,7 +403,7 @@ int CarModule::find_light(LightBarP &lbp)
 {
     double DISTANCE_THRESHOLD = 50;
     if (predict2d.size() == 0)
-        return -1;
+        return 0;
     double min_distance = 1000, distance;
     int min_index = -1;
     for (size_t i=0; i<predict2d.size(); i++){
@@ -402,11 +414,11 @@ int CarModule::find_light(LightBarP &lbp)
         }
     }
     if (min_distance > DISTANCE_THRESHOLD) 
-        return -1;
+        return 0;
     else {
         lbp.car_id = predict2d[min_index].car_id;
         lbp.lb_id = predict2d[min_index].lb_id;
-        return 0;
+        return 1;
     }
 }
 
