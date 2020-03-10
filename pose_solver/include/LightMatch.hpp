@@ -22,9 +22,9 @@ last date of modification:2020.1.16 22:30
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include "../aim_deps/AimDeps.cc"
+#include "AimDeps.hpp"
 
-#define LIGHT_MATCH_DEBUG
+// #define LIGHT_MATCH_DEBUG
 
 class LightMatch{
 public:

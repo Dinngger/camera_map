@@ -351,7 +351,8 @@ int CarModule::create_predict(double time)
             *infop *= 1.2;
             if (*infop > 1)
                 *infop = 1;
-            rotated_lbs[i] = LightBar(pre_r * cars[c].lbs[i].p[0], pre_r * cars[c].lbs[i].p[1]);
+            rotated_lbs[i] = LightBar(  pre_r * cars[c].lbs[i].p[0] * pre_r.inverse(),
+                                        pre_r * cars[c].lbs[i].p[1] * pre_r.inverse());
             if (rotated_lbs[i].center()(2) <= 0) {
                 Eigen::Vector2d lbp[2];
                 lbp[0] = projectPoint(rotated_lbs[i].p[0] + pre_t);
@@ -424,9 +425,11 @@ int CarModule::find_light(LightBarP &lbp)
 
 void CarModule::get_lbs(std::vector<cv::Point3d> &lbs) {
     for (size_t i=0; i<cars.size(); i++) {
+        Eigen::Matrix3d _R = cars[i].r.matrix();
+        Eigen::Vector3d _t = cars[i].t;
         for (int j=0; j<8; j++) {
             for (int k=0; k<2; k++) {
-                Eigen::Vector3d tmp = cars[i].lbs[j].p[k];
+                Eigen::Vector3d tmp = _R * cars[i].lbs[j].p[k] + _t;
                 lbs.emplace_back(tmp(0), tmp(1), tmp(2));
             }
         }
