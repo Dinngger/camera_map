@@ -13,8 +13,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
-#include "../aim_deps/AimDeps.cc"
-#include "../../../serial_com/include/serial_com/LOG.hpp"
+#include "AimDeps.hpp"
+#include "LOG.hpp"
 //#define ARMORPLATE_DEBUG 
 #ifdef ARMORPLATE_DEBUG
     #define amp_debug rmlog::LOG::printc        //彩色输出

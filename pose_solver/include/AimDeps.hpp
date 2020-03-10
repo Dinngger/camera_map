@@ -24,6 +24,16 @@ const float RAD2DEG = 57.2958;     //(constant)(180/pi)
 const float LIGHT_PARAM1 = 8.0;
 const float LIGHT_PARAM2 = 4.8;
 const float LIGHT_mean = 40.0;
+const float FAILED_SCORE = INFINITY;
+
+//自适应装甲板宽高比(四次多项式，降幂排列)
+const float coeffs[5] = {
+    0.09331009,     //0.081676,
+    -1.60621302,    //-2.66139,
+    9.1013089,      //32.298636,
+    -22.80810291,   //-173.213,
+    54.00678226,    //360.15463
+};
 
 enum PLATE_TYPE{
     UNKNOWN = 0,
@@ -34,9 +44,9 @@ enum PLATE_TYPE{
 //决策所需参数
 struct PnP_depended_param
 {
-    float Distant_base=0.01;
-    float Rotation_base=1;
-    float Size_base=1;
+    float Distant_base=0.03;
+    float Rotation_base=30;
+    float Size_base=0.1;
     int Distance_multi=1;
     int Sentry_score=1;
     int Hero_score=1;
@@ -76,7 +86,7 @@ struct Armor
     //可能要删除的valid标签（只需要根据数字判断是否valid就好了）
     bool valid;
     bool Isbigarmor;
-    float ang_aver=0;                                 //平均灯条角度
+    float ang_aver;                                 //平均灯条角度
     cv::Mat r_vec;                                  //向量
     int armor_number;                              
     cv::Point3f t_vec;
@@ -84,9 +94,9 @@ struct Armor
     cv::Point2f center;                             //center of the armorplate
     Light left_light;
     Light right_light;
-    Armor() {valid = true; Isbigarmor = false;}                                       //default
-    Armor(cv::Point2f _pts[4], int _num, Light _l, Light _r):
-    valid(true), Isbigarmor(false), armor_number(_num), left_light(_l), right_light(_r)
+    Armor(){ valid = true; }                                       //default
+    Armor(cv::Point2f _pts[4], int _num, Light _l, Light _r, bool _big = false):
+    armor_number(_num), left_light(_l), right_light(_r), valid(true), Isbigarmor(_big)
     {
         for(int i=0; i<4;++i) vertex[i]=_pts[i];							//copy by points
         center = (_pts[0]+_pts[1]+_pts[2]+_pts[3])/4;			//calc center(maybe useless)
@@ -132,15 +142,16 @@ struct Light_Params{
     const int blue_thresh_high  = 250;          //二值图threshold上阈值
     const int blue_exp_short    = 70;           //曝光时间(短曝光)
     const int blue_exp_long     = 7000;         //曝光时间(长曝光)
-    const int blue_r_balance     = 3600;         //白平衡（红色通道）
-    const int blue_b_balance     = 0;            //白平衡（蓝色通道）
+    const int blue_r_balance     = 3600;        //白平衡（红色通道）
+    const int blue_b_balance     = 0;           //白平衡（蓝色通道）
 }light_params;
 
 struct Distance_Params{
     const float OPS_RATIO_HEIGHT    = 9.0;      //对边宽比例
     const float OPS_RATIO_WIDTH     = 1.44;     //对边长比例
-    const float NEAR_RATIO          = 9.0;      //邻边装甲板比例
-    const float ANGLE_THRESH        = 10.0;     //角度差阈值
+    const float NEAR_RATIO_MIN      = 12.5;    //邻边装甲板比例
+    const float NEAR_RATIO_MAX      = 30.0;
+    const float ANGLE_THRESH        = 15.0;     //角度差阈值
 }distance_params;
 
 
