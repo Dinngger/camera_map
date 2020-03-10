@@ -11,9 +11,10 @@
 #include <iostream>
 #include <vector>
 #include "GimbalCtrl.hpp"
-#include "AimDeps.hpp"
-#define _HALF_LENGTH 65.00
-#define _HALF_HEIGHT 28.50
+#include "../aim_deps/AimDeps.cc"
+#define _HALF_LENGTH_SMALL 65.00		
+#define _HALF_LENGTH_BIG 	105.00
+#define _HALF_HEIGHT 28.50			
 
 class GetPos{
 public:
@@ -46,7 +47,8 @@ public:
 private:
 private:
 	ballistic::GimbalCtrl g_ctrl;					//云台控制
-	std::vector<cv::Point3f> objPoints;				//世界坐标系下的点（装甲板实际4点位置）
+	std::vector<cv::Point3f> objPoints_small;				//世界坐标系下的点（装甲板实际4点位置）
+	std::vector<cv::Point3f> objPoints_big;				//世界坐标系下的点（装甲板实际4点位置）
 	std::vector<cv::Point3f> intrinsic;				//(内参矩阵)
 	std::vector<float> distCoeffs;					//畸变与切变向量（4参数）
 	cv::Mat rVec;									//旋转向量
@@ -54,11 +56,17 @@ private:
 };
 
 GetPos::GetPos() {
-	objPoints = std::vector<cv::Point3f>{
-		cv::Point3f(-_HALF_LENGTH, _HALF_HEIGHT, 0),		//2,3,4,1象限顺序，与sortPoint一致
-		cv::Point3f(-_HALF_LENGTH, -_HALF_HEIGHT, 0),
-		cv::Point3f(_HALF_LENGTH, -_HALF_HEIGHT, 0),
-		cv::Point3f(_HALF_LENGTH, _HALF_HEIGHT, 0),
+	objPoints_small = std::vector<cv::Point3f>{
+		cv::Point3f(-_HALF_LENGTH_SMALL, _HALF_HEIGHT, 0),		//2,3,4,1象限顺序，与sortPoint一致
+		cv::Point3f(-_HALF_LENGTH_SMALL, -_HALF_HEIGHT, 0),
+		cv::Point3f(_HALF_LENGTH_SMALL, -_HALF_HEIGHT, 0),
+		cv::Point3f(_HALF_LENGTH_SMALL, _HALF_HEIGHT, 0),
+	};
+	objPoints_big = std::vector<cv::Point3f>{
+		cv::Point3f(-_HALF_LENGTH_BIG, _HALF_HEIGHT, 0),		//2,3,4,1象限顺序，与sortPoint一致
+		cv::Point3f(-_HALF_LENGTH_BIG, -_HALF_HEIGHT, 0),
+		cv::Point3f(_HALF_LENGTH_BIG, -_HALF_HEIGHT, 0),
+		cv::Point3f(_HALF_LENGTH_BIG, _HALF_HEIGHT, 0),
 	};
 	intrinsic = std::vector<cv::Point3f>{
 		cv::Point3f(1776.67168581218, 0, 720),
@@ -85,19 +93,30 @@ void GetPos::calcBallistic(aim_deps::Armor tar, float &pitch, float &yaw, float 
 }
 
 void GetPos::batchProcess(std::vector<aim_deps::Armor> &tar_list){
-	for(size_t i = 0; i<tar_list.size(); ++i){
+	for(int i = 0; i<tar_list.size(); ++i){
 		positionScore(tar_list[i]);
 	}
 }
 
 void GetPos::positionScore(aim_deps::Armor &tar){
 	std::vector<cv::Point2f> tmp = {tar.vertex[0], tar.vertex[1], tar.vertex[2], tar.vertex[3]};
-	cv::solvePnP(cv::InputArray(objPoints), cv::InputArray(tmp), 
+	if(tar.Isbigarmor)
+	{cv::solvePnP(cv::InputArray(objPoints_big), cv::InputArray(tmp), 
 		cv::InputArray(insM), cv::InputArray(distCoeffs), 
 		cv::OutputArray(rVec), cv::OutputArray(tVec),
 		false, cv::SOLVEPNP_ITERATIVE);
 	tar.t_vec = cv::Point3f(tVec.at<double>(0), tVec.at<double>(1), tVec.at<double>(2));
 	tar.r_vec = rVec.clone();
+	}
+	else{
+	cv::solvePnP(cv::InputArray(objPoints_small), cv::InputArray(tmp), 
+		cv::InputArray(insM), cv::InputArray(distCoeffs), 
+		cv::OutputArray(rVec), cv::OutputArray(tVec),
+		false, cv::SOLVEPNP_ITERATIVE);
+	tar.t_vec = cv::Point3f(tVec.at<double>(0), tVec.at<double>(1), tVec.at<double>(2));
+	tar.r_vec = rVec.clone();
+	}
+	
 }
 
 void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> &tmats, 
@@ -105,7 +124,7 @@ void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> &tmats,
 {
 	rmats.clear();
 	tmats.clear();
-	for(size_t i = 0; i< tar_list.size(); ++i){
+	for(int i = 0; i< tar_list.size(); ++i){
 		cv::Mat vecr(3, 1, CV_64F), vect(3, 1, CV_64F);		
 		/// cv::Point3f到cv::Mat
 		vect.at<double>(0) = (double)tar_list[i].t_vec.x;
