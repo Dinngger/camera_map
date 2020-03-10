@@ -62,6 +62,12 @@ void Drawer::DrawCurrentCamera(const std::vector<pangolin::OpenGlMatrix> &Twcs, 
         glVertex3f(lbs[i].x, lbs[i].y, lbs[i].z);
         glVertex3f(lbs[i+1].x, lbs[i+1].y, lbs[i+1].z);
     }
+    for(size_t i=0; i<lbs.size(); i+=4){
+        glVertex3f(lbs[i].x, lbs[i].y, lbs[i].z);
+        glVertex3f(lbs[i+2].x, lbs[i+2].y, lbs[i+2].z);
+        glVertex3f(lbs[i+1].x, lbs[i+1].y, lbs[i+1].z);
+        glVertex3f(lbs[i+3].x, lbs[i+3].y, lbs[i+3].z);
+    }
     glEnd();
 }
 
