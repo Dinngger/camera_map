@@ -30,16 +30,28 @@ double getDistance(const cv::Point2f p1, const cv::Point2f p2) {
     return ((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
 }
 
+template<typename T>
+T& interpolate(T& a, const T& b, double t) {
+    a = a * (1 - t) + b * t;
+    return a;
+}
+
 // p[0] is the upper point.
 struct LightBar
 {
-    double info;    // info belongs to [0, 1], 0 means perfectly know, 1 means know nothing.
+    const double info;    // info belongs to [0, 1], 0 means perfectly know, 1 means know nothing.
     Eigen::Vector3d p[2];
     LightBar (  Eigen::Vector3d p1=Eigen::Vector3d::Zero(),
                 Eigen::Vector3d p2=Eigen::Vector3d::Zero()) :
         info(1) {
         p[0] = p1;
         p[1] = p2;
+    }
+    LightBar& operator=(const LightBar &lb) {
+        p[0] = lb.p[0];
+        p[1] = lb.p[1];
+        // info = lb.info;
+        return *this;
     }
     Eigen::Vector3d center() {
         return (p[0] + p[1]) / 2;
@@ -100,22 +112,26 @@ private:
     Eigen::Vector3d centroid[4];
     SymmetryRule sr;
 public:
-    double info=1;  // how much information we know about this car. it belongs to [0, 1].
+    double car_info=1;  // how much information we know about this car. it belongs to [0, 1].
     Car() {
-        for (int i=0; i<4; i++) {
-            int tmp_i = 2 * i;
-            ar[i].setPoint( &lbs[tmp_i].p[0], &lbs[tmp_i].p[1], &lbs[tmp_i+1].p[0], &lbs[tmp_i+1].p[1],
-                            &lbs[tmp_i].info, &lbs[tmp_i].info, &lbs[tmp_i+1].info, &lbs[tmp_i+1].info);
-            cen[i].setPoint(&lbs[tmp_i].p[0], &lbs[tmp_i].p[1], &lbs[tmp_i+1].p[0], &lbs[tmp_i+1].p[1],
-                            &lbs[tmp_i].info, &lbs[tmp_i].info, &lbs[tmp_i+1].info, &lbs[tmp_i+1].info);
-        }
-        sr.setPoint(&centroid[0], &centroid[1], &centroid[2], &centroid[3]);
+        updateRuler();
         ddt = Eigen::Vector3d::Zero();
         last_dt = Eigen::Vector3d::Zero();
         dt = Eigen::Vector3d::Zero();
         last_t = Eigen::Vector3d::Zero();
         last_r.setIdentity();
         dr.setIdentity();
+    }
+    int updateRuler() {
+        for (int i=0; i<4; i++) {
+            int tmp_i = 2 * i;
+            ar[i].setPoint( lbs[tmp_i].p[0], lbs[tmp_i].p[1], lbs[tmp_i+1].p[0], lbs[tmp_i+1].p[1],
+                            lbs[tmp_i].info, lbs[tmp_i].info, lbs[tmp_i+1].info, lbs[tmp_i+1].info);
+            cen[i].setPoint(lbs[tmp_i].p[0], lbs[tmp_i].p[1], lbs[tmp_i+1].p[0], lbs[tmp_i+1].p[1],
+                            lbs[tmp_i].info, lbs[tmp_i].info, lbs[tmp_i+1].info, lbs[tmp_i+1].info);
+        }
+        sr.setPoint(centroid[0], centroid[1], centroid[2], centroid[3]);
+        return 0;
     }
     int regularzation();
     double ruler();
@@ -158,7 +174,13 @@ int Car::regularzation()
     // update t
     Eigen::Vector3d armor_center[4];
     for (int i=0; i<4; i++) {
-        armor_center[i] = cen[i].error();
+        armor_center[i] = Eigen::Vector3d::Zero();
+        for (int j=0; j<2; j++) {
+            for (int k=0; k<2; k++) {
+                armor_center[i] += lbs[i*2+j].p[k];
+            }
+        }
+        armor_center[i] /= 4;
     }
     Eigen::Vector3d car_center = (armor_center[0] + armor_center[1] + armor_center[2] + armor_center[3]) / 4;
     t += car_center;
@@ -197,16 +219,13 @@ int Car::regularzation()
 // return error.
 double Car::ruler()
 {
-    std::cout << "begin ruler\n";
+    updateRuler();
     double error_sum = 0;
     for (int i=0; i<4; i++) {
         error_sum += ar[i].error();
-        std::cout << "ruler test point1\n";
         ar[i].backPropagate();
-        std::cout << "ruler test point2\n";
         centroid[i] = cen[i].error();
     }
-    std::cout << "ruler test point\n";
     error_sum += sr.error();
     sr.backPropagate();
     for (int i=0; i<4; i++) {
@@ -262,36 +281,42 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
             edge->setVertex(1, pose);
             edge->setMeasurement(Eigen::Vector2d(lbp.p[i](0), lbp.p[i](1)));  //设置观测值
             edge->setParameterId(0,0);
-            Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
-            if (lbp.lb_id > 0)
-                info(0, 0) = 0.05;
-            edge->setInformation(info);
+            Eigen::Matrix2d infor = Eigen::Matrix2d::Identity();
+            edge->setInformation(infor);
             optimizer.addEdge(edge);
             index++;
         }
     }
 
-    // 设置优化参数，开始执行优化
-    optimizer.initializeOptimization();
-    optimizer.setVerbose(true);
-    optimizer.optimize(1);
+    for (int opt=0; opt<10; opt++) {
+        // 设置优化参数，开始执行优化
+        optimizer.initializeOptimization();
+        optimizer.setVerbose(true);
+        optimizer.optimize(1);
 
-    // 输出优化结果
-    g2o::SE3Quat new_pose = pose->estimate();
-    r = new_pose.rotation();
-    t = new_pose.translation();
+        g2o::SE3Quat new_pose = pose->estimate();
+        r = r.slerp(0.5, new_pose.rotation());
+        interpolate(t, new_pose.translation(), 0.5);
 
-    index = 1;
-    for (size_t i=0; i<light_bars.size(); i++) {
-        for (int j=0; j<2; j++) {
-            g2o::Vector3 new_lb = points[index-1]->estimate();
-            lbs[light_bars[i].lb_id].p[j] = Eigen::Vector3d(new_lb(0), new_lb(1), new_lb(2));
-            index++;
+        index = 1;
+        for (size_t i=0; i<light_bars.size(); i++) {
+            for (int j=0; j<2; j++) {
+                g2o::Vector3 new_lb = points[index-1]->estimate();
+                interpolate(lbs[light_bars[i].lb_id].p[j], Eigen::Vector3d(new_lb(0), new_lb(1), new_lb(2)), 0.5);
+                LightBar lb = lbs[light_bars[i].lb_id];
+                points[index-1]->setEstimate(Eigen::Vector3d(lb.p[i](0), lb.p[i](1), lb.p[i](2)));
+                index++;
+            }
         }
+        double error;
+        for (size_t i=0; i<5; i++) {
+            error = ruler();
+            std::cout << "ruler error: " << error << "\n";
+        }
+        if (optimizer.chi2() < 100)
+            break;
     }
-    double error = ruler();
-    std::cout << "ruler error: " << error << "\n";
-    // while (abs(ruler() - error) > 0.5);
+
     regularzation();
     update_state(delta_time);
     return 0;
@@ -333,14 +358,16 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars, double
     std::vector<LightBarP> light_bars_car[cars.size()];
     for (LightBarP lbp : light_bars) {
         light_bars_car[lbp.car_id].push_back(lbp);
+        /*
         double* infop = &(cars[lbp.car_id].lbs[lbp.lb_id].info);
         *infop *= 0.9;
         if (*infop < 0.1)
             *infop = 0.1;
+            */
     }
     for (size_t i=0; i<cars.size(); i++) {
         int size = light_bars_car[i].size();
-        cars[i].info = (cars[i].info + size) / 2;
+        cars[i].car_info = (cars[i].car_info + size) / 2;
         if (size > 0)
             cars[i].bundleAdjustment(light_bars_car[i], K, delta_time);
     }
@@ -356,10 +383,12 @@ int CarModule::create_predict(double time)
         cars[c].predict(time - module_time, pre_r, pre_t);
         LightBar rotated_lbs[8];
         for (int i=0; i<8; i++) {
+            /*
             double* infop = &(cars[c].lbs[i].info);
             *infop *= 1.2;
             if (*infop > 1)
                 *infop = 1;
+                */
             rotated_lbs[i] = LightBar(  pre_r.matrix() * cars[c].lbs[i].p[0],
                                         pre_r.matrix() * cars[c].lbs[i].p[1]);
             if (rotated_lbs[i].center()(2) <= 0) {
@@ -377,6 +406,7 @@ int CarModule::add_car(const Eigen::Vector3d armor[4])
 {
     Car c;
     c.t = (armor[0] + armor[1] + armor[2] + armor[3]) / 4 + Eigen::Vector3d(0, 0, 0.3);
+    std::cout << "c.t: " << c.t << std::endl;
     for (int i=0; i<2; i++) {
         for (int j=0; j<2; j++)
             c.lbs[i].p[j] = armor[2*i+j] - c.t;

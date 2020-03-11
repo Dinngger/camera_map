@@ -98,7 +98,7 @@ void LightMatch::findPossible(const float _a){								//找出所有可能灯条
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
 
-	for (int i = 0, _cnt = 0; i < contours.size(); ++i) {
+	for (size_t i = 0, _cnt = 0; i < contours.size(); ++i) {
 		double area = cv::contourArea(contours[i]);
 		if (area) {						//小于3*3像素的不被考虑	
 			cv::RotatedRect light = cv::minAreaRect(contours[i]);
@@ -106,7 +106,7 @@ void LightMatch::findPossible(const float _a){								//找出所有可能灯条
 			++_cnt;
 		}
 	}
-	for (int i = 0; i < possibles.size(); ++i) {
+	for (size_t i = 0; i < possibles.size(); ++i) {
 		cv::Point2f corners[4];
 		possibles[i].box.points(corners);
 		getTrapezoids(corners);								
@@ -118,7 +118,8 @@ bool LightMatch::saveImg(cv::Mat src){
 	cv::Mat channels[3];
 	cv::split(src, channels);
 	if(enemy_blue) proced = channels[0];						//取出蓝色通道
-	else proced = channels[2];									//取出红色通道	
+	else proced = channels[2];									//取出红色通道
+	return true;
 }
 
 void LightMatch::getRealLight(int size){
@@ -153,7 +154,7 @@ void LightMatch::getTrapezoids(cv::Point2f corners[4]){
 	std::vector<cv::Point2f> right_trapezoid;
 	double d1 = getDistance(corners[0], corners[1]);
 	double d2 = getDistance(corners[1], corners[2]);
-	cv::Point2f trapezoid_points[4];								//梯形角点
+	// cv::Point2f trapezoid_points[4];								//梯形角点
 	cv::Point2f direction_vectors[2];								//方向向量
 	cv::Point2f midpoints[2];										//中点
 	int i0 = d1<d2? 1:0;										//长所在边第一个顶点的位置
@@ -179,14 +180,14 @@ void LightMatch::getTrapezoids(cv::Point2f corners[4]){
 void LightMatch::drawLights(cv::Mat &src){
 	cv::Point2f pts[4];
 	char str[4];
-	for(int i=0;i<possibles.size();++i){
+	for(size_t i=0; i<possibles.size(); ++i){
 		possibles[i].box.points(pts);
 		for(int j=0; j<4;++j){
 			cv::line(src, pts[j], pts[(j+1)%4], cv::Scalar(0, 0, 255));
 			//snprintf(str, 4, "%d", j);
 			//cv::putText(src, str, pts[j]+cv::Point2f(1,1), cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
 		}
-		snprintf(str, 4, "%d", i);
+		snprintf(str, 4, "%lu", i);
 		cv::putText(src, str, pts[3], cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
 	}
 }

@@ -93,7 +93,7 @@ void GetPos::calcBallistic(aim_deps::Armor tar, float &pitch, float &yaw, float 
 }
 
 void GetPos::batchProcess(std::vector<aim_deps::Armor> &tar_list){
-	for(int i = 0; i<tar_list.size(); ++i){
+	for(size_t i = 0; i<tar_list.size(); ++i){
 		positionScore(tar_list[i]);
 	}
 }
@@ -124,7 +124,7 @@ void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> &tmats,
 {
 	rmats.clear();
 	tmats.clear();
-	for(int i = 0; i< tar_list.size(); ++i){
+	for(size_t i = 0; i< tar_list.size(); ++i){
 		if(tar_list[i].armor_number != -1 && tar_list[i].valid){
 			cv::Mat vecr(3, 1, CV_64F), vect(3, 1, CV_64F);		
 			/// cv::Point3f到cv::Mat

@@ -86,7 +86,7 @@ struct Armor
     //可能要删除的valid标签（只需要根据数字判断是否valid就好了）
     bool valid;
     bool Isbigarmor;
-    float ang_aver;                                 //平均灯条角度
+    float ang_aver=0;                                 //平均灯条角度
     cv::Mat r_vec;                                  //向量
     int armor_number;                              
     cv::Point3f t_vec;
@@ -96,7 +96,7 @@ struct Armor
     Light right_light;
     Armor(){ valid = true; }                                       //default
     Armor(cv::Point2f _pts[4], int _num, Light _l, Light _r, bool _big = false):
-    armor_number(_num), left_light(_l), right_light(_r), valid(true), Isbigarmor(_big)
+    valid(true), Isbigarmor(_big), armor_number(_num), left_light(_l), right_light(_r)
     {
         for(int i=0; i<4;++i) vertex[i]=_pts[i];							//copy by points
         center = (_pts[0]+_pts[1]+_pts[2]+_pts[3])/4;			//calc center(maybe useless)
