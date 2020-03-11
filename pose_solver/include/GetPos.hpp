@@ -125,15 +125,17 @@ void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> &tmats,
 	rmats.clear();
 	tmats.clear();
 	for(int i = 0; i< tar_list.size(); ++i){
-		cv::Mat vecr(3, 1, CV_64F), vect(3, 1, CV_64F);		
-		/// cv::Point3f到cv::Mat
-		vect.at<double>(0) = (double)tar_list[i].t_vec.x;
-		vect.at<double>(1) = (double)tar_list[i].t_vec.y;
-		vect.at<double>(2) = (double)tar_list[i].t_vec.z;
-		cv::Mat rtmp;
-		cv::Rodrigues(tar_list[i].r_vec, rtmp);
-		rmats.emplace_back(rtmp);
-		tmats.emplace_back(vect);
+		if(tar_list[i].armor_number != -1 && tar_list[i].valid){
+			cv::Mat vecr(3, 1, CV_64F), vect(3, 1, CV_64F);		
+			/// cv::Point3f到cv::Mat
+			vect.at<double>(0) = (double)tar_list[i].t_vec.x;
+			vect.at<double>(1) = (double)tar_list[i].t_vec.y;
+			vect.at<double>(2) = (double)tar_list[i].t_vec.z;
+			cv::Mat rtmp;
+			cv::Rodrigues(tar_list[i].r_vec, rtmp);
+			rmats.emplace_back(rtmp);
+			tmats.emplace_back(vect);
+		}
 	}
 }
 #endif //_GET_POS_HPP

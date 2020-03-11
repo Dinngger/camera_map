@@ -102,6 +102,7 @@ void ArmorPlate::matchAll(
     }
     filter(tar_list);                   //过滤无效装甲板
     //amp_debug("Target list size(%d), valid size(%d).\n", tar_list.size(), _cnt);
+    std::cout<<"tar_list: "<<tar_list.size()<<std::endl;
 }
 
 bool ArmorPlate::isMatch(aim_deps::Light l1, aim_deps::Light l2)
