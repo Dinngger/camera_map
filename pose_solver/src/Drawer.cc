@@ -77,9 +77,12 @@ void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws, const std::v
 
     //计算每帧到已知装甲板的变换矩阵
     mArmorPoses.clear();
+    mlbs.clear();
     for(size_t i=0; i<Tcws.size(); i++){
         mArmorPoses.push_back(Tcws[i].clone());
     }
+    // for(int i=0;i<mArmorPoses.size();i++)
+    //     std::cout<<"mArmorPoses: "<<mArmorPoses[i]<<std::endl;
     for(size_t i=0; i<lbs.size(); i++){
         mlbs.push_back(lbs[i]);
     }

@@ -91,7 +91,7 @@ void LightMatch::findPossible(const float _a){								//找出所有可能灯条
 	reset();
 	cv::Mat binary;
 	thresh_low = getThreshold(_a);
-	cv::threshold(proced, binary, thresh_low, thresh_high, CV_THRESH_BINARY);		///THRESHOLD修改
+	cv::threshold(proced, binary, thresh_low, thresh_high, cv::THRESH_BINARY);		///THRESHOLD修改
 	#ifdef LIGHT_MATCH_DEBUG
 		cv::imshow("binary", binary);
 	#endif
