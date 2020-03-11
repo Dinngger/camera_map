@@ -106,6 +106,7 @@ int PoseSolver::getTwcs(std::vector<cv::Mat> &Twcs)
 {
     std::vector<cv::Mat> rMats, tMats;
     pos_getter.packUp(rMats, tMats, tar_list);   ///取得rMats, tMats(内部clear这两个Mat容器)
+    std::cout << "armor number: " << rMats.size() << "\n";
     for (size_t i=0; i<rMats.size(); i++) {
         cv::Mat temp =(cv::Mat_<double>(1,4) << 0,0,0,1);
         cv::Mat temp2, Twc;

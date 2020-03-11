@@ -20,7 +20,7 @@ protected:
     double rate;
     bool inner_info;
 public:
-    FourPointRule(double rate=1) : rate(rate) {}
+    FourPointRule(double rate=0.05) : rate(rate) {}
     int setPoint (  Eigen::Vector3d* p1, Eigen::Vector3d* p2,
                     Eigen::Vector3d* p3, Eigen::Vector3d* p4,
                     double* info1=nullptr, double* info2=nullptr,
@@ -71,7 +71,6 @@ public:
         p_reset[1] << (*p[1]).norm(), 0, 0;
         p_reset[2] << 0, 0, (*p[2]).norm();
         p_reset[3] << -(*p[3]).norm(), 0, 0;
-        std::cout << "srbp testpoint 1\n";
         for (int i=0; i<4; i++) {
             if (inner_info)
                 *p[i] = *p[i] * (1 - rate) + p_reset[i] * rate;
@@ -102,18 +101,23 @@ public:
     }
     int backPropagate() override {
         Eigen::Vector3d middle = (*p[0] + *p[1] + *p[2] + *p[3]) / 4;
-        Eigen::Matrix<double,3,3> T;
+        Eigen::Matrix3d T;
         for (int i=0; i<4; i++) {
             T += (*p[i] - middle) * _armor_module[i].transpose();
         }
         T /= 4;
-        Eigen::JacobiSVD<Eigen::MatrixXd> svd(T, Eigen::ComputeThinU | Eigen::ComputeThinV);
-        Eigen::Matrix<double,3,3> R = svd.matrixU() * svd.matrixV().transpose();
+        Eigen::JacobiSVD<Eigen::Matrix3d> svd(T, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        std::cout << "ruler test point110\n";
+        Eigen::Matrix3d R = svd.matrixU() * svd.matrixV().transpose();
+        std::cout << "ruler test point112\n";
         for (int i=0; i<4; i++) {
-            if (inner_info)
+            if (inner_info) {
+                std::cout << "ruler test point115\n";
                 *p[i] = *p[i] * (1 - rate) + (R * _armor_module[i] + middle) * rate;
-            else
+            } else {
+                std::cout << "ruler test point118\n";
                 *p[i] = *p[i] * (1 - rate * *info[i]) + (R * _armor_module[i] + middle) * rate * *info[i];
+            }
         }
         return 0;
     }

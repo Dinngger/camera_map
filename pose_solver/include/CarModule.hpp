@@ -103,10 +103,11 @@ public:
     double info=1;  // how much information we know about this car. it belongs to [0, 1].
     Car() {
         for (int i=0; i<4; i++) {
-            ar[i].setPoint(&lbs[i].p[0], &lbs[i].p[1], &lbs[i+1].p[0], &lbs[i+1].p[1],
-                            &lbs[i].info, &lbs[i].info, &lbs[i+1].info, &lbs[i+1].info);
-            cen[i].setPoint(&lbs[i].p[0], &lbs[i].p[1], &lbs[i+1].p[0], &lbs[i+1].p[1],
-                            &lbs[i].info, &lbs[i].info, &lbs[i+1].info, &lbs[i+1].info);
+            int tmp_i = 2 * i;
+            ar[i].setPoint( &lbs[tmp_i].p[0], &lbs[tmp_i].p[1], &lbs[tmp_i+1].p[0], &lbs[tmp_i+1].p[1],
+                            &lbs[tmp_i].info, &lbs[tmp_i].info, &lbs[tmp_i+1].info, &lbs[tmp_i+1].info);
+            cen[i].setPoint(&lbs[tmp_i].p[0], &lbs[tmp_i].p[1], &lbs[tmp_i+1].p[0], &lbs[tmp_i+1].p[1],
+                            &lbs[tmp_i].info, &lbs[tmp_i].info, &lbs[tmp_i+1].info, &lbs[tmp_i+1].info);
         }
         sr.setPoint(&centroid[0], &centroid[1], &centroid[2], &centroid[3]);
         ddt = Eigen::Vector3d::Zero();
@@ -156,7 +157,7 @@ int Car::regularzation()
 {
     // update t
     Eigen::Vector3d armor_center[4];
-    for(int i=0; i<4; i++) {
+    for (int i=0; i<4; i++) {
         armor_center[i] = cen[i].error();
     }
     Eigen::Vector3d car_center = (armor_center[0] + armor_center[1] + armor_center[2] + armor_center[3]) / 4;
@@ -181,7 +182,7 @@ int Car::regularzation()
     for (int i=0; i<4; i++)
         T += t_reset[i] * armor_center[i].transpose();
     T /= 4;
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(T, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Eigen::JacobiSVD<Eigen::Matrix3d> svd(T, Eigen::ComputeFullU | Eigen::ComputeFullV);
     Eigen::Matrix3d R = svd.matrixU() * svd.matrixV().transpose();
 
     for (int i=0; i<8; i++) {
@@ -196,17 +197,18 @@ int Car::regularzation()
 // return error.
 double Car::ruler()
 {
+    std::cout << "begin ruler\n";
     double error_sum = 0;
     for (int i=0; i<4; i++) {
         error_sum += ar[i].error();
+        std::cout << "ruler test point1\n";
         ar[i].backPropagate();
+        std::cout << "ruler test point2\n";
         centroid[i] = cen[i].error();
     }
-    std::cout << "ruler testpoint 1\n";
+    std::cout << "ruler test point\n";
     error_sum += sr.error();
-    std::cout << "ruler testpoint 2\n";
     sr.backPropagate();
-    std::cout << "ruler testpoint 3\n";
     for (int i=0; i<4; i++) {
         cen[i].backPropagate(centroid[i]);
     }
@@ -216,7 +218,7 @@ double Car::ruler()
 int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen::Matrix3d &K, double delta_time)
 {
     g2o::SparseOptimizer optimizer;
-    optimizer.setVerbose(true);    //关提示
+    optimizer.setVerbose(false);    //关提示
     // pose 维度为 6, landmark 维度为 3
     // 创建一个线性求解器LinearSolver
     std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver =
@@ -261,7 +263,8 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
             edge->setMeasurement(Eigen::Vector2d(lbp.p[i](0), lbp.p[i](1)));  //设置观测值
             edge->setParameterId(0,0);
             Eigen::Matrix2d info = Eigen::Matrix2d::Identity();
-            info(0, 0) = 0.1;
+            if (lbp.lb_id > 0)
+                info(0, 0) = 0.05;
             edge->setInformation(info);
             optimizer.addEdge(edge);
             index++;
@@ -271,7 +274,7 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
     // 设置优化参数，开始执行优化
     optimizer.initializeOptimization();
     optimizer.setVerbose(true);
-    optimizer.optimize(10);
+    optimizer.optimize(1);
 
     // 输出优化结果
     g2o::SE3Quat new_pose = pose->estimate();
@@ -286,7 +289,8 @@ int Car::bundleAdjustment(const std::vector<LightBarP> &light_bars, const Eigen:
             index++;
         }
     }
-    // double error = ruler();
+    double error = ruler();
+    std::cout << "ruler error: " << error << "\n";
     // while (abs(ruler() - error) > 0.5);
     regularzation();
     update_state(delta_time);
@@ -388,11 +392,9 @@ int CarModule::add_car(const Eigen::Vector3d armor[4])
         for (int j=0; j<2; j++)
             c.lbs[i].p[j] = K * c.lbs[i-2].p[j];
     }
-    // double error = c.ruler();
-    // std::cout << "error: " << error << std::endl;
-    std::cout << "successfully ruler!\n";
+    double error = c.ruler();
+    std::cout << "error: " << error << std::endl;
     // while (abs(c.ruler() - error) > 0.5);
-    std::cout << "successfully ruler!\n";
     c.regularzation();
     c.update_state();
     cars.push_back(c);
@@ -432,8 +434,8 @@ void CarModule::get_lbs(std::vector<cv::Point3d> &lbs) {
         Eigen::Vector3d _t = cars[i].t;
         for (int j=0; j<8; j++) {
             for (int k=0; k<2; k++) {
-                Eigen::Vector3d tmp = _R * cars[i].lbs[j].p[k] + _t;
-                lbs.emplace_back(tmp(0), tmp(1), tmp(2));
+                Eigen::Vector3d tmp_p = _R * cars[i].lbs[j].p[k] + _t;
+                lbs.emplace_back(tmp_p(0), tmp_p(1), tmp_p(2));
             }
         }
     }
