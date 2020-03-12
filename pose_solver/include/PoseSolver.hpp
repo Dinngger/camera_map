@@ -16,19 +16,12 @@
 Armor3d toArmor3d(aim_deps::Armor armor) {
     Armor3d _armor;
     _armor.t = Eigen::Vector3d(armor.t_vec.x / 1000, armor.t_vec.y / 1000, armor.t_vec.z / 1000);
-    double ang = sqrt( pow(armor.r_vec.at<double>(0), 2) +
-                    pow(armor.r_vec.at<double>(1), 2) +
-                    pow(armor.r_vec.at<double>(2), 2)) / 2;     //旋转角/2
-    _armor.r = Eigen::Quaterniond(cos(ang), armor.r_vec.at<double>(0) * sin(ang), 
-                    armor.r_vec.at<double>(1) * sin(ang),
-                    armor.r_vec.at<double>(2) * sin(ang));
+    cv::Mat rotation;
+    cv::Rodrigues(armor.r_vec, rotation);
+    Eigen::Map<Eigen::Matrix3d> eR((double*)rotation.data);
+    eR.transposeInPlace();
+    _armor.r = Eigen::Quaterniond(eR);
     return _armor;
-    /// cv::Mat rotation;
-    /// cv::Rodrigues(armor.r_vec, rotation);
-    /// // std::cout << "cvMat: \n" << rotation << std::endl;
-    /// Eigen::Map<Eigen::Matrix3d> eR((double*)rotation.data);
-    /// eR.transposeInPlace();
-    /// _armor.r = Eigen::Quaterniond(eR);
 }
 
 class PoseSolver
