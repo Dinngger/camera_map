@@ -13,10 +13,21 @@
 #include "sampling.hpp"
 #include "CarModule.hpp"
 
+Armor3d toArmor3d(aim_deps::Armor armor) {
+    Armor3d _armor;
+    _armor.t = Eigen::Vector3d(armor.t_vec.x / 1000, armor.t_vec.y / 1000, armor.t_vec.z / 1000);
+    cv::Mat rotation;
+    cv::Rodrigues(armor.r_vec, rotation);
+    // std::cout << "cvMat: \n" << rotation << std::endl;
+    Eigen::Map<Eigen::Matrix3d> eR((double*)rotation.data);
+    eR.transposeInPlace();
+    _armor.r = Eigen::Quaterniond(eR);
+    return _armor;
+}
+
 class PoseSolver
 {
 private:
-    Eigen::Vector3d armor_module[4];
     std::vector<aim_deps::Armor> tar_list;
     cv::Matx<double, 3, 3> K;
     CarModule module;
@@ -36,10 +47,6 @@ PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K) :
     K (K),
     module(K)
 {
-    armor_module[0] = Eigen::Vector3d(-0.065,  0.0285, 0);
-    armor_module[1] = Eigen::Vector3d(-0.065, -0.0285, 0);
-    armor_module[2] = Eigen::Vector3d( 0.065,  0.0285, 0);
-    armor_module[3] = Eigen::Vector3d( 0.065, -0.0285, 0);
     tar_list.clear();
 }
 
@@ -53,7 +60,8 @@ int PoseSolver::run(const cv::Mat &frame, double time)
 
     //传入时间预测此时装甲版的平面位置
     module.create_predict(time);
-    //观测到的灯条
+    //观测到的
+    std::vector<Armor3d> armor3ds;
     std::vector<LightBarP> light_bars;
     bool failed[match.possibles.size()];                //失败的标记
     for (size_t i = 0; i<match.possibles.size(); ++i) {
@@ -62,29 +70,21 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     for (aim_deps::Armor armor: tar_list) {
         failed[armor.left_light.index] = false;
         failed[armor.right_light.index] = false;
-        LightBarP lbpl(armor.left_light.box);
-        LightBarP lbpr(armor.right_light.box);
-        bool find_left = module.find_light(lbpl);
-        bool find_right = module.find_light(lbpr);
-        if (find_left)
-            light_bars.emplace_back(lbpl);
-        if (find_right)
-            light_bars.emplace_back(lbpr);
-        if (!(find_left || find_right)) {
-            Eigen::Vector3d _armor[4];
-            for (int i=0; i<4; i++)
-                _armor[i] = armor_module[i];
-            Eigen::Vector3d t_eigen(armor.t_vec.x / 1000, armor.t_vec.y / 1000, armor.t_vec.z / 1000);
-            cv::Mat rotation;
-		    cv::Rodrigues(armor.r_vec, rotation);
-            // std::cout << "cvMat: \n" << rotation << std::endl;
-            Eigen::Map<Eigen::Matrix3d> eR((double*)rotation.data);
-            eR.transposeInPlace();
-            std::cout << "Add car Mat: \n" << eR << std::endl;
-            for (int i=0; i<4; i++) {
-                _armor[i] = eR * _armor[i] + t_eigen;
+        Armor3d a3d = toArmor3d(armor);
+        if (module.find_armor(a3d)) {
+            armor3ds.push_back(a3d);
+        } else {
+            LightBarP lbpl(armor.left_light.box);
+            LightBarP lbpr(armor.right_light.box);
+            bool find_left = module.find_light(lbpl);
+            bool find_right = module.find_light(lbpr);
+            if (find_left)
+                light_bars.emplace_back(lbpl);
+            if (find_right)
+                light_bars.emplace_back(lbpr);
+            if (!(find_left || find_right)) {
+                module.add_car(a3d);
             }
-            module.add_car(_armor);
         }
     }
     for (size_t i = 0; i<match.possibles.size(); ++i) {
@@ -98,7 +98,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
             }
         }
     }
-    module.bundleAdjustment(light_bars, time);
+    module.bundleAdjustment(armor3ds, light_bars, time);
     return 0;
 }
 
