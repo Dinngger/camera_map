@@ -14,15 +14,6 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
-/*
-#include "g2o/core/solver.h"
-#include <g2o/core/block_solver.h>
-#include "g2o/core/robust_kernel_impl.h"
-#include <g2o/core/optimization_algorithm_levenberg.h>
-#include <g2o/solvers/csparse/linear_solver_csparse.h>
-#include <g2o/types/sba/types_six_dof_expmap.h>
-*/
-// #include "Ruler.hpp"
 
 ///IMPORTENT: change this to the average time between two frames.
 #define DELTA_TIME 1
@@ -155,7 +146,7 @@ int Car::regularzation()
 {
     // update t
     Eigen::Vector3d car_center = (armor[0].t + armor[1].t + armor[2].t + armor[3].t) / 4;
-    t += car_center;
+    t += r.matrix() * car_center;
     for (int i=0; i<4; i++) {
         armor[i].t -= car_center;
     }
@@ -173,17 +164,14 @@ int Car::regularzation()
     Eigen::Matrix3d T = Eigen::Matrix3d::Zero();
     for (int i=0; i<4; i++)
         T += t_reset[i] * armor[i].t.transpose();
-    T /= 4;
     Eigen::JacobiSVD<Eigen::Matrix3d> svd(T, Eigen::ComputeFullU | Eigen::ComputeFullV);
     Eigen::Matrix3d R = svd.matrixU() * svd.matrixV().transpose();
     if (R.determinant() < 0) {
-        Eigen::Matrix3d z_transfor = Eigen::Matrix3d::Identity();
-        z_transfor(1, 1) = -1;
-        R = z_transfor * R;
+        Eigen::Matrix3d sigma = Eigen::Matrix3d::Identity();
+        sigma(2, 2) = -1;
+        R = svd.matrixU() * sigma * svd.matrixV().transpose();
     }
-    std::cout << "R: " << R.determinant() << std::endl;
     Eigen::Quaterniond qR(R);
-    std::cout << "qR: " << qR.norm() << std::endl;
     for (int i=0; i<4; i++) {
         armor[i].r = qR * armor[i].r;
     }
@@ -201,10 +189,14 @@ int Car::bundleAdjustment ( std::vector<Armor3d> &_armors,
         for (size_t i=0; i<_armors.size(); i++) {
             _R += (_armors[i].r * armor[_armors[i].armor_id].r.conjugate()).matrix();
         }
-        _R /= _armors.size();
         Eigen::JacobiSVD<Eigen::Matrix3d> svd(_R, Eigen::ComputeFullU | Eigen::ComputeFullV);
-        r = Eigen::Quaterniond(svd.matrixU() * svd.matrixV().transpose());
-        std::cout << "r: " << r.norm() << std::endl;
+        Eigen::Matrix3d _T = svd.matrixU() * svd.matrixV().transpose();
+        if (_T.determinant() < 0) {
+            Eigen::Matrix3d sigma = Eigen::Matrix3d::Identity();
+            sigma(2, 2) = -1;
+            _T = svd.matrixU() * sigma * svd.matrixV().transpose();
+        }
+        r = Eigen::Quaterniond(_T);
         r.x() = 0;
         r.z() = 0;
         r.normalize();
@@ -245,7 +237,7 @@ public:
     int bundleAdjustment(const std::vector<Armor3d> &armor3ds,
                          const std::vector<LightBarP> &light_bars,
                          double time);
-    void get_lbs(std::vector<cv::Point3d> &lbs);
+    void get_lbs(std::vector<cv::Point3d> &lbs) const;
 };
 
 Eigen::Vector2d CarModule::projectPoint(Eigen::Vector3d p3)
@@ -311,9 +303,8 @@ int CarModule::create_predict(double time)
 int CarModule::add_car(const Armor3d& _armor)
 {
     Car c;
-    c.t = _armor.t + Eigen::Vector3d(0, 0, 0.3);
-    std::cout << "c.t: " << c.t << std::endl;
-    c.armor[0].t = Eigen::Vector3d(0, 0, -0.3);
+    c.t = _armor.t + Eigen::Vector3d(0, 0, 0.4);
+    c.armor[0].t = Eigen::Vector3d(0, 0, -0.4);
     c.armor[0].r = _armor.r;
     Eigen::Quaterniond _r(Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d(0, -1, 0)));
     Eigen::Matrix3d _R = _r.matrix();
@@ -321,10 +312,12 @@ int CarModule::add_car(const Armor3d& _armor)
         c.armor[i].t = _R * c.armor[i-1].t;
         c.armor[i].r = _r * c.armor[i-1].r;
     }
+    c.r.setIdentity();
     c.regularzation();
     c.update_state();
     cars.push_back(c);
-    std::cout << "successfully add a car!\n";
+    std::cout << "successfully add a car! ";
+    std::cout << "now car number: " << cars.size() << std::endl;
     return 0;
 }
 
@@ -362,6 +355,8 @@ bool CarModule::find_armor(Armor3d &armor)
         Eigen::Matrix3d car_R = cars[i].r.matrix();
         Eigen::Vector3d car_t = cars[i].t;
         for (size_t j=0; j<4; j++) {
+            if ((car_R * cars[i].armor[j].t)(2) > 0.1)
+                continue;
             double distance = (armor.t - (car_R * cars[i].armor[j].t + car_t)).norm();
             if (distance < min_distance) {
                 min_distance = distance;
@@ -370,6 +365,7 @@ bool CarModule::find_armor(Armor3d &armor)
             }
         }
     }
+    std::cout << "min_distance: " << min_distance << "\n";
     if (min_distance > 0.3) {
         return false;
     } else {
@@ -379,7 +375,7 @@ bool CarModule::find_armor(Armor3d &armor)
     }
 }
 
-void CarModule::get_lbs(std::vector<cv::Point3d> &lbs) {
+void CarModule::get_lbs(std::vector<cv::Point3d> &lbs) const {
     for (size_t i=0; i<cars.size(); i++) {
         Eigen::Matrix3d car_R = cars[i].r.matrix();
         Eigen::Vector3d car_t = cars[i].t;

@@ -2,6 +2,7 @@
  * created time : 2020.3.3
  * by Dinger
  * This file is no use now!!
+ * and become my code trash.
  */
 
 #ifndef __RULER_HPP
@@ -11,6 +12,15 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
+
+/*
+#include "g2o/core/solver.h"
+#include <g2o/core/block_solver.h>
+#include "g2o/core/robust_kernel_impl.h"
+#include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/solvers/csparse/linear_solver_csparse.h>
+#include <g2o/types/sba/types_six_dof_expmap.h>
+*/
 
 template<typename ErrorType>
 class FourPointRule

@@ -67,6 +67,8 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         failed[i] = true;
     }
     for (aim_deps::Armor armor: tar_list) {
+        if (!armor.valid)
+            continue;
         failed[armor.left_light.index] = false;
         failed[armor.right_light.index] = false;
         Armor3d a3d = toArmor3d(armor);
