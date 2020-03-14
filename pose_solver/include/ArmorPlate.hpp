@@ -45,7 +45,7 @@ public:
      * @param optimal 最优装甲板的位置(使用绿色绘制)
      */
     void drawArmorPlates(cv::Mat &src, 
-        const std::vector<aim_deps::Armor> tar_list, const size_t optimal);                                            //消息发布
+        const std::vector<aim_deps::Armor> tar_list, const int optimal);                                            //消息发布
 private:
     bool isRatioValid();                                                //中点连线（平方）的比是否合适
     bool isEdgesValid();                                                //两对边(平方)的比是否合适
@@ -69,6 +69,9 @@ private:
      */
     bool isAngleMatch();                       
     /** 获得两个点对应直线（灯条的简化表征）的角度 */
+
+    /** 面积是否正确：面积过小的装甲板将会被过滤*/
+    bool isAreaGood();
     inline static float getAngle(const cv::Point2f p1, const cv::Point2f p2);
     inline static float getPointDist(const cv::Point2f p1, const cv::Point2f p2);          //返回两点距离的平方
     inline static float getRatio(const float l);                        //计算自适应装甲板长宽比
@@ -93,7 +96,7 @@ void ArmorPlate::matchAll(
 )
 {
     tar_list.clear();
-    for (size_t i = 0 ; i<matches.size() ; ++i){
+    for(std::vector<cv::Point>::size_type i = 0 ; i<matches.size() ; ++i){
         if(isMatch(lights[matches[i].x],lights[matches[i].y])){
             tar_list.emplace_back(aim_deps::Armor(points, 0, lights[matches[i].x], lights[matches[i].y]));
             tar_list.back().ang_aver = abs(_average_ang);            //给新push的元素的平均灯条角度赋值
@@ -102,39 +105,39 @@ void ArmorPlate::matchAll(
     }
     filter(tar_list);                   //过滤无效装甲板
     //amp_debug("Target list size(%d), valid size(%d).\n", tar_list.size(), _cnt);
-    // std::cout<<"tar_list: "<<tar_list.size()<<std::endl;
 }
 
 bool ArmorPlate::isMatch(aim_deps::Light l1, aim_deps::Light l2)
 {
+
     bool judge = true;                                  //灯条角度过大（与x轴成的夹角小）时退出
     if(l1.box.center.x < l2.box.center.x)               //r1灯条在左侧
         judge = getArmorPlate(l1.box, l2.box);
     else
         judge = getArmorPlate(l2.box, l1.box);                  //始终保持第一个入参是x轴坐标小的灯条
-    if(!judge) return false;
+    if(!judge) return false;                        
     if(!isAngleMatch()){
         amp_debug(rmlog::F_RED, "Angle mismatch:(", l1.index, ", ", l2.index, ")");
         return false;
     }
-    if(isRatioValid() && isEdgesValid()){
+    if(isRatioValid() && isEdgesValid() && isAreaGood()){
         amp_debug(rmlog::F_BLUE, "Push in:(", l1.index, ", ", l2.index, ")");
         return true;
     }
     else{
-        amp_debug(rmlog::F_RED, "Ratio mismatch:(", l1.index, ", ", l2.index, ")");
+        amp_debug(rmlog::F_RED, "Ratio mismatch or area too small:(", l1.index, ", ", l2.index, ")");
     }
     return false;
 }
 
 void ArmorPlate::drawArmorPlates(cv::Mat &src, 
-    const std::vector<aim_deps::Armor> tar_list, const size_t optimal){
+    const std::vector<aim_deps::Armor> tar_list, const int optimal){
 	char str[2];
     cv::line(src, cv::Point(720, 0), cv::Point(720, 1080), cv::Scalar(255, 0, 0));
 	cv::line(src, cv::Point(0, 540), cv::Point(1440, 540), cv::Scalar(255, 0, 0));
-    for (size_t i = 0; i< tar_list.size(); ++i) {
+    for (std::vector<aim_deps::Armor>::size_type i = 0; i< tar_list.size(); ++i) {
         if(tar_list[i].armor_number != -1 && tar_list[i].valid){   //有意义的数字
-            if(i != optimal){       //非最佳装甲板使用黄色绘制
+            if((int)i != optimal){       //非最佳装甲板使用黄色绘制
                 for (int j = 0; j < 4; ++j){
                     cv::line(src, tar_list[i].vertex[j], 
                     tar_list[i].vertex[(j + 1) % 4], cv::Scalar(0, 255, 255), 2);   
@@ -176,9 +179,9 @@ void ArmorPlate::getMidPoints(cv::RotatedRect rect, cv::Point2f &p1, cv::Point2f
 }
 
 void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list){
-    for(size_t i = 0; i<tar_list.size(); ++i){
+    for(std::vector<aim_deps::Armor>::size_type i = 0; i<tar_list.size(); ++i){
         if(tar_list[i].valid){
-            for(size_t j = i+1; j<tar_list.size(); ++j){
+            for(std::vector<aim_deps::Armor>::size_type j = i+1; j<tar_list.size(); ++j){
                 if(tar_list[j].valid){
                     if(tar_list[i] == tar_list[j]){                         //装甲板有共灯条冲突
                         tar_list[i].ang_aver > tar_list[j].ang_aver ?       //灯条平均角度大的被过滤掉
@@ -196,7 +199,9 @@ bool ArmorPlate::getArmorPlate(cv::RotatedRect r1, cv::RotatedRect r2){
     getMidPoints(r1, points[0], points[1]);             
     getMidPoints(r2, points[3], points[2]);
     cv::Point2f diff = points[0]-points[1];
-    return diff.x/diff.y < 1.5;
+    /// 这个地方的意思是：需要灯条有合适的角度（cot值必须小于1.5）
+    ///TODO:此处改为可调的阈值(不要使用魔鬼数字)
+    return diff.x/diff.y < 1.5;                 
 }
 
 bool ArmorPlate::isRatioValid(){                    //对边中点连线的长度平方比值是否合适
@@ -223,7 +228,7 @@ bool ArmorPlate::isRatioValid(){                    //对边中点连线的长�
 //从最左上角开始的点，逆时针方向标号是0,1,2,3
 bool ArmorPlate::isEdgesValid(){  //对边长度平方比值是否合适
     float edges[4];
-    for(int i = 0; i<4;++i){
+    for(int i = 0; i<4; ++i){
         edges[i]=getPointDist(points[i], points[(i+1)%4]);
     }
     bool judge1 = (edges[0]/edges[2] < params.OPS_RATIO_HEIGHT &&
@@ -246,16 +251,22 @@ bool ArmorPlate::isAngleMatch(){
     float ang1 = getAngle(points[0], points[1]),
         ang2 = getAngle(points[3], points[2]);      
     if (abs(ang1-ang2) < params.ANGLE_THRESH){
-        _average_ang = (abs(ang1) + abs(ang2))/2;
+        _average_ang = ang1 - ang2;
         return true;
     }
     return false;
 }
 
+bool ArmorPlate::isAreaGood(){
+    std::vector<cv::Point2f> tmp = {points[0], points[1], points[2], points[3]};
+    /// float res = cv::contourArea(tmp);
+    return cv::contourArea(tmp) >= aim_deps::MIN_ARMOR_AREA;
+}
+
 float ArmorPlate::getAngle(const cv::Point2f p1, const cv::Point2f p2){
     //默认是p1是处于上方的点，p2是处于下方的点
-    float dy = p2.y - p1.y, dx = p2.x - p1.x, ang = 0.0;
-    ang =  atan2f(dx, dy) * aim_deps::RAD2DEG;
+    /// TODO:调试结束后删除ang中间变量
+    float ang =  atan2f(p2.x - p1.x, p2.y - p1.y) * aim_deps::RAD2DEG;
     ///DEBUG
     amp_debug(rmlog::F_WHITE, "Angle for this light: ", ang);
     return ang;
@@ -265,12 +276,12 @@ float ArmorPlate::getPointDist(const cv::Point2f p1, const cv::Point2f p2){
     return ((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
 }
 
-float ArmorPlate::getRatio(const float l){
+float ArmorPlate::getRatio(const float l){                 
     // 默认输入的len2是灯条长度平方的平均值
     if(l > 56.25) return aim_deps::distance_params.NEAR_RATIO_MIN;            //12.5   (56.25是7.5的平方)
     else if(l <= 14.44) return aim_deps::distance_params.NEAR_RATIO_MAX;      //17.64是3.8（像素）的平方，30.0
-    float len = sqrt(l);
-    return aim_deps::coeffs[0] * powf(len, 4) + aim_deps::coeffs[1] * powf(len, 3) + 
+    float len = sqrt(l);                    //最后函数的输入是sqrt(l),是一个关于sqrt(l)的四次函数
+    return aim_deps::coeffs[0] * powf(len, 4) + aim_deps::coeffs[1] * powf(len, 3) +
             aim_deps::coeffs[2] * len * len + aim_deps::coeffs[3] * len + aim_deps::coeffs[4];
 }
 

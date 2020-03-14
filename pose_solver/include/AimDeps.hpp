@@ -15,6 +15,8 @@
 #define SENTRYDECISION
 namespace aim_deps{
 
+//=================最小装甲板面积==============
+const float MIN_ARMOR_AREA = 40.0;
 //=================通用的预设===============
 const cv::Point2f NULLPOINT2f = cv::Point2f(0.0, 0.0);
 const cv::Point3f NULLPOINT3f = cv::Point3f(0.0, 0.0, 0.0);
@@ -86,7 +88,7 @@ struct Armor
     //可能要删除的valid标签（只需要根据数字判断是否valid就好了）
     bool valid;
     bool Isbigarmor;
-    float ang_aver=0;                                 //平均灯条角度
+    float ang_aver;                                 //平均灯条角度
     cv::Mat r_vec;                                  //向量
     int armor_number;                              
     cv::Point3f t_vec;
@@ -96,7 +98,7 @@ struct Armor
     Light right_light;
     Armor(){ valid = true; }                                       //default
     Armor(cv::Point2f _pts[4], int _num, Light _l, Light _r, bool _big = false):
-    valid(true), Isbigarmor(_big), armor_number(_num), left_light(_l), right_light(_r)
+        valid(true), Isbigarmor(_big), armor_number(_num), left_light(_l), right_light(_r)
     {
         for(int i=0; i<4;++i) vertex[i]=_pts[i];							//copy by points
         center = (_pts[0]+_pts[1]+_pts[2]+_pts[3])/4;			//calc center(maybe useless)
@@ -151,7 +153,7 @@ struct Distance_Params{
     const float OPS_RATIO_WIDTH     = 1.44;     //对边长比例
     const float NEAR_RATIO_MIN      = 12.5;    //邻边装甲板比例
     const float NEAR_RATIO_MAX      = 30.0;
-    const float ANGLE_THRESH        = 15.0;     //角度差阈值
+    const float ANGLE_THRESH        = 13.5;     //角度差阈值
 }distance_params;
 
 
