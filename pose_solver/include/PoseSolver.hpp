@@ -60,7 +60,6 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     //传入时间预测此时装甲版的平面位置
     module.create_predict(time);
     //观测到的
-    std::vector<Armor3d> armor3ds;
     std::vector<LightBarP> light_bars;
     bool failed[match.possibles.size()];                //失败的标记
     for (size_t i = 0; i<match.possibles.size(); ++i) {
@@ -71,18 +70,34 @@ int PoseSolver::run(const cv::Mat &frame, double time)
             continue;
         failed[armor.left_light.index] = false;
         failed[armor.right_light.index] = false;
+        ///TODO: use 2d pose to find armor
         Armor3d a3d = toArmor3d(armor);
+        ///TODO: add find flag to avoid found twice.
         if (module.find_armor(a3d)) {
-            armor3ds.push_back(a3d);
+            LightBarP lbpl(armor.left_light.box);
+            LightBarP lbpr(armor.right_light.box);
+            lbpl.car_id = a3d.car_id;
+            lbpl.armor_id = a3d.armor_id;
+            lbpr.car_id = a3d.car_id;
+            lbpr.armor_id = a3d.armor_id;
+            if (lbpl.center(0) < lbpr.center(0)) {
+                lbpl.lb_id = 0;
+                lbpr.lb_id = 1;
+            } else {
+                lbpl.lb_id = 1;
+                lbpr.lb_id = 0;
+            }
+            light_bars.emplace_back(lbpl);
+            light_bars.emplace_back(lbpr);
         } else {
             LightBarP lbpl(armor.left_light.box);
             LightBarP lbpr(armor.right_light.box);
             bool find_left = module.find_light(lbpl);
             bool find_right = module.find_light(lbpr);
             if (find_left)
-                light_bars.emplace_back(lbpl);
+                ;//light_bars.emplace_back(lbpl);
             if (find_right)
-                light_bars.emplace_back(lbpr);
+                ;//light_bars.emplace_back(lbpr);
             if (!(find_left || find_right)) {
                 module.add_car(a3d);
             }
@@ -92,14 +107,14 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         if (failed[i]) {
             LightBarP lbp(match.possibles[i].box);
             if (module.find_light(lbp)) {
-                light_bars.emplace_back(lbp);
+                ;//light_bars.emplace_back(lbp);
             } else {
                 // 单独的灯条（新出现的）
                 ;
             }
         }
     }
-    module.bundleAdjustment(armor3ds, light_bars, time);
+    module.bundleAdjustment(light_bars, time);
     return 0;
 }
 

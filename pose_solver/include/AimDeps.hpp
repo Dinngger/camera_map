@@ -88,7 +88,7 @@ struct Armor
     //可能要删除的valid标签（只需要根据数字判断是否valid就好了）
     bool valid;
     bool Isbigarmor;
-    float ang_aver;                                 //平均灯条角度
+    float ang_aver=0;                                 //平均灯条角度
     cv::Mat r_vec;                                  //向量
     int armor_number;                              
     cv::Point3f t_vec;
