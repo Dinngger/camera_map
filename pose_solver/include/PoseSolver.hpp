@@ -107,7 +107,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         if (failed[i]) {
             LightBarP lbp(match.possibles[i].box);
             if (module.find_light(lbp)) {
-                ;//light_bars.emplace_back(lbp);
+                light_bars.emplace_back(lbp);
             } else {
                 // 单独的灯条（新出现的）
                 ;
