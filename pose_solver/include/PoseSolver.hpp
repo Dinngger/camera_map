@@ -135,7 +135,7 @@ int PoseSolver::getTwcs(std::vector<cv::Mat> &Twcs)
 
 int PoseSolver::draw(cv::Mat &frame)
 {
-    match.drawLights(frame);							//绘制所有灯条
+    //match.drawLights(frame);							//绘制所有灯条
     amp.drawArmorPlates(frame, tar_list, 0);		    //绘制装甲板
     return 0;
 }
