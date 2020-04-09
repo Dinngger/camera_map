@@ -14,9 +14,9 @@
 
 class NumRec{
 private:                                            //Params
-     cv::PCA _pca_model;                            //PCA_model to recognize the Armor
-     cv::Ptr<cv::ml::KNearest> knn;                 //Knn model to recognize the Armor
-     cv::Mat _transformed_Img;                      //the Image of the Armor
+     cv::PCA _pca_model;                            //PCA_model to recognize the aim_deps::Armor
+     cv::Ptr<cv::ml::KNearest> knn;                 //Knn model to recognize the aim_deps::Armor
+     cv::Mat _transformed_Img;                      //the Image of the aim_deps::Armor
      //===============temporary==============//
      int img_cnt;
      char str[48];
@@ -29,14 +29,14 @@ private:
      * @param r2 灯条2(right_light)
      * @param pts 装甲板点数组（输出）
      */
-    void getExtendedVex(cv::RotatedRect r1, cv::RotatedRect r2, cv::Point2f pts[]);
+    void getExtendedVex(aim_deps::LightBox l1, aim_deps::LightBox l2, cv::Point2f pts[]);
     inline static float getPointDist(const cv::Point2f p1, const cv::Point2f p2);
 public:
      NumRec();
      ~NumRec(){ knn->clear(); } 
      ///@param:all the armors waiting for evaluation
      ///@param:the whole image (COLOR_BGR2GRAY)
-     void reco(Armor &Input_armor, cv::Mat grayImg, int type=0);               //recognize the number
+     void reco(aim_deps::Armor &Input_armor, cv::Mat grayImg, int type=0);               //recognize the number
 };
 
 NumRec::NumRec()
@@ -50,8 +50,8 @@ NumRec::NumRec()
      img_cnt = 0;                                                                             //get knn models
 }
 
-void NumRec::reco(Armor &Input_armor, cv::Mat grayImg, int type){
-    cv::Point2f pts[4];
+void NumRec::reco(aim_deps::Armor &Input_armor, cv::Mat grayImg, int type){
+       cv::Point2f pts[4];
     getExtendedVex(Input_armor.left_light.box, Input_armor.right_light.box, pts);
     const cv::Point2f&
     tl = pts[0],
@@ -60,9 +60,13 @@ void NumRec::reco(Armor &Input_armor, cv::Mat grayImg, int type){
 	tr = pts[3]; 
 
 	int width, height;
-	if(type==0){
+	if(!Input_armor.Isbigarmor){
 	     width = 50;
 	     height = 50;
+	}
+    else {
+	width = 90;
+	height = 50;
 	}
 	cv::Point2f src[4]{cv::Vec2f(tl), cv::Vec2f(tr), cv::Vec2f(br), cv::Vec2f(bl)};//实际矩形
 	cv::Point2f dst[4]{cv::Point2f(0.0, 0.0), cv::Point2f(width, 0.0), cv::Point2f(width, height), cv::Point2f(0.0, height)};//目标矩形
@@ -71,38 +75,43 @@ void NumRec::reco(Armor &Input_armor, cv::Mat grayImg, int type){
     threshold(_transformed_Img, _transformed_Img, 30, 255, cv::THRESH_BINARY);//阈值化，准备识别
     ///snprintf(str, 48, "/home/sentinel/chopped/img%d.png", ++img_cnt);
     ///imwrite(str, _transformed_Img);
-	cv::resize(_transformed_Img, _transformed_Img, cv::Size(width, height), (0, 0), (0, 0), cv::INTER_AREA);//防止可能的bug
+    //std::cout<<width<<std::endl;
+	cv::resize(_transformed_Img, _transformed_Img, cv::Size(width, height), 0, 0, cv::INTER_AREA);//防止可能的bug
+    if(Input_armor.Isbigarmor)
+	{
+		_transformed_Img=_transformed_Img(cv::Rect(20,0,50,50));
+	}
     cv::normalize(_transformed_Img, _transformed_Img, 1., 0., cv::NormTypes::NORM_MINMAX, CV_32FC1);//归一化一下
+    //cv::imshow("a",_transformed_Img);cv::waitKey(0);
     cv::Mat Projection=_pca_model.eigenvectors*_transformed_Img.reshape(0, 1).t();//求出图片的投影向量
-	if(sum(Projection)[0]>20||sum(Projection)[0]<-20){
-        Input_armor.armor_number = -1;
-        return;
-    }//非数字
-    float r  = knn->predict(_pca_model.project(_transformed_Img.reshape(0, 1)));//预测
+	cv::Mat _cache=_pca_model.project(_transformed_Img.reshape(0, 1));
+    
+    float r  = knn->predict(_cache);//预测
     //////////////////
-	if((int)r == 0) Input_armor.armor_number = 3;
-	if((int)r == 1) Input_armor.armor_number = 5;
-    else Input_armor.armor_number = -1;
+     Input_armor.armor_number = (int)r;
+     
 }
 
 void NumRec::getExtendedVex(
-    cv::RotatedRect r1,
-    cv::RotatedRect r2,
+    aim_deps::LightBox l1,
+    aim_deps::LightBox l2,
     cv::Point2f pts[]
 ){
-    r1.size.width  *= 2.0;
-    r1.size.height *= 2.0;
-    r2.size.width  *= 2.0;
-    r2.size.height *= 2.0;
-    if(r1.center.x < r2.center.x){      //r1灯条在左侧
-        getMidPoints(r1, pts[0], pts[1]);             
-        getMidPoints(r2, pts[3], pts[2]);
-    }
-    else{
-        //始终保持第一个入参是x轴坐标小的灯条
-        getMidPoints(r2, pts[0], pts[1]);             
-        getMidPoints(r1, pts[3], pts[2]);
-    }
+    l1.extend(2.0);
+    l2.extend(2.0);
+    pts[0] = l1.vex[0];
+    pts[1] = l1.vex[1];
+    pts[2] = l2.vex[1];
+    pts[3] = l2.vex[0];
+    // if(r1.center.x < r2.center.x){      //r1灯条在左侧
+    //     getMidPoints(r1, pts[0], pts[1]);             
+    //     getMidPoints(r2, pts[3], pts[2]);
+    // }
+    // else{
+    //     //始终保持第一个入参是x轴坐标小的灯条
+    //     getMidPoints(r2, pts[0], pts[1]);             
+    //     getMidPoints(r1, pts[3], pts[2]);
+    // }
 }
 
 void NumRec::getMidPoints(const cv::RotatedRect rect, cv::Point2f &p1, cv::Point2f &p2){

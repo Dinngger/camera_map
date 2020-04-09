@@ -15,16 +15,19 @@
 #define SENTRYDECISION
 namespace aim_deps{
 
+
+///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
+//==========================通用的预设===========================//
+///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
 //=================最小装甲板面积==============
 const float MIN_ARMOR_AREA = 40.0;
-//=================通用的预设===============
 const cv::Point2f NULLPOINT2f = cv::Point2f(0.0, 0.0);
 const cv::Point3f NULLPOINT3f = cv::Point3f(0.0, 0.0, 0.0);
 const float RAD2DEG = 57.2958;     //(constant)(180/pi)
 
 //LightMatch.hpp 的依赖参数
-const float LIGHT_PARAM1 = 8.0;
-const float LIGHT_PARAM2 = 4.8;
+const float LIGHT_PARAM1 = 10.0;
+const float LIGHT_PARAM2 = 6.0;
 const float LIGHT_mean = 40.0;
 const float FAILED_SCORE = INFINITY;
 
@@ -73,14 +76,79 @@ enum Armor_type
     None,                           //未知
 };
 
+///+++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
+///=========================通用函数========================///
+///++++++++++++++++++++++++++++++++++++++++++++++++++++++++///
+/// 返回距离的平方
+inline float getPointDist(const cv::Point2f p1, const cv::Point2f p2){
+    return ((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
+}
+
+inline void getMidPoints(cv::RotatedRect rect, cv::Point2f &p1, cv::Point2f &p2){
+    cv::Point2f tmp_p1, tmp_p2, corners[4];                                     //找出角点
+    rect.points(corners);
+    float d1 = getPointDist(corners[0], corners[1]);            //0/1点距离的平方
+	float d2 = getPointDist(corners[1], corners[2]);            //1/2点距离的平方
+	int i0 = d1 > d2? 1 : 0;								    //长所在边第一个顶点的位置
+    tmp_p1 = (corners[i0] + corners[i0 + 1]) / 2;			    //获得旋转矩形两条短边上的中点
+	tmp_p2 = (corners[i0 + 2] + corners[(i0 + 3) % 4]) / 2;
+    if(tmp_p1.y > tmp_p2.y){                                    //保证输出点的顺序
+        p2 = tmp_p1;    
+        p1 = tmp_p2;
+    }
+    else{                                                       //必须是p1是处于上方的点，p2处于下方（y轴更大）
+        p1 = tmp_p1;
+        p2 = tmp_p2;
+    }
+}
+
+///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
+//=======================灯条和装甲板定义========================//
+///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
+
+struct LightBox{
+    float length;                   // 灯条长度
+    float angle;                    // 灯条角度
+    cv::Point2f vex[2];             // vex[0]在上, vex[1]在下
+    cv::Point2f center;
+    inline void extend(const float k){     // 长度乘以系数变化
+        vex[0] += (k - 1.0) * (vex[0] - center);
+        vex[1] += (k - 1.0) * (vex[1] - center);
+        length *= k;
+    }
+
+    inline void add(const float l){        // 长度加常数导致的变化
+        cv::Point2f vec = (vex[1] - vex[0]) * (l / length / 2); //计算点移动需要的向量
+        vex[0] -= vec;
+        vex[1] += vec;
+        length += l;
+    }                   
+
+    inline void add(const float l, const bool add_top){    //非中心增长
+        cv::Point2f vec = (vex[1] - vex[0]) * (l / length);
+        if(add_top){                                //加在上方的顶点
+            vex[0] -= vec;
+        }
+        else{                                       //加在下方的顶点
+            vex[1] += vec;
+        }
+        length += l;
+    }
+};
+
+
+/// @brief 灯条的两点式线段表示
 struct Light
 {
-    //index is an indicator of light, with this I can quickly decide shared lights
-    int index;          
-    //box has width/height/angle/center/area etc.   
-    cv::RotatedRect box;
+    int index;           
+    LightBox box;
     Light(){}
-    Light(int _i, cv::RotatedRect _r): index(_i), box(_r){}
+    Light(int _i, cv::RotatedRect _r): index(_i){
+        getMidPoints(_r, box.vex[0], box.vex[1]);
+        box.length = cv::max(_r.size.height, _r.size.width);
+        box.angle = atan2f(box.vex[1].x - box.vex[0].x, box.vex[1].y - box.vex[0].y) * aim_deps::RAD2DEG;
+        box.center = (box.vex[0] + box.vex[1]) / 2;
+    }
 };
 
 struct Armor
@@ -88,7 +156,6 @@ struct Armor
     //可能要删除的valid标签（只需要根据数字判断是否valid就好了）
     bool valid;
     bool Isbigarmor;
-    float ang_aver=0;                                 //平均灯条角度
     cv::Mat r_vec;                                  //向量
     int armor_number;                              
     cv::Point3f t_vec;
@@ -104,16 +171,16 @@ struct Armor
         center = (_pts[0]+_pts[1]+_pts[2]+_pts[3])/4;			//calc center(maybe useless)
     }
 
-    //do two armorplates contains shared light? IF TRUE, there must be a wrong match    
-    bool operator == (Armor a){
-        return (
-            left_light.index == a.left_light.index  ||
-            left_light.index == a.right_light.index ||
-            right_light.index == a.left_light.index ||
-            right_light.index == a.right_light.index
-        );
+    /// @brief 存在共灯条,则返回相同的灯条的下标，否则返回-1
+    inline int collide(Armor a){
+        if( left_light.index == a.left_light.index ||
+            left_light.index == a.right_light.index)
+            return left_light.index;
+        if( right_light.index == a.left_light.index ||
+            right_light.index == a.right_light.index)
+            return right_light.index;
+        return -1;
     }
-
 };
 
 
@@ -128,6 +195,7 @@ struct Evaluated_armor
     float Type_score;
     float Total_score;
 };
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////参数集合///////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
