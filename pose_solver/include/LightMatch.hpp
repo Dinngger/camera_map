@@ -192,13 +192,9 @@ void LightMatch::doubleThresh(int &index, const float area, std::vector<cv::Poin
 	//_bin.copyTo(bin(bbox));				//不需要把二次阈值化的二值图绘制在原二值图上时取消注释
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(_bin, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-	for(const std::vector<cv::Point> &contour: contours){
+	for(std::vector<cv::Point> contour: contours){
 		cv::RotatedRect light = cv::minAreaRect(contour);
 		if(light.size.area() > 0.1 * bbox.area()){		//与boundingBox面积不匹配的可能是噪点
-			cv::Point2f p1, p2;
-			aim_deps::getMidPoints(light, p1, p2);
-			if(p2.y - p1.y < 2.0)
-				return;
 			// 二次阈值化会带来一定的长度损失
 			if(light.size.height >= light.size.width){
 				light.size.height *= 1.1;
@@ -206,6 +202,9 @@ void LightMatch::doubleThresh(int &index, const float area, std::vector<cv::Poin
 			else light.size.width *= 1.1;
 			light.center.x += bbox.x;
 			light.center.y += bbox.y;
+			aim_deps::Light _l(index, light);
+			cv::Point2f vect = _l.box.vex[0] - _l.box.vex[1];
+			if( abs(vect.y) < 4.0) return;
 			possibles.emplace_back(aim_deps::Light(index, light));
 			++index;
 			return;
