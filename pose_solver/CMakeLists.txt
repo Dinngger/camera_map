@@ -66,11 +66,11 @@ link_directories(
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
 
-aux_source_directory(src/ VIEWER_SRC)
+aux_source_directory(src/ PROJ_SRC)
 
 add_executable(viewer
 pose_estimate.cc
-${VIEWER_SRC}
+${PROJ_SRC}
 )
 
 target_link_libraries(viewer
