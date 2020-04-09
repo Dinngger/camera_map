@@ -74,6 +74,13 @@ struct LightBarP
         center(center),
         p(p) {
     }
+    LightBarP(const LightBarP& lbp1, const LightBarP& lbp2) :
+        car_id(lbp1.car_id),
+        armor_id(lbp1.armor_id),
+        lb_id(lbp1.lb_id),
+        center(lbp2.center),
+        p(lbp2.p) {
+    }
     Eigen::Vector2d operator[](int i) const {
         if (i == 0)
             return center + p;
@@ -108,14 +115,14 @@ private:
     }
     static Eigen::Matrix3d exp(const Eigen::Vector3d& fi) {
         double theta = fi.norm();
-        if (theta < 1e-15)
+        if (theta < 1e-10)
             return Eigen::Matrix3d::Identity();
         Eigen::Vector3d a = fi / theta;
         return cos(theta)*Eigen::Matrix3d::Identity() + (1 - cos(theta))*(a*a.transpose()) + sin(theta)*up(a);
     }
     static Eigen::Matrix3d jacobi(const Eigen::Vector3d& fi) {
         double theta = fi.norm();
-        if (theta < 1e-15)
+        if (theta < 1e-10)
             return Eigen::Matrix3d::Identity();
         Eigen::Vector3d a = fi / theta;
         return sin(theta)/theta*Eigen::Matrix3d::Identity() + (1 - sin(theta) / theta)*(a*a.transpose()) + (1 - cos(theta))/theta*up(a);
@@ -203,9 +210,9 @@ int Car::regularzation()
         sigma(2, 2) = -1;
         R = svd.matrixU() * sigma * svd.matrixV().transpose();
     }
-    Eigen::Quaterniond qR(R);
     for (int i=0; i<4; i++) {
-        armor[i].r = qR * armor[i].r;
+        armor[i].r = Eigen::Quaterniond(R * armor[i].r.matrix());
+        armor[i].t = R * armor[i].t;
     }
     r = Eigen::Quaterniond(r.matrix() * R.transpose());
     return 0;
@@ -220,6 +227,14 @@ int Car::bundleAdjustment ( std::vector<LightBarP> &light_bars,
     double old_error;
     double error_sum = 0;
     int cnt = 0;
+    bool change_armor_r = true;
+    cv::Matx<uint8_t, 1000, 1000> img = cv::Matx<uint8_t, 1000, 1000>::zeros();
+    auto get_y = [](int x) {
+        return x < 0 ? 0 : (x > 999 ? 999 : x);
+    };
+    auto get_x = [](int x) {
+        return x < 0 ? 0 : (x > 999 ? 999 : x);
+    };
     do {
         old_error = error_sum;
         error_sum = 0;
@@ -229,7 +244,7 @@ int Car::bundleAdjustment ( std::vector<LightBarP> &light_bars,
         Eigen::Matrix<double, 6, 1> gradient[8];
         int sum = 0;
 
-        for (LightBarP lbp : light_bars) {
+        for (const LightBarP &lbp : light_bars) {
             Eigen::Matrix3d armor_R = armor[lbp.armor_id].r.matrix();
             Eigen::Vector3d& armor_t = armor[lbp.armor_id].t;
             isObserved[lbp.armor_id*2+lbp.lb_id] = true;
@@ -250,7 +265,7 @@ int Car::bundleAdjustment ( std::vector<LightBarP> &light_bars,
                 error_sum += error_norm;
                 for (int j=0; j<2; j++) {
                     Eigen::Matrix<double, 6, 1> tmp = (gradient_l[j]*gradient_r).transpose();
-                    tmp = tmp * (error(j) / pow(tmp.norm(), 2));
+                    // tmp = tmp * (error(j) / pow(tmp.norm(), 2));
                     gradient[lbp.armor_id*2+lbp.lb_id] += tmp;
                 }
             }
@@ -272,35 +287,45 @@ int Car::bundleAdjustment ( std::vector<LightBarP> &light_bars,
         if (cnt == 0)
             std::cout << "sum: " << sum << " error: " << error_sum << "\n";
         gradient_sum *= 0.1 / sum;
-        // r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0)) * r.matrix());
-        // r.normalize();
-        // t -= 3 * jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
-
-        gradient_sum *= 10;
-        for (int i=0; i<4; i++) {
-            Eigen::Matrix<double, 6, 1> gradient_armor = Eigen::Matrix<double, 6, 1>::Zero();
-            int sum_armor = 0;
-            for (int j=0; j<2; j++) {
-                if (isObserved[i*2+j]) {
-                    sum_armor++;
-                    gradient_armor += gradient[i*2+j];// - gradient_sum;
+        img(get_y(999 - (int)(gradient_sum.norm()*2e6)), 2*cnt) = 128;
+        if (cnt < 600) {
+            // r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0)) * r.matrix());
+            // r.normalize();
+            t -= 3 * jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
+        } else {
+            car_R = r.matrix();
+            Eigen::Matrix3d car_R_T = car_R.transpose();
+            for (int i=0; i<4; i++) {
+                Eigen::Matrix<double, 6, 1> gradient_armor = Eigen::Matrix<double, 6, 1>::Zero();
+                int sum_armor = 0;
+                for (int j=0; j<2; j++) {
+                    if (isObserved[i*2+j]) {
+                        sum_armor++;
+                        gradient_armor += gradient[i*2+j]; // - gradient_sum;
+                    }
                 }
-            }
-            if (sum_armor > 0) {
-                gradient_armor *= 0.3 / sum_armor;
-                car_R = r.matrix();
-                Eigen::Matrix3d car_R_T = car_R.transpose();
-                ///TODO: fix this r
-                armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0)) * car_R * armor[i].r.matrix());
-                armor[i].r.normalize();
-                armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
+                if (sum_armor > 0) {
+                    gradient_armor *= 0.3 / sum_armor;
+                    change_armor_r = !change_armor_r;
+                    if (cnt > 350 && change_armor_r) {
+                        armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0) * (-6)) * car_R * armor[i].r.matrix());
+                        armor[i].r.normalize();
+                    } else {
+                        armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
+                    }
+                }
             }
         }
 
+        img(get_y(999 - (int)(error_sum*2)), 2*cnt) = 255;
+        gradient_sum *= 10;
+        img(get_y(999 - (int)((old_error - error_sum)*2e2)), get_x((int)(gradient_sum.norm()*2e5))) = 200;
         cnt++;
-        if (cnt > 5000)
+        if (cnt > 500)
             break;
-    } while (abs(error_sum - old_error) > 0.000001);
+    } while (abs(error_sum - old_error) > 0.00001);
+    cv::imshow("error", img);
+    cv::waitKey(1);
     std::cout << "cnt: " << cnt << " error: " << error_sum << "\n";
     regularzation();
     update_state(delta_time);
@@ -311,10 +336,9 @@ class CarModule
 {
 private:
     double module_time;
-    std::vector<LightBarP> predict2d;
     Eigen::Matrix3d K;
     std::vector<Car> cars;
-    Eigen::Vector2d projectPoint(Eigen::Vector3d p3);
+    Eigen::Vector2d projectPoint(Eigen::Vector3d p3) const;
 
 public:
     CarModule(cv::Matx<double, 3, 3> &K) : K(K.val) {
@@ -322,15 +346,13 @@ public:
         std::cout << "K: \n" << this->K << std::endl;
     }
     int add_car(const Armor3d& _armor);
-    int create_predict(double time);
-    bool find_light(LightBarP &lbp);
-    bool find_armor(Armor3d &armor);
+    int create_predict(double time, std::vector<LightBarP>& predict2d) const;
     int bundleAdjustment(const std::vector<LightBarP> &light_bars,
                          double time);
     void get_lbs(std::vector<cv::Point3d> &lbs) const;
 };
 
-Eigen::Vector2d CarModule::projectPoint(Eigen::Vector3d p3)
+Eigen::Vector2d CarModule::projectPoint(Eigen::Vector3d p3) const
 {
     p3 = K * p3 / p3(2);
     return Eigen::Vector2d(p3(0), p3(1));
@@ -343,7 +365,7 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars,
     if (cars.size() < 1)
         return 0;
     std::vector<LightBarP> light_bars_car[cars.size()];
-    for (LightBarP lbp : light_bars) {
+    for (const LightBarP& lbp : light_bars) {
         light_bars_car[lbp.car_id].push_back(lbp);
     }
     for (size_t i=0; i<cars.size(); i++) {
@@ -356,9 +378,10 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars,
     return 0;
 }
 
-int CarModule::create_predict(double time)
+// Predict 2d light bar with time, @return number of 2d light bar.
+int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d) const
 {
-    predict2d.clear();
+    int num = 0;
     for (size_t c=0; c < cars.size(); c++) {
         Eigen::Quaterniond car_r;
         Eigen::Vector3d car_t;
@@ -366,10 +389,10 @@ int CarModule::create_predict(double time)
         Eigen::Matrix3d car_R = car_r.matrix();
         for (size_t i=0; i<4; i++) {
             Eigen::Matrix3d armor_R = cars[c].armor[i].r.matrix();
-            Eigen::Vector3d& armor_t = cars[c].armor[i].t;
+            const Eigen::Vector3d& armor_t = cars[c].armor[i].t;
             Eigen::Vector3d rotated_armor_point[4];
             for (size_t j=0; j<4; j++) {
-                rotated_armor_point[i] = car_R * (armor_R * armor_module[i] + armor_t);
+                rotated_armor_point[j] = car_R * (armor_R * armor_module[j] + armor_t);
             }
             for (size_t j=0; j<2; j++) {
                 if (((rotated_armor_point[2*j] + rotated_armor_point[2*j+1]) / 2)(2) <= 0) {
@@ -377,11 +400,12 @@ int CarModule::create_predict(double time)
                     lbp[0] = projectPoint(rotated_armor_point[2*j] + car_t);
                     lbp[1] = projectPoint(rotated_armor_point[2*j+1] + car_t);
                     predict2d.emplace_back(c, i, j, (lbp[0] + lbp[1])/2, (lbp[0] - lbp[1])/2);
+                    num++;
                 }
             }
         }
     }
-    return 0;
+    return num;
 }
 
 int CarModule::add_car(const Armor3d& _armor)
@@ -403,60 +427,6 @@ int CarModule::add_car(const Armor3d& _armor)
     std::cout << "successfully add a car! ";
     std::cout << "now car number: " << cars.size() << std::endl;
     return 0;
-}
-
-/**@return if or not found
- * @lbp input light bar info and output the id
-*/
-bool CarModule::find_light(LightBarP &lbp)
-{
-    if (predict2d.size() == 0)
-        return false;
-    double min_distance = 1000;
-    int min_index = -1;
-    for (size_t i=0; i<predict2d.size(); i++){
-        double distance = (predict2d[i].center - lbp.center).norm();
-        if (distance < min_distance){
-            min_distance = distance;
-            min_index = i;
-        }
-    }
-    if (min_distance > 100) {
-        return false;
-    } else {
-        lbp.car_id = predict2d[min_index].car_id;
-        lbp.armor_id = predict2d[min_index].armor_id;
-        lbp.lb_id = predict2d[min_index].lb_id;
-        return true;
-    }
-}
-
-bool CarModule::find_armor(Armor3d &armor)
-{
-    double min_distance = 1000;
-    int car_id=0, armor_id=0;
-    for (size_t i=0; i<cars.size(); i++) {
-        Eigen::Matrix3d car_R = cars[i].r.matrix();
-        Eigen::Vector3d car_t = cars[i].t;
-        for (size_t j=0; j<4; j++) {
-            if ((car_R * cars[i].armor[j].t)(2) > 0.1)
-                continue;
-            double distance = (armor.t - (car_R * cars[i].armor[j].t + car_t)).norm();
-            if (distance < min_distance) {
-                min_distance = distance;
-                car_id = i;
-                armor_id = j;
-            }
-        }
-    }
-    std::cout << "min_distance: " << min_distance << "\n";
-    if (min_distance > 0.3) {
-        return false;
-    } else {
-        armor.car_id = car_id;
-        armor.armor_id = armor_id;
-        return true;
-    }
 }
 
 void CarModule::get_lbs(std::vector<cv::Point3d> &lbs) const {

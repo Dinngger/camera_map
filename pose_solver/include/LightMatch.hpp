@@ -112,7 +112,7 @@ void LightMatch::findPossible(const float _a){								//找出所有可能灯条
 	///尝试一下 SIMPLE
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
 	int _cnt = 0;
-	for (std::vector<cv::Point> contour: contours) {	
+	for (const std::vector<cv::Point> &contour: contours) {	
 		/// TODO: 灯条的contourArea是否还要再设置阈值？
 		float area = cv::contourArea(contour);
 		if(area > 15.0f){
@@ -129,7 +129,7 @@ void LightMatch::findPossible(const float _a){								//找出所有可能灯条
 		cv::imshow("binary", binary);
 	#endif
 	std::vector<cv::Point2f *> _vexes;
-	for (aim_deps::Light light: possibles) {
+	for (const aim_deps::Light& light: possibles) {
 		cv::Point2f* corners = new cv::Point2f[4];
 		light.box.points(corners);
 		_vexes.emplace_back(corners);
@@ -187,7 +187,7 @@ void LightMatch::doubleThresh(int &index, const float area, std::vector<cv::Poin
 	/// _bin.copyTo(bin(bbox));				//需要把二次阈值化的二值图绘制在原二值图上时取消注释
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(_bin, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-	for(std::vector<cv::Point> contour: contours){
+	for(const std::vector<cv::Point> &contour: contours){
 		cv::RotatedRect light = cv::minAreaRect(contour);
 		if(light.size.area() >= 6.0){
 			cv::RotatedRect light = cv::minAreaRect(contour);

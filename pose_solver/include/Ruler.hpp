@@ -174,7 +174,7 @@ public:
     std::vector<g2o::VertexSBAPointXYZ*> points;
     ///TODO: add armor size edge.
     ///TODO: add infomation and robust core.
-    for (const LightBarP lbp:light_bars)
+    for (const LightBarP& lbp:light_bars)
     {
         LightBar lb = lbs[lbp.lb_id];
         for (int i=0; i<2; i++) {
