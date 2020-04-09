@@ -90,7 +90,8 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     };
     std::priority_queue<Lbp_ptr, std::vector<Lbp_ptr>, std::greater<Lbp_ptr>> heap;
     for (size_t i=0; i<match.possibles.size(); ++i) {
-        LightBarP lbp(match.possibles[i].box);
+        aim_deps::LightBox &lb = match.possibles[i].box;
+        LightBarP lbp(lb.center, lb.vex[0] - lb.center);
         // better to use kd tree
         int min_id = -1;
         double min_dist = 1e10;
@@ -101,11 +102,14 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         Lbp_ptr tmp = heap.top();
         std::cout << "id: " << tmp.id << " tar: " << tmp.tar_id << " dist: " << tmp.distance << "\n";
         heap.pop();
+        aim_deps::LightBox &lb = match.possibles[tmp.id].box;
+        LightBarP lbp(lb.center, lb.vex[0] - lb.center);
         if (!found[tmp.tar_id]) {
             found[tmp.tar_id] = true;
-            light_bar_pairs.emplace_back(predict2d[tmp.tar_id], LightBarP(match.possibles[tmp.id].box));
+            light_bar_pairs.emplace_back(predict2d[tmp.tar_id], lbp);
+            if (heap.empty())
+                break;
         } else {
-            LightBarP lbp(match.possibles[tmp.id].box);
             // better to use kd tree
             int min_id = -1;
             double min_dist = 1e10;

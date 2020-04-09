@@ -49,27 +49,12 @@ struct LightBarP
     int car_id, armor_id, lb_id;
     Eigen::Vector2d center;
     Eigen::Vector2d p;  // the vector from center to the upper point.
-    // LightBarP(cv::RotatedRect box) {
-    //     cv::Point2f corners[4];                                     //找出角点
-    //     box.points(corners);
-    //     float d1 = getDistance(corners[0], corners[1]);             //0/1点距离的平方
-    //     float d2 = getDistance(corners[1], corners[2]);             //1/2点距离的平方
-    //     int i0 = d1 > d2? 1 : 0;								    //长所在边第一个顶点的位置
-    //     cv::Point2f tmp_p1 = (corners[i0] + corners[i0 + 1]) / 2;	//获得旋转矩形两条短边上的中点
-    //     cv::Point2f tmp_p2 = (corners[i0 + 2] + corners[(i0 + 3) % 4]) / 2;
-    //     cv::Point2f cv_center = (tmp_p1 + tmp_p2) / 2;
-    //     center = Eigen::Vector2d(cv_center.x, cv_center.y);
-    //     if(tmp_p1.y < tmp_p2.y){                                    //保证输出点的顺序
-    //         cv::Point2f cv_p = (tmp_p1 - tmp_p2) / 2;
-    //         p = Eigen::Vector2d(cv_p.x, cv_p.y);
-    //     } else{                                                     //必须是p1是处于上方的点，p2处于下方（y轴更大）
-    //         cv::Point2f cv_p = (tmp_p2 - tmp_p1) / 2;
-    //         p = Eigen::Vector2d(cv_p.x, cv_p.y);
-    //     }
-    // }
-    LightBarP(aim_deps::LightBox box){
-        cv::Point2f vect = box.vex[0] - box.center;
-        p = Eigen::Vector2d(vect.x, vect.y);
+    LightBarP(cv::Point2f _center, cv::Point2f _p) :
+        car_id(-1),
+        armor_id(-1),
+        lb_id(-1) {
+        center = Eigen::Vector2d(_center.x, _center.y);
+        p = Eigen::Vector2d(_p.x, _p.y);
     }
     LightBarP(int car_id, int armor_id, int lb_id, Eigen::Vector2d center, Eigen::Vector2d p) :
         car_id(car_id),
@@ -269,7 +254,7 @@ int Car::bundleAdjustment ( std::vector<LightBarP> &light_bars,
                 error_sum += error_norm;
                 for (int j=0; j<2; j++) {
                     Eigen::Matrix<double, 6, 1> tmp = (gradient_l[j]*gradient_r).transpose();
-                    // tmp = tmp * (error(j) / pow(tmp.norm(), 2));
+                    tmp = tmp * (error(j) / pow(tmp.norm(), 2));
                     gradient[lbp.armor_id*2+lbp.lb_id] += tmp;
                 }
             }
