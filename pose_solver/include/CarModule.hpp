@@ -277,9 +277,9 @@ int Car::bundleAdjustment ( std::vector<LightBarP> &light_bars,
             std::cout << "sum: " << sum << " error: " << error_sum << "\n";
         gradient_sum *= 0.1 / sum;
         img(get_y(999 - (int)(gradient_sum.norm()*2e6)), 2*cnt) = 128;
-        if (cnt < 600) {
-            // r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0)) * r.matrix());
-            // r.normalize();
+        if (cnt < 300) {
+            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0)) * r.matrix());
+            r.normalize();
             t -= 3 * jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
         } else {
             car_R = r.matrix();
@@ -296,7 +296,7 @@ int Car::bundleAdjustment ( std::vector<LightBarP> &light_bars,
                 if (sum_armor > 0) {
                     gradient_armor *= 0.3 / sum_armor;
                     change_armor_r = !change_armor_r;
-                    if (cnt > 350 && change_armor_r) {
+                    if (cnt > 600 && change_armor_r) {
                         armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0) * (-6)) * car_R * armor[i].r.matrix());
                         armor[i].r.normalize();
                     } else {
