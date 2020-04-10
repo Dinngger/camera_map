@@ -111,41 +111,6 @@ int Car::computeGradient(const std::vector<LightBarP> &light_bars,
     return 0;
 }
 
-int Car::optimization(const int cnt,
-                      const Eigen::Matrix<double, 6, 1> gradient[],
-                      const Eigen::Matrix<double, 6, 1>& gradient_sum,
-                      const bool isObserved[]) {
-    ec.update();
-    if (ec.r) {
-        r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0)) * r.matrix());
-        r.normalize();
-    }
-    if (ec.t)
-        t -= 3 * jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
-    Eigen::Matrix3d car_R = r.matrix();
-    Eigen::Matrix3d car_R_T = car_R.transpose();
-    for (int i=0; i<4; i++) {
-        Eigen::Matrix<double, 6, 1> gradient_armor = Eigen::Matrix<double, 6, 1>::Zero();
-        int sum_armor = 0;
-        for (int j=0; j<2; j++) {
-            if (isObserved[i*2+j]) {
-                sum_armor++;
-                gradient_armor += gradient[i*2+j];
-            }
-        }
-        if (sum_armor > 0) {
-            gradient_armor *= 2.0 / sum_armor;
-            if (ec.ar) {
-                armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0)) * car_R * armor[i].r.matrix());
-                armor[i].r.normalize();
-            }
-            if (ec.at)
-                armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
-        }
-    }
-    return 0;
-}
-
 int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                             const Eigen::Matrix3d &K,
                             double delta_time)
@@ -163,8 +128,16 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
 #endif
 
     double error_sum = 0;
+    Eigen::Matrix<double, 6, 1> moment[8];
+    Eigen::Matrix<double, 6, 1> moment_sum = Eigen::Matrix<double, 6, 1>::Zero();
+    double moment2[8];
+    double moment2_sum = 0;
+    for (int i=0; i<8; i++) {
+        moment[i] = Eigen::Matrix<double, 6, 1>::Zero();
+        moment2[i] = 0;
+    }
+
     for (int cnt=0; cnt<1000; cnt++) {
-        ec.cnt = cnt;
 #ifdef BA_DEBUG
         old_error = error_sum;
 #endif
@@ -173,14 +146,48 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         Eigen::Matrix<double, 6, 1> gradient[8];
         int sum = 0;
         computeGradient(light_bars, isObserved, sum, gradient, K, error_sum);
-        ec.error_sum = error_sum;
         Eigen::Matrix<double, 6, 1> gradient_sum = Eigen::Matrix<double, 6, 1>::Zero();
         for (int i=0; i<8; i++) {
             if (isObserved[i]) {
                 gradient_sum += gradient[i];
             }
         }
-        optimization(cnt, gradient, gradient_sum, isObserved);
+        // optimization(cnt, gradient, gradient_sum, isObserved,
+        //              moment, moment_sum, moment2, moment2_sum);
+
+#define BETA1 0.9
+#define BETA2 0.999
+        moment_sum =;
+
+        if (cnt < 250) {
+            t -= 3 * jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
+        } else if (cnt < 500) {
+            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0)) * r.matrix());
+            r.normalize();
+        } else {
+            Eigen::Matrix3d car_R = r.matrix();
+            Eigen::Matrix3d car_R_T = car_R.transpose();
+            for (int i=0; i<4; i++) {
+                Eigen::Matrix<double, 6, 1> gradient_armor = Eigen::Matrix<double, 6, 1>::Zero();
+                int sum_armor = 0;
+                for (int j=0; j<2; j++) {
+                    if (isObserved[i*2+j]) {
+                        sum_armor++;
+                        gradient_armor += gradient[i*2+j];
+                    }
+                }
+                if (sum_armor > 0) {
+                    gradient_armor *= 2.0 / sum_armor;
+                    if (cnt < 750) {
+                        armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
+                    } else {
+                        armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0)) * car_R * armor[i].r.matrix());
+                        armor[i].r.normalize();
+                    }
+                }
+            }
+        }
+
         if (cnt == 0)
             std::cout << "sum: " << sum << " error: " << error_sum << "\n";
 

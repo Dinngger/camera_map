@@ -74,13 +74,6 @@ struct LightBarP
     }
 };
 
-struct ErrorCtl {
-    int cnt;
-    double error_sum;
-    bool r, t, ar, at;
-    int update();
-};
-
 // lb[0] was the first light bar to be seen.
 class Car
 {
@@ -88,7 +81,6 @@ private:
     int color=-1;
     int number=-1; // -1 means unknow
     Armor3d armor[4];
-    ErrorCtl ec;
 
     Eigen::Quaterniond dr;
     Eigen::Quaterniond last_r;
@@ -107,7 +99,11 @@ private:
     int optimization(const int cnt,
                      const Eigen::Matrix<double, 6, 1> gradient[],
                      const Eigen::Matrix<double, 6, 1>& gradient_sum,
-                     const bool isObserved[]);
+                     const bool isObserved[],
+                     Eigen::Matrix<double, 6, 1> moment[],
+                     Eigen::Matrix<double, 6, 1>& moment_sum,
+                     double moment2[],
+                     double& moment2_sum);
 
     static Eigen::Matrix3d up(const Eigen::Vector3d& a) {
         Eigen::Matrix3d res;
