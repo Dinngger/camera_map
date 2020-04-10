@@ -128,11 +128,11 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
 #endif
 
     double error_sum = 0;
-    Eigen::Matrix<double, 6, 1> moment[8];
+    Eigen::Matrix<double, 6, 1> moment[4];
     Eigen::Matrix<double, 6, 1> moment_sum = Eigen::Matrix<double, 6, 1>::Zero();
-    double moment2[8];
+    double moment2[4];
     double moment2_sum = 0;
-    for (int i=0; i<8; i++) {
+    for (int i=0; i<4; i++) {
         moment[i] = Eigen::Matrix<double, 6, 1>::Zero();
         moment2[i] = 0;
     }
@@ -152,13 +152,14 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                 gradient_sum += gradient[i];
             }
         }
-        // optimization(cnt, gradient, gradient_sum, isObserved,
-        //              moment, moment_sum, moment2, moment2_sum);
 
 #define BETA1 0.9
 #define BETA2 0.999
-        moment_sum =;
-
+        moment_sum = BETA1 * moment_sum + (1 - BETA1) * gradient_sum;
+        moment2_sum = BETA2 * moment2_sum + (1 - BETA2) * pow(gradient_sum.norm(), 2);
+        moment_sum /= (1 - pow(BETA1, cnt));
+        moment2_sum /= (1 - pow(BETA2, cnt));
+        gradient_sum = moment_sum; // /(sqrt(moment2_sum) + 1e-8);
         if (cnt < 250) {
             t -= 3 * jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
         } else if (cnt < 500) {
@@ -178,6 +179,11 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                 }
                 if (sum_armor > 0) {
                     gradient_armor *= 2.0 / sum_armor;
+                    moment[i] = BETA1 * moment[i] + (1 - BETA1) * gradient_armor;
+                    moment2[i] = BETA2 * moment2[i] + (1 - BETA2) * pow(gradient_armor.norm(), 2);
+                    moment[i] /= (1 - pow(BETA1, cnt));
+                    moment2[i] /= (1 - pow(BETA2, cnt));
+                    gradient_armor = moment[i]; // /(sqrt(moment2[i]) + 1e-8);
                     if (cnt < 750) {
                         armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
                     } else {

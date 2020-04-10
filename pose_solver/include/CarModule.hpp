@@ -96,14 +96,6 @@ private:
                         Eigen::Matrix<double, 6, 1> gradient[],
                         const Eigen::Matrix3d &K,
                         double &error_sum) const;
-    int optimization(const int cnt,
-                     const Eigen::Matrix<double, 6, 1> gradient[],
-                     const Eigen::Matrix<double, 6, 1>& gradient_sum,
-                     const bool isObserved[],
-                     Eigen::Matrix<double, 6, 1> moment[],
-                     Eigen::Matrix<double, 6, 1>& moment_sum,
-                     double moment2[],
-                     double& moment2_sum);
 
     static Eigen::Matrix3d up(const Eigen::Vector3d& a) {
         Eigen::Matrix3d res;
