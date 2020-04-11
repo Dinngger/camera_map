@@ -7,7 +7,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "CarModule.hpp"
 
-#define PROCESS_DEBUG
+// #define PROCESS_DEBUG
 
 #ifdef PROCESS_DEBUG
 #include "Viewer.h"
@@ -116,7 +116,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
     Eigen::Matrix<double, 6, 1> moment[4];
     Eigen::Matrix<double, 6, 1> moment_sum;
     double moment2[4];
-    double moment2_sum;
+    double moment2_sum = 0;
     StateType state = SCT;
     StateType state_max = SCT;
     bool reset = true;
@@ -132,7 +132,8 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         Eigen::Matrix<double, 6, 1> gradient[8];
         double error[8] = {0,};
         int sum = 0;
-        // computeGradient(light_bars, isObserved, sum, gradient, K, error_sum);
+
+        // computeGradient
         double fx = K(0, 0);
         double fy = K(1, 1);
         for (const LightBarP &lbp : light_bars) {
@@ -159,18 +160,18 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                 }
             }
         }
+
         error_sum = 0;
         Eigen::Matrix<double, 6, 1> gradient_sum = Eigen::Matrix<double, 6, 1>::Zero();
         double rate_sum = 0;
         int observed_sum = 0;
         for (int i=0; i<4; i++) {
-            double _rate = (isObserved[2*i] && isObserved[2*i+1]) ? 2 : 1;
             for (int j=0; j<2; j++) {
-                if (isObserved[2*i+1]) {
-                    rate_sum += _rate;
+                if (isObserved[2*i+j]) {
+                    rate_sum += confidence[i];
                     observed_sum += 1;
                     error_sum += error[2*i+j];
-                    gradient_sum += gradient[2*i+j] * _rate;
+                    gradient_sum += gradient[2*i+j] * confidence[i];
                 }
             }
         }
@@ -237,18 +238,16 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         case SAT:
         case SATR:
             if (state > SCTR)
-                error_min = 0.0001;
+                error_min = 0.001;
             if (delta_error < error_min && state_cnt > 50) {
                 next_state = (StateType)((int)next_state + 1);
                 state_cnt = 0;
                 state_error = 0;
-                // reset = true;
             }
-            //  else if (state_error > 30 && state > 0) {
+            // else if (state_error > 30 && state > 0) {
             //     next_state = (StateType)((int)next_state - 1);
             //     state_error = 0;
             //     state_cnt = 0;
-            //     // reset = true;
             // }
             break;
         default:
@@ -293,17 +292,21 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         }
         img.at<cv::Vec3b>(get_y(999 - (int)(gradient_sum.norm()*5e5)), get_x(cnt)) = g_color;
         img.at<cv::Vec3b>(get_y(999 - (int)(error_sum)), get_x(cnt)) = e_color;
+#endif
         state = next_state;
         if (cnt >= 1e4) {
             std::cout << "cnt >= 1e4 !!!\n";
             state = END;
         }
+        if (state == END) {
+            for (int i=0; i<4; i++) {
+                confidence[i] = confidence[i] * 0.5 + 0.5 * (isObserved[2*i] + isObserved[2*i+1]) / 2;
+            }
+        }
+    }
+#ifdef BA_DEBUG
     cv::imshow("error", img);
-    cv::waitKey();
-    }
-#else
-        state = next_state;
-    }
+    cv::waitKey(1);
 #endif
     std::cout << " error: " << error_sum << "\n";
     regularzation();

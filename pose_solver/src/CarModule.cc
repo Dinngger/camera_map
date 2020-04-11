@@ -64,6 +64,7 @@ int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d) co
 int CarModule::add_car(const Armor3d& _armor)
 {
     Car c;
+    c.confidence[0] = 1;
     c.t = _armor.t + Eigen::Vector3d(0, 0, 0.25);
     c.armor[0].t = Eigen::Vector3d(0, 0, -0.25);
     c.armor[0].r = _armor.r;

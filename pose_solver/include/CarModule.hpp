@@ -81,6 +81,7 @@ private:
     int color=-1;
     int number=-1; // -1 means unknow
     Armor3d armor[4];
+    double confidence[4];  // 0 to 1
 
     Eigen::Quaterniond dr;
     Eigen::Quaterniond last_r;
@@ -122,6 +123,8 @@ public:
         last_t = Eigen::Vector3d::Zero();
         last_r.setIdentity();
         dr.setIdentity();
+        for (int i=0; i<4; i++)
+            confidence[i] = 0;
     }
     int regularzation();
     int bundleAdjustment(const std::vector<LightBarP> &light_bars,
