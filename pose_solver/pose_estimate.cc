@@ -1,5 +1,5 @@
 #define SHOW_FRAME
-#define SHOW_MODULE
+// #define SHOW_MODULE
 
 #include "PoseSolver.hpp"
 

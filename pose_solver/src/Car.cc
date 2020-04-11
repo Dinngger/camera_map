@@ -7,6 +7,14 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "CarModule.hpp"
 
+#define PROCESS_DEBUG
+
+#ifdef PROCESS_DEBUG
+#include "Viewer.h"
+#include <thread>
+#include <mutex>
+#endif
+
 int Car::update_state()
 {
     last_t = t;
@@ -80,6 +88,11 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                             const Eigen::Matrix3d &K,
                             double delta_time)
 {
+#ifdef PROCESS_DEBUG
+    Viewer *viewer = new Viewer(K(0, 0), K(1, 1));
+    std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
+#endif
+
     enum StateType {
         SCT = 0,    // State of changing Car T
         SCTR,   // State of changing Car T & R
@@ -249,6 +262,20 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         cnt++;
         state_cnt++;
 
+#ifdef PROCESS_DEBUG
+        std::vector<cv::Mat> Twcs;
+        std::vector<cv::Point3d> lbs;
+        for (int j=0; j<4; j++) {
+            Eigen::Matrix3d armor_R = armor[j].r.matrix();
+            Eigen::Vector3d armor_t = armor[j].t;
+            for (int k=0; k<4; k++) {
+                Eigen::Vector3d tmp_p = r.matrix() * (armor_R * armor_module[k] + armor_t) + t;
+                lbs.emplace_back(tmp_p(0), tmp_p(1), tmp_p(2));
+            }
+        }
+        viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs);
+#endif
+
 #ifdef BA_DEBUG
         cv::Vec3b g_color, e_color;
         if (state == SCT) {
@@ -264,16 +291,16 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             g_color = cv::Vec3b(180, 255, 255);
             e_color = cv::Vec3b(0, 255, 255);
         }
-        img.at<cv::Vec3b>(get_y(999 - (int)(gradient_sum.norm()*2e5)), get_x(cnt)) = g_color;
+        img.at<cv::Vec3b>(get_y(999 - (int)(gradient_sum.norm()*5e5)), get_x(cnt)) = g_color;
         img.at<cv::Vec3b>(get_y(999 - (int)(error_sum)), get_x(cnt)) = e_color;
         state = next_state;
         if (cnt >= 1e4) {
             std::cout << "cnt >= 1e4 !!!\n";
             state = END;
         }
-    }
     cv::imshow("error", img);
-    cv::waitKey(1);
+    cv::waitKey();
+    }
 #else
         state = next_state;
     }
@@ -281,5 +308,12 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
     std::cout << " error: " << error_sum << "\n";
     regularzation();
     update_state(delta_time);
+
+#ifdef PROCESS_DEBUG
+    viewer->RequestFinish();
+    while (mpViewer->joinable())
+        mpViewer->join();
+#endif
+
     return 0;
 }
