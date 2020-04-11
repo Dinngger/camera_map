@@ -90,12 +90,6 @@ private:
     Eigen::Vector3d dt;
     Eigen::Vector3d last_t;
     Eigen::Vector3d t;
-    int computeGradient(const std::vector<LightBarP> &light_bars,
-                        bool isObserved[],
-                        int &sum,
-                        Eigen::Matrix<double, 6, 1> gradient[],
-                        const Eigen::Matrix3d &K,
-                        double &error_sum) const;
 
     static Eigen::Matrix3d up(const Eigen::Vector3d& a) {
         Eigen::Matrix3d res;

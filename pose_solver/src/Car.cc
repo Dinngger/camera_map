@@ -76,135 +76,206 @@ int Car::regularzation()
     return 0;
 }
 
-int Car::computeGradient(const std::vector<LightBarP> &light_bars,
-                         bool isObserved[],
-                         int &sum,
-                         Eigen::Matrix<double, 6, 1> gradient[],
-                         const Eigen::Matrix3d &K,
-                         double &error_sum) const {
-    double fx = K(0, 0);
-    double fy = K(1, 1);
-    for (const LightBarP &lbp : light_bars) {
-        Eigen::Matrix3d armor_R = armor[lbp.armor_id].r.matrix();
-        const Eigen::Vector3d& armor_t = armor[lbp.armor_id].t;
-        isObserved[lbp.armor_id*2+lbp.lb_id] = true;
-        sum++;
-        gradient[lbp.armor_id*2+lbp.lb_id] = Eigen::Matrix<double, 6, 1>::Zero();
-        for (size_t i=0; i<2; i++) {
-            Eigen::Vector3d _p = r.matrix() * (armor_R * armor_module[lbp.lb_id*2+i] + armor_t) + t;
-            Eigen::Matrix<double, 1, 3> gradient_l[2];
-            gradient_l[0] << fx/_p(2), 0, -fx*_p(0)/(_p(2)*_p(2));
-            gradient_l[1] << 0, fy/_p(2), -fy*_p(1)/(_p(2)*_p(2));
-            Eigen::Matrix<double, 3, 6> gradient_r;
-            gradient_r.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
-            gradient_r.block<3, 3>(0, 3) = -up(_p);
-            _p = K * _p / _p(2);
-            Eigen::Vector2d error = Eigen::Vector2d(_p(0), _p(1)) - lbp[i];
-            error_sum += pow(error.norm(), 2);
-            for (int j=0; j<2; j++) {
-                Eigen::Matrix<double, 6, 1> tmp = (gradient_l[j]*gradient_r).transpose();
-                tmp = tmp * 1e-8 * error(j); // / pow(tmp.norm(), 2));
-                gradient[lbp.armor_id*2+lbp.lb_id] += tmp;
-            }
-        }
-    }
-    return 0;
-}
-
 int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                             const Eigen::Matrix3d &K,
                             double delta_time)
 {
-// #define BA_DEBUG
+    enum StateType {
+        SCT = 0,    // State of changing Car T
+        SCTR,   // State of changing Car T & R
+        SAT,    // State of changing Armor T
+        SATR,   // State of changing Armor T & R
+        END
+    };
+#define BA_DEBUG
 #ifdef  BA_DEBUG
     double old_error;
-    cv::Matx<uint8_t, 1000, 1000> img = cv::Matx<uint8_t, 1000, 1000>::zeros();
-    auto get_y = [](int x) {
+    cv::Mat img(1000, 1000, CV_8UC3, cv::Scalar(0, 0, 0));
+    auto get_y = [](int x) -> int {
         return x < 0 ? 0 : (x > 999 ? 999 : x);
     };
-    auto get_x = [](int x) {
-        return x < 0 ? 0 : (x > 999 ? 999 : x);
+    auto get_x = [](int x) -> int {
+        return x < 0 ? 0 : (x > 999 ? x % 1000 : x);
     };
 #endif
 
-    double error_sum = 0;
+    double error_sum = 1e8;
     Eigen::Matrix<double, 6, 1> moment[4];
-    Eigen::Matrix<double, 6, 1> moment_sum = Eigen::Matrix<double, 6, 1>::Zero();
+    Eigen::Matrix<double, 6, 1> moment_sum;
     double moment2[4];
-    double moment2_sum = 0;
-    for (int i=0; i<4; i++) {
-        moment[i] = Eigen::Matrix<double, 6, 1>::Zero();
-        moment2[i] = 0;
-    }
+    double moment2_sum;
+    StateType state = SCT;
+    StateType state_max = SCT;
+    bool reset = true;
+    int cnt = 0;
+    int state_cnt = 0;
+    double state_error = 0;
 
-    for (int cnt=0; cnt<1000; cnt++) {
+    while (state != END) {
 #ifdef BA_DEBUG
         old_error = error_sum;
 #endif
-        error_sum = 0;
         bool isObserved[8] = {false,};
         Eigen::Matrix<double, 6, 1> gradient[8];
+        double error[8] = {0,};
         int sum = 0;
-        computeGradient(light_bars, isObserved, sum, gradient, K, error_sum);
+        // computeGradient(light_bars, isObserved, sum, gradient, K, error_sum);
+        double fx = K(0, 0);
+        double fy = K(1, 1);
+        for (const LightBarP &lbp : light_bars) {
+            Eigen::Matrix3d armor_R = armor[lbp.armor_id].r.matrix();
+            const Eigen::Vector3d& armor_t = armor[lbp.armor_id].t;
+            isObserved[lbp.armor_id*2+lbp.lb_id] = true;
+            sum++;
+            gradient[lbp.armor_id*2+lbp.lb_id] = Eigen::Matrix<double, 6, 1>::Zero();
+            for (size_t i=0; i<2; i++) {
+                Eigen::Vector3d _p = r.matrix() * (armor_R * armor_module[lbp.lb_id*2+i] + armor_t) + t;
+                Eigen::Matrix<double, 1, 3> gradient_l[2];
+                gradient_l[0] << fx/_p(2), 0, -fx*_p(0)/(_p(2)*_p(2));
+                gradient_l[1] << 0, fy/_p(2), -fy*_p(1)/(_p(2)*_p(2));
+                Eigen::Matrix<double, 3, 6> gradient_r;
+                gradient_r.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
+                gradient_r.block<3, 3>(0, 3) = -up(_p);
+                _p = K * _p / _p(2);
+                Eigen::Vector2d error2d = Eigen::Vector2d(_p(0), _p(1)) - lbp[i];
+                error[lbp.armor_id*2+lbp.lb_id] += pow(error2d.norm(), 2);
+                for (int j=0; j<2; j++) {
+                    Eigen::Matrix<double, 6, 1> tmp = (gradient_l[j]*gradient_r).transpose();
+                    tmp = tmp * 1e-8 * error2d(j);
+                    gradient[lbp.armor_id*2+lbp.lb_id] += tmp;
+                }
+            }
+        }
+        error_sum = 0;
         Eigen::Matrix<double, 6, 1> gradient_sum = Eigen::Matrix<double, 6, 1>::Zero();
-        for (int i=0; i<8; i++) {
-            if (isObserved[i]) {
-                gradient_sum += gradient[i];
+        double rate_sum = 0;
+        int observed_sum = 0;
+        for (int i=0; i<4; i++) {
+            double _rate = (isObserved[2*i] && isObserved[2*i+1]) ? 2 : 1;
+            for (int j=0; j<2; j++) {
+                if (isObserved[2*i+1]) {
+                    rate_sum += _rate;
+                    observed_sum += 1;
+                    error_sum += error[2*i+j];
+                    gradient_sum += gradient[2*i+j] * _rate;
+                }
+            }
+        }
+        error_sum *= 2.0 / observed_sum;
+        gradient_sum *= 2.0 / rate_sum;
+
+#define BETA1 0.95
+#define BETA2 0.98
+        if (reset) {
+            moment_sum = gradient_sum;
+            moment2_sum = pow(gradient_sum.norm(), 2);
+        } else {
+            moment_sum = BETA1 * moment_sum + (1 - BETA1) * gradient_sum;
+            moment2_sum = BETA2 * moment2_sum + (1 - BETA2) * pow(gradient_sum.norm(), 2);
+        }
+        gradient_sum = moment_sum / (sqrt(moment2_sum) + 1e-8) * 1e-3;
+        if (state == SCT || state == SCTR) {
+            t -= jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
+        }
+        if (state == SCTR) {
+            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0) * -1) * r.matrix());
+        }
+        Eigen::Matrix3d car_R = r.matrix();
+        Eigen::Matrix3d car_R_T = car_R.transpose();
+        for (int i=0; i<4; i++) {
+            Eigen::Matrix<double, 6, 1> gradient_armor = Eigen::Matrix<double, 6, 1>::Zero();
+            int sum_armor = 0;
+            for (int j=0; j<2; j++) {
+                if (isObserved[i*2+j]) {
+                    sum_armor++;
+                    gradient_armor += gradient[i*2+j];
+                }
+            }
+            if (sum_armor == 0)
+                continue;
+            gradient_armor *= 2.0 / sum_armor;
+            if (reset) {
+                moment[i] = gradient_armor;
+                moment2[i] = pow(gradient_armor.norm(), 2);
+            } else {
+                moment[i] = BETA1 * moment[i] + (1 - BETA1) * gradient_armor;
+                moment2[i] = BETA2 * moment2[i] + (1 - BETA2) * pow(gradient_armor.norm(), 2);
+            }
+            gradient_armor = moment[i] /(sqrt(moment2[i]) + 1e-8) * 1e-3;
+            if (state == SAT || state == SATR)
+                armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
+            if (state == SATR) {
+                armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0) * -1) *
+                                                car_R * armor[i].r.matrix());
             }
         }
 
-#define BETA1 0.9
-#define BETA2 0.999
-        moment_sum = BETA1 * moment_sum + (1 - BETA1) * gradient_sum;
-        moment2_sum = BETA2 * moment2_sum + (1 - BETA2) * pow(gradient_sum.norm(), 2);
-        moment_sum /= (1 - pow(BETA1, cnt));
-        moment2_sum /= (1 - pow(BETA2, cnt));
-        gradient_sum = moment_sum; // /(sqrt(moment2_sum) + 1e-8);
-        if (cnt < 250) {
-            t -= 3 * jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
-        } else if (cnt < 500) {
-            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0)) * r.matrix());
-            r.normalize();
-        } else {
-            Eigen::Matrix3d car_R = r.matrix();
-            Eigen::Matrix3d car_R_T = car_R.transpose();
-            for (int i=0; i<4; i++) {
-                Eigen::Matrix<double, 6, 1> gradient_armor = Eigen::Matrix<double, 6, 1>::Zero();
-                int sum_armor = 0;
-                for (int j=0; j<2; j++) {
-                    if (isObserved[i*2+j]) {
-                        sum_armor++;
-                        gradient_armor += gradient[i*2+j];
-                    }
-                }
-                if (sum_armor > 0) {
-                    gradient_armor *= 2.0 / sum_armor;
-                    moment[i] = BETA1 * moment[i] + (1 - BETA1) * gradient_armor;
-                    moment2[i] = BETA2 * moment2[i] + (1 - BETA2) * pow(gradient_armor.norm(), 2);
-                    moment[i] /= (1 - pow(BETA1, cnt));
-                    moment2[i] /= (1 - pow(BETA2, cnt));
-                    gradient_armor = moment[i]; // /(sqrt(moment2[i]) + 1e-8);
-                    if (cnt < 750) {
-                        armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
-                    } else {
-                        armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0)) * car_R * armor[i].r.matrix());
-                        armor[i].r.normalize();
-                    }
-                }
+        reset = false;
+        double delta_error = old_error - error_sum;
+        state_error += delta_error;
+        StateType next_state = state;
+        state_max = state_max > state ? state_max : state;
+        double error_min = 0.02;
+        switch (state) {
+        case SCT:
+        case SCTR:
+            if (state_max < SAT)
+                error_min = 0.1;
+        case SAT:
+        case SATR:
+            if (state > SCTR)
+                error_min = 0.0001;
+            if (delta_error < error_min && state_cnt > 50) {
+                next_state = (StateType)((int)next_state + 1);
+                state_cnt = 0;
+                state_error = 0;
+                // reset = true;
             }
+            //  else if (state_error > 30 && state > 0) {
+            //     next_state = (StateType)((int)next_state - 1);
+            //     state_error = 0;
+            //     state_cnt = 0;
+            //     // reset = true;
+            // }
+            break;
+        default:
+            printf("ERROR: Invalid State\n");
+            next_state = SCT;
+            break;
         }
 
         if (cnt == 0)
             std::cout << "sum: " << sum << " error: " << error_sum << "\n";
+        cnt++;
+        state_cnt++;
 
 #ifdef BA_DEBUG
-        img(get_y(999 - (int)(gradient_sum.norm()*1e6)), cnt) = 128;
-        img(get_y(999 - (int)(error_sum/10)), cnt) = 255;
-        // img(get_y(999 - (int)(error_sum*2)), get_x((int)((t[0]-0.2)*5000+500))) = 200;
+        cv::Vec3b g_color, e_color;
+        if (state == SCT) {
+            g_color = cv::Vec3b(255, 180, 180);
+            e_color = cv::Vec3b(255, 0, 0);
+        } else if (state == SCTR) {
+            g_color = cv::Vec3b(180, 255, 180);
+            e_color = cv::Vec3b(0, 255, 0);
+        } else if (state == SAT) {
+            g_color = cv::Vec3b(180, 180, 255);
+            e_color = cv::Vec3b(0, 0, 255);
+        } else {
+            g_color = cv::Vec3b(180, 255, 255);
+            e_color = cv::Vec3b(0, 255, 255);
+        }
+        img.at<cv::Vec3b>(get_y(999 - (int)(gradient_sum.norm()*2e5)), get_x(cnt)) = g_color;
+        img.at<cv::Vec3b>(get_y(999 - (int)(error_sum)), get_x(cnt)) = e_color;
+        state = next_state;
+        if (cnt >= 1e4) {
+            std::cout << "cnt >= 1e4 !!!\n";
+            state = END;
+        }
     }
     cv::imshow("error", img);
     cv::waitKey(1);
 #else
+        state = next_state;
     }
 #endif
     std::cout << " error: " << error_sum << "\n";
