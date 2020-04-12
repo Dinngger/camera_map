@@ -109,6 +109,7 @@ inline void getMidPoints(cv::RotatedRect rect, cv::Point2f &p1, cv::Point2f &p2)
 struct LightBox{
     float length;                   // 灯条长度
     float angle;                    // 灯条角度
+    cv::Point2f ref;                //参考点（由一次阈值化的外层minAreaRect得来）
     cv::Point2f vex[2];             // vex[0]在上, vex[1]在下
     cv::Point2f center;
     inline void extend(const float k){     // 长度乘以系数变化
@@ -134,20 +135,29 @@ struct LightBox{
         }
         length += l;
     }
+
+    inline void rebuild(const cv::Point2f vexes[2], const float len){        //依据另一个灯条来重新构建灯条
+        float r = len / length;
+        center = r / (0.4 + r) * ref + 0.4 / (0.4 + r) * center;       //在参考点和观测灯条中点找真实的中点
+        cv::Point2f direction = vexes[1] - vexes[0];
+        vex[0] = center - direction * 0.375;
+        vex[1] = center + direction * 0.375;        // 长边的长的0.75 / 2为从center到端点的观测长度
+    }
 };
 
 
 /// @brief 灯条的两点式线段表示
 struct Light
 {
-    int index;           
+    int index;       
     LightBox box;
     Light(){}
-    Light(int _i, cv::RotatedRect _r): index(_i){
+    Light(int _i, cv::RotatedRect _r, cv::Point2f _p = NULLPOINT2f): index(_i){
         getMidPoints(_r, box.vex[0], box.vex[1]);
         box.length = cv::max(_r.size.height, _r.size.width);
         box.angle = atan2f(box.vex[1].x - box.vex[0].x, box.vex[1].y - box.vex[0].y) * aim_deps::RAD2DEG;
         box.center = (box.vex[0] + box.vex[1]) / 2;
+        box.ref = _p;
     }
 };
 

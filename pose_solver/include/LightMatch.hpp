@@ -119,8 +119,7 @@ void LightMatch::reset(){
 void LightMatch::findPossible(){								//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
 	reset();
 	cv::Mat binary(1080, 1440, CV_8UC1);
-	thresh_low = 120;
-	threshold(binary, thresh_low);
+	threshold(binary, 120);
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);	//寻找图上轮廓
 	int _cnt = 0;
@@ -202,10 +201,12 @@ void LightMatch::doubleThresh(int &index, const float area, std::vector<cv::Poin
 			else light.size.width *= 1.1;
 			light.center.x += bbox.x;
 			light.center.y += bbox.y;
-			aim_deps::Light _l(index, light);
+			aim_deps::Light _l(index, light, tmp_rec.center);
 			cv::Point2f vect = _l.box.vex[0] - _l.box.vex[1];
 			if( abs(vect.y) < 4.0) return;
-			possibles.emplace_back(aim_deps::Light(index, light));
+			possibles.emplace_back(_l);
+			//printf("Light %d: outter_box angle:%f, inner_angle: %f\n", index,
+			//	tmp_rec.angle, possibles.back().box.angle);
 			++index;
 			return;
 		}
