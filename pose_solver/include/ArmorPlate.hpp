@@ -266,7 +266,7 @@ void ArmorPlate::lightCompensate(
 ){
     float max_len = cv::max(l1.length, l2.length);
     if(_a != nullptr){
-        if(max_len > 14.0 && cv::max( abs(l1.angle), abs(l2.angle)) >= 2.0){
+        if(max_len >= 14.0 && cv::max( abs(l1.angle), abs(l2.angle)) >= 2.0){
             aim_deps::LightBox *min_box, *max_box;
             if(l1.length > l2.length){
                 min_box = &l2;
@@ -276,14 +276,18 @@ void ArmorPlate::lightCompensate(
                 min_box = &l1;
                 max_box = &l2;
             }
-            if(max_len / min_box->length >= 1.75){
-                cv::Point2f diff_up = min_box->center - max_box->vex[0];
-                cv::Point2f diff_center = min_box->center - max_box->center;
-                if( abs( diff_up.y ) < abs( diff_center.y ) ){              // 需补偿box的中点离正确box的上顶点更接近
-                    min_box->add((max_len - min_box->length) * 0.4, false); // 补偿下方，下顶点下移 
-                }           
-                else{                                                       // 需补偿box的中点离正确box的中点更接近
-                    min_box->add((max_len - min_box->length) * 0.4, true);  // 补偿上方（上顶点上移）
+            if(max_len / min_box->length >= 1.3){
+                if(min_box->ref == aim_deps::NULLPOINT2f){          //参考点没有被赋值成功
+                    cv::Point2f diff_up = min_box->center - max_box->vex[0];
+                    cv::Point2f diff_center = min_box->center - max_box->center;
+                    if( abs( diff_up.y ) < abs( diff_center.y ) ){              // 需补偿box的中点离正确box的上顶点更接近
+                        min_box->add((max_len - min_box->length) * 0.5, false); // 补偿下方，下顶点下移 
+                    }           
+                    else{                                                       // 需补偿box的中点离正确box的中点更接近
+                        min_box->add((max_len - min_box->length) * 0.5, true);  // 补偿上方（上顶点上移）
+                    }
+                }else{
+                    min_box->rebuild(max_box->vex, max_len);
                 }
                 if(min_box == &(_a->left_light.box)){       // [0][1]点重新赋值
                     _a->vertex[0] = min_box->vex[0];
