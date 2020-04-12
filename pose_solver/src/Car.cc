@@ -183,7 +183,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         }
         obv_error *= 2.0 / observed_sum;
         error_sum *= 2.0 / rate_sum;
-        gradient_sum *= 2.0 / rate_sum;
+        gradient_sum *= 1.0 / rate_sum;
 
 #define BETA1 0.95
 #define BETA2 0.98
@@ -222,7 +222,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                 moment[i] = BETA1 * moment[i] + (1 - BETA1) * gradient_armor;
                 moment2[i] = BETA2 * moment2[i] + (1 - BETA2) * pow(gradient_armor.norm(), 2);
             }
-            gradient_armor = moment[i] /(sqrt(moment2[i]) + 1e-8) * 1e-3;
+            gradient_armor = moment[i] / (sqrt(moment2[i]) + 1e-8) * 1e-3;
             if (state == SAT || state == SATR)
                 armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
             if (state == SATR) {
@@ -239,11 +239,10 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         double error_min = 0.01;
         switch (state) {
         case SCT:
-            error_min = 0.1;
         case SCTR:
         case SAT:
         case SATR:
-            if (delta_error < error_min && state_cnt > 50) {
+            if (delta_error < error_min && state_cnt > 100) {
                 next_state = (StateType)((int)next_state + 1);
                 state_cnt = 0;
                 state_error = 0;
@@ -299,12 +298,12 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
 #endif
         state = next_state;
         if (cnt >= 1e4) {
-            std::cout << "cnt >= 1e4 !!!\n";
+            std::cout << "cnt >= 1e4 !!! state: " << state << "\n";
             state = END;
         }
         if (state == END) {
             for (int i=0; i<4; i++) {
-                confidence[i] = confidence[i] * 0.8 + 0.2 * pow((isObserved[2*i] + isObserved[2*i+1]) / 2, 2);
+                confidence[i] = confidence[i] * 0.6 + 0.4 * pow((isObserved[2*i] + isObserved[2*i+1]) / 2, 2);
             }
         }
     }
