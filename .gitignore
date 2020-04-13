@@ -1,7 +1,4 @@
-/build
-/pose_estimation/build
-/bundleAdjust/build
-/self_targeting/build
+/USELESS
 /pose_solver/build
 *.*
 !*.md
@@ -12,5 +9,4 @@
 !*.h
 !*.txt
 !.gitignore
-!*.cmake
 !*.sh

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(pose_solver)
 
 IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE debug)
+  SET(CMAKE_BUILD_TYPE release)
 ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})

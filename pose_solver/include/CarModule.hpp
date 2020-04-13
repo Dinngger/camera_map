@@ -8,7 +8,6 @@
 
 #include <vector>
 #include <iostream>
-#include <fstream>
 #include <opencv2/core/core.hpp>
 
 #include <Eigen/Core>

@@ -13,8 +13,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
 #define SENTRYDECISION
-namespace aim_deps{
 
+namespace aim_deps{
 
 ///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
 //==========================通用的预设===========================//
@@ -59,7 +59,9 @@ struct PnP_depended_param
     int Dad_score=0;
     int Base_score=10;
     int None_score=0;
-} pnp_depended_param;
+};
+extern PnP_depended_param pnp_depended_param;
+
 struct Sentry_decision
 {
     int blood_limit=50;
@@ -224,7 +226,8 @@ struct Light_Params{
     const int blue_exp_long     = 7000;         //曝光时间(长曝光)
     const int blue_r_balance     = 3600;        //白平衡（红色通道）
     const int blue_b_balance     = 0;           //白平衡（蓝色通道）
-}light_params;
+};
+extern Light_Params light_params;
 
 struct Distance_Params{
     const float OPS_RATIO_HEIGHT    = 9.0;      //对边宽比例
@@ -232,8 +235,8 @@ struct Distance_Params{
     const float NEAR_RATIO_MIN      = 12.5;    //邻边装甲板比例
     const float NEAR_RATIO_MAX      = 30.0;
     const float ANGLE_THRESH        = 13.5;     //角度差阈值
-}distance_params;
-
+};
+extern Distance_Params distance_params;
 
 //储存检测装甲板的各种参数
 struct Vicinity_param

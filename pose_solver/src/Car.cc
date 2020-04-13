@@ -242,7 +242,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         case SCTR:
         case SAT:
         case SATR:
-            if (delta_error < error_min && state_cnt > 100) {
+            if (delta_error < error_min && state_cnt > 50) {
                 next_state = (StateType)((int)next_state + 1);
                 state_cnt = 0;
                 state_error = 0;
