@@ -16,3 +16,9 @@
 7. 重新打开命令行尝试push
 
 gdb bt 可回溯错误
+directory ../include/
+b NNSearch.hpp:92
+r
+c continue
+n next step
+p print

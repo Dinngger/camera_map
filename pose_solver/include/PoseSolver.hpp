@@ -65,7 +65,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     for (const LightBarP& lbp : match_result)
         search_last_frame.getTargetLBPs().push_back(lbp);
     search_last_frame.finishSetTarget();
-    search_last_frame.runSearch(match.possibles, 10);
+    search_last_frame.runSearch(match.possibles, 30);
 
     std::set<int> id_set1;
     search_last_frame.getHeapIdSet(id_set1);
@@ -73,7 +73,6 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     NNSearch search_module;
     module.create_predict(time, search_module.getTargetLBPs(), search_last_frame.getResultLBPs());
 
-    std::cout << std::endl;
     search_module.finishSetTarget();
     search_module.runSearch(match.possibles, 80, id_set1);
 

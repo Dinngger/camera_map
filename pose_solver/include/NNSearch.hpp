@@ -89,6 +89,8 @@ int NNSearch::setSource(const std::vector<aim_deps::Light>& source, std::set<int
 }
 
 int NNSearch::searchLoop(const std::vector<aim_deps::Light>& source, double min_dist) {
+    if (heap.empty())
+        return 1;
     while (heap.top().distance < min_dist) {
         Lbp_ptr tmp = heap.top();
         // std::cout << "id: " << tmp.id << " tar: " << tmp.tar_id << " dist: " << tmp.distance << "\n";
