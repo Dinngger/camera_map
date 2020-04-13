@@ -186,7 +186,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         gradient_sum *= 1.0 / rate_sum;
 
 #define BETA1 0.95
-#define BETA2 0.98
+#define BETA2 0.99
         if (reset) {
             moment_sum = gradient_sum;
             moment2_sum = pow(gradient_sum.norm(), 2);
@@ -199,7 +199,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             t -= jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
         }
         if (state == SCTR) {
-            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0) * -1) * r.matrix());
+            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0)) * r.matrix());
         }
         Eigen::Matrix3d car_R = r.matrix();
         Eigen::Matrix3d car_R_T = car_R.transpose();

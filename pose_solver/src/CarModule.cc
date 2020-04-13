@@ -3,6 +3,7 @@
 * create date: 2020.4.9 23:54
 */
 
+#include <set>
 #include "CarModule.hpp"
 
 Eigen::Vector2d CarModule::projectPoint(Eigen::Vector3d p3) const
@@ -18,8 +19,8 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars,
     if (cars.size() < 1)
         return 0;
     std::vector<LightBarP> light_bars_car[cars.size()];
-    for (const LightBarP& lbp : light_bars) {
-        light_bars_car[lbp.car_id].push_back(lbp);
+    for (const LightBarP& point2d : light_bars) {
+        light_bars_car[point2d.car_id].push_back(point2d);
     }
     for (size_t i=0; i<cars.size(); i++) {
         int size = light_bars_car[i].size();
@@ -32,8 +33,29 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars,
 }
 
 // Predict 2d light bar with time, @return number of 2d light bar.
-int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d) const
+int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d,
+                              const std::vector<LightBarP>& found_set) const
 {
+    struct LBPointer {
+        int car_id, armor_id, lb_id;
+        LBPointer(int car_id=0, int armor_id=0, int lb_id=0) :
+            car_id(car_id), armor_id(armor_id), lb_id(lb_id) {}
+        LBPointer(const LightBarP& lbp) :
+            car_id(lbp.car_id), armor_id(lbp.armor_id), lb_id(lbp.lb_id) {}
+        bool operator<(const LBPointer& lbp) const {
+            if (car_id != lbp.car_id)
+                return car_id < lbp.car_id;
+            else {
+                if (armor_id != lbp.armor_id)
+                    return armor_id < lbp.armor_id;
+                else
+                    return lb_id < lbp.lb_id;
+            }
+        }
+    };
+    std::set<LBPointer> LBPset;
+    for (const LightBarP& lbp : found_set)
+        LBPset.insert(lbp);
     int num = 0;
     for (size_t c=0; c < cars.size(); c++) {
         Eigen::Quaterniond car_r;
@@ -45,14 +67,28 @@ int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d) co
             const Eigen::Vector3d& armor_t = cars[c].armor[i].t;
             Eigen::Vector3d rotated_armor_point[4];
             for (size_t j=0; j<4; j++) {
-                rotated_armor_point[j] = car_R * (armor_R * armor_module[j] + armor_t);
+                rotated_armor_point[j] = car_R * (armor_R * armor_module[j] + armor_t) + car_t;
             }
             for (size_t j=0; j<2; j++) {
-                if (((rotated_armor_point[2*j] + rotated_armor_point[2*j+1]) / 2)(2) <= 0) {
-                    Eigen::Vector2d lbp[2];
-                    lbp[0] = projectPoint(rotated_armor_point[2*j] + car_t);
-                    lbp[1] = projectPoint(rotated_armor_point[2*j+1] + car_t);
-                    predict2d.emplace_back(c, i, j, (lbp[0] + lbp[1])/2, (lbp[0] - lbp[1])/2);
+                LBPointer this_lbp(c, i, j), left_lbp, right_lbp;
+                if (j == 0) {
+                    right_lbp = LBPointer(c, i, 1);
+                    if (i == 0)
+                        left_lbp = LBPointer(c, 3, 1);
+                    else
+                        left_lbp = LBPointer(c, i-1, 1);
+                } else {
+                    left_lbp = LBPointer(c, i, 0);
+                    if (i == 3)
+                        right_lbp = LBPointer(c, 0, 0);
+                    else
+                        right_lbp = LBPointer(c, i+1, 0);
+                }
+                if ((!LBPset.count(this_lbp)) && (LBPset.count(left_lbp) || LBPset.count(right_lbp))) {
+                    Eigen::Vector2d point2d[2];
+                    point2d[0] = projectPoint(rotated_armor_point[2*j]);
+                    point2d[1] = projectPoint(rotated_armor_point[2*j+1]);
+                    predict2d.emplace_back(c, i, j, (point2d[0] + point2d[1])/2, (point2d[0] - point2d[1])/2);
                     num++;
                 }
             }
@@ -80,7 +116,7 @@ int CarModule::add_car(const Armor3d& _armor)
     cars.push_back(c);
     std::cout << "successfully add a car! ";
     std::cout << "now car number: " << cars.size() << std::endl;
-    return 0;
+    return cars.size() - 1;
 }
 
 void CarModule::get_lbs(std::vector<cv::Point3d> &lbs) const {

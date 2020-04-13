@@ -52,6 +52,13 @@ struct LightBarP
         center = Eigen::Vector2d(_center.x, _center.y);
         p = Eigen::Vector2d(_p.x, _p.y);
     }
+    LightBarP(int car_id, int armor_id, int lb_id, cv::Point2f _center, cv::Point2f _p) :
+        car_id(car_id),
+        armor_id(armor_id),
+        lb_id(lb_id) {
+        center = Eigen::Vector2d(_center.x, _center.y);
+        p = Eigen::Vector2d(_p.x, _p.y);
+    }
     LightBarP(int car_id, int armor_id, int lb_id, Eigen::Vector2d center, Eigen::Vector2d p) :
         car_id(car_id),
         armor_id(armor_id),
@@ -151,7 +158,8 @@ public:
         std::cout << "K: \n" << this->K << std::endl;
     }
     int add_car(const Armor3d& _armor);
-    int create_predict(double time, std::vector<LightBarP>& predict2d) const;
+    int create_predict(double time, std::vector<LightBarP>& predict2d,
+                       const std::vector<LightBarP>& found_set) const;
     int bundleAdjustment(const std::vector<LightBarP> &light_bars,
                          double time);
     void get_lbs(std::vector<cv::Point3d> &lbs) const;
