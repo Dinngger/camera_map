@@ -24,22 +24,23 @@ int Car::update_state()
 
 int Car::update_state(double delta_time)
 {
-    dt = 0.5 * dt + (last_t - t) / delta_time;
+    dt = 0.9 * dt + 0.1 * (last_t - t) / delta_time;
     last_t = t;
-    ddt = 0.5 * ddt + (last_dt - dt) / delta_time;
+    ddt = 0.9 * ddt + 0.1 * (last_dt - dt) / delta_time;
     last_dt = dt;
-    dr = dr.slerp(0.5, Eigen::Quaterniond::Identity().slerp(DELTA_TIME/delta_time, (last_r.conjugate() * r)));
+    dr = dr.slerp(0.1, Eigen::Quaterniond::Identity().slerp(DELTA_TIME/delta_time, (last_r.conjugate() * r)));
     last_r = r;
     return 0;
 }
 
 int Car::predict(double delta_time, Eigen::Quaterniond &pre_r, Eigen::Vector3d &pre_t, bool linear) const
 {
+// #define PREDICT
 #ifdef PREDICT
     pre_t = t + dt * delta_time;
     if (!linear)
         pre_t += ddt * delta_time * delta_time / 2;
-    pre_r = last_r.conjugate() * r * r;
+    pre_r = r * Eigen::Quaterniond::Identity().slerp(delta_time/DELTA_TIME, dr);
 #else
     pre_t = t;
     pre_r = r;
@@ -88,8 +89,9 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                             const Eigen::Matrix3d &K,
                             double delta_time)
 {
+    predict(delta_time, r, t);
 #ifdef PROCESS_DEBUG
-    Viewer *viewer = new Viewer(K(0, 0), K(1, 1));
+    Viewer *viewer = new Viewer("ba", K(0, 0), K(1, 1));
     std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
 #endif
 
@@ -120,11 +122,9 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
     double moment2[4];
     double moment2_sum = 0;
     StateType state = SCT;
-    StateType state_max = SCT;
     bool reset = true;
     int cnt = 0;
     int state_cnt = 0;
-    double state_error = 0;
 
     while (state != END) {
 #ifdef BA_DEBUG
@@ -137,7 +137,6 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         int sum = 0;
 
         // computeGradient
-        ///TODO: add change punishment
         double fx = K(0, 0);
         double fy = K(1, 1);
         for (const LightBarP &lbp : light_bars) {
@@ -185,7 +184,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         error_sum *= 2.0 / rate_sum;
         gradient_sum *= 1.0 / rate_sum;
 
-#define BETA1 0.95
+#define BETA1 0.9
 #define BETA2 0.99
         if (reset) {
             moment_sum = gradient_sum;
@@ -199,7 +198,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             t -= jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
         }
         if (state == SCTR) {
-            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0)) * r.matrix());
+            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0) * -0.25) * r.matrix());
         }
         Eigen::Matrix3d car_R = r.matrix();
         Eigen::Matrix3d car_R_T = car_R.transpose();
@@ -226,37 +225,25 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             if (state == SAT || state == SATR)
                 armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
             if (state == SATR) {
-                armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0) * -1) *
+                armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0) * -0.25) *
                                                 car_R * armor[i].r.matrix());
             }
         }
 
         reset = false;
         double delta_error = state < SAT ? (old_error - error_sum) : (old_obv_error - obv_error);
-        state_error += delta_error;
         StateType next_state = state;
-        state_max = state_max > state ? state_max : state;
-        double error_min = 0.01;
-        switch (state) {
-        case SCT:
-        case SCTR:
-        case SAT:
-        case SATR:
-            if (delta_error < error_min && state_cnt > 50) {
-                next_state = (StateType)((int)next_state + 1);
-                state_cnt = 0;
-                state_error = 0;
-            }
-            // else if (state_error > 30 && state == SAT) {
-            //     next_state = (StateType)((int)next_state - 2);
-            //     state_error = 0;
-            //     state_cnt = 0;
-            // }
-            break;
-        default:
-            printf("ERROR: Invalid State\n");
-            next_state = SCT;
-            break;
+        int mincnt = 50;
+        if (state == SCTR)
+            mincnt = 200;
+        if (state == SATR)
+            mincnt = 200; // * (1 - confidence_sum);
+        double min_delte_error = 0.01;
+        // if (state > SCTR)
+        //     min_delte_error = confidence_sum;
+        if (abs(delta_error) < min_delte_error && state_cnt > mincnt) {
+            next_state = (StateType)((int)next_state + 1);
+            state_cnt = 0;
         }
 
         if (cnt == 0)
@@ -302,22 +289,37 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             state = END;
         }
         if (state == END) {
+            double new_confidence_sum = 0;
             for (int i=0; i<4; i++) {
                 confidence[i] = confidence[i] * 0.6 + 0.4 * pow((isObserved[2*i] + isObserved[2*i+1]) / 2, 2);
+                new_confidence_sum += confidence[i];
             }
+            new_confidence_sum /= 4;
+            if (new_confidence_sum > confidence_sum)
+                confidence_sum = confidence_sum * 0.6 + new_confidence_sum * 0.4;
+            else
+                confidence_sum = confidence_sum * 0.9 + new_confidence_sum * 0.1;
         }
-    }
 #ifdef BA_DEBUG
+#ifdef PROCESS_DEBUG
+        cv::imshow("error", img);
+        cv::waitKey(0);
+    }
+#else
+    }
     cv::imshow("error", img);
-    cv::waitKey(1);
 #endif
+#else
+    }
+#endif
+
     std::cout << " error: " << obv_error << "\n";
     regularzation();
     update_state(delta_time);
 
 #ifdef PROCESS_DEBUG
     viewer->RequestFinish();
-    while (mpViewer->joinable())
+    if (mpViewer->joinable())
         mpViewer->join();
 #endif
 

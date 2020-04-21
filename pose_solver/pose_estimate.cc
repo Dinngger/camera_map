@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
     PoseSolver ps(K);
 
 #ifdef SHOW_MODULE
-    Viewer *viewer = new Viewer(K(0, 0), K(1, 1));
+    Viewer *viewer = new Viewer("main", K(0, 0), K(1, 1));
     std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
 #endif
 #define path1 "/mine/cv_output1.avi"

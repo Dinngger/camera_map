@@ -87,6 +87,7 @@ private:
     int color=-1;
     int number=-1; // -1 means unknow
     Armor3d armor[4];
+    double confidence_sum=0;
     double confidence[4];  // 0 to 1
 
     Eigen::Quaterniond dr;

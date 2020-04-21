@@ -4,7 +4,8 @@
 #include <unistd.h>
 #include <mutex>
 
-Viewer::Viewer(double fu, double fv, int w, int h):
+Viewer::Viewer(std::string name, double fu, double fv, int w, int h):
+    name(name),
     w(w),
     h(h),
     fu(fu),
@@ -30,7 +31,7 @@ void Viewer::Run()
     mbFinished = false;
     mbStopped = false;
 
-    pangolin::CreateWindowAndBind("Viewer",1024,768);
+    pangolin::CreateWindowAndBind(name ,1024, 768);
 
     // 3D Mouse handler requires depth testing to be enabled
     glEnable(GL_DEPTH_TEST);
@@ -83,6 +84,7 @@ void Viewer::Run()
             break;
     }
 
+    pangolin::DestroyWindow(name);
     SetFinish();
 }
 
