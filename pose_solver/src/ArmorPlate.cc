@@ -6,7 +6,7 @@
  *      drawArmorPlate需要通过数字判断其是否valid
  */
 
-#include "ArmorPlate.hpp"
+#include "../include/ArmorPlate.hpp"
 
 ArmorPlate::ArmorPlate(){
     for(int i=0; i<4 ;++i) points[i] = aim_deps::NULLPOINT2f;
@@ -83,7 +83,7 @@ void ArmorPlate::drawArmorPlates(cv::Mat &src,
 	        ///cv::putText(src, str, tar_list[i].vertex[j]+cv::Point2f(2, 2),
 	        ///    cv::FONT_HERSHEY_PLAIN, 1.1, cv::Scalar(0, 100, 255));
             snprintf(str, 2, "%d", tar_list[i].armor_number);
-            cv::putText(src, str, tar_list[i].center+cv::Point2f(25, 10),
+            cv::putText(src, str, tar_list[i].center + cv::Point2f(25, 10),
                 cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 255, 255));
             cv::circle(src, tar_list[i].center, 3, cv::Scalar(0, 0, 255), -1);
         }
@@ -99,13 +99,31 @@ void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list){
                     int judge = tar_list[i].collide(tar_list[j]);
                     if(judge >= 0){                  //装甲板有共灯条冲突
                         int start1 = 1, start2 = 1;
-                        if(judge == tar_list[i].left_light.index)
-                             { start1 = 3; start2 = 1;}         // 是左灯条，则从位置3开始算夹角
-                        else { start1 = 1; start2 = 3;}         // 是右灯条，则从位置1开始算夹角
-                        if (cornerAngle(tar_list[i].vertex, start1) > cornerAngle(tar_list[j].vertex, start2)){
+                        // 是左灯条，则从位置3开始算夹角, 是右灯条，则从位置1开始算夹角
+                        if(judge == tar_list[i].left_light.index) start1 = 3;         
+                        else start1 = 1;         
+                        if(judge == tar_list[j].left_light.index) start2 = 3;
+                        else start2 = 1;
+                        double cos1 = cornerAngle(tar_list[i].vertex, start1),
+                            cos2 = cornerAngle(tar_list[j].vertex, start2); 
+                        float diff1 = tar_list[i].left_light.box.angle - 
+                                    tar_list[i].right_light.box.angle,
+                            diff2 = tar_list[j].left_light.box.angle - 
+                                    tar_list[j].right_light.box.angle;
+                        diff1 *= aim_deps::DEG2RAD;
+                        diff2 *= aim_deps::DEG2RAD;
+                        if( 0.5*(1 - cos(diff1)) + cos1 > 0.5*(1 - cos(diff2)) + cos2){
                             tar_list[i].valid = false;
-                        }else{
+                            amp_debug(rmlog::F_RED, "Light ", tar_list[i].left_light.index, " & ",
+                                     tar_list[i].right_light.index, " are invalid:", 
+                                     0.5*(1 - cos(diff1)) + cos1, ", ", 0.5*(1 - cos(diff2)) + cos2);
+                            break;
+                        }
+                        else{
                             tar_list[j].valid = false;
+                             amp_debug(rmlog::F_RED, "Light ", tar_list[j].left_light.index, " & ",
+                                     tar_list[j].right_light.index, " are invalid:", 
+                                     0.5*(1 - cos(diff1)) + cos1, ", ", 0.5*(1 - cos(diff2)) + cos2);
                         }
                     }
                 }
@@ -175,7 +193,7 @@ bool ArmorPlate::isAngleMatch(const float ang1, const float ang2){
     //输入按照装甲板上点的顺序: 从左上角开始逆时针,
     // |0        3|
     // |1        2|   
-    if (abs(ang1-ang2) < params.ANGLE_THRESH){
+    if (std::abs(ang1-ang2) < params.ANGLE_THRESH){
         return true;
     }
     return false;
@@ -203,7 +221,7 @@ void ArmorPlate::lightCompensate(
 ){
     float max_len = cv::max(l1.length, l2.length);
     if(_a != nullptr){
-        if(max_len >= 14.0 && cv::max( abs(l1.angle), abs(l2.angle)) >= 2.0){
+        if(max_len >= 14.0 && std::max( std::abs(l1.angle), std::abs(l2.angle)) >= 2.0){
             aim_deps::LightBox *min_box, *max_box;
             if(l1.length > l2.length){
                 min_box = &l2;
@@ -213,16 +231,19 @@ void ArmorPlate::lightCompensate(
                 min_box = &l1;
                 max_box = &l2;
             }
+            //printf("Lights %d and %d\n", _a->left_light.index, _a->right_light.index);
+            //printf("Max len : %f, min_len : %f\n", max_len, min_box->length);
             if(max_len / min_box->length >= 1.3){
                 if(min_box->ref == aim_deps::NULLPOINT2f){          //参考点没有被赋值成功
                     cv::Point2f diff_up = min_box->center - max_box->vex[0];
                     cv::Point2f diff_center = min_box->center - max_box->center;
-                    if( abs( diff_up.y ) < abs( diff_center.y ) ){              // 需补偿box的中点离正确box的上顶点更接近
+                    if( std::abs( diff_up.y ) < std::abs( diff_center.y ) ){              // 需补偿box的中点离正确box的上顶点更接近
                         min_box->add((max_len - min_box->length) * 0.5, false); // 补偿下方，下顶点下移 
                     }           
                     else{                                                       // 需补偿box的中点离正确box的中点更接近
                         min_box->add((max_len - min_box->length) * 0.5, true);  // 补偿上方（上顶点上移）
                     }
+                    //printf("No reference point.\n");
                 }else{
                     min_box->rebuild(max_box->vex, max_len);
                 }
@@ -240,10 +261,10 @@ void ArmorPlate::lightCompensate(
         }
         return;
     }
-    float len_diff = abs(l1.length - l2.length);
+    float len_diff = std::abs(l1.length - l2.length);
     if(max_len <= 14.0 && len_diff > 0.5){
-        if( (abs(l1.angle) < 1.0 || abs(l1.angle + 90.0) < 1.0) &&
-            (abs(l2.angle) < 1.0 || abs(l2.angle + 90.0) < 1.0) ){
+        if( (std::abs(l1.angle) < 1.0 || std::abs(l1.angle + 90.0) < 1.0) &&
+            (std::abs(l2.angle) < 1.0 || std::abs(l2.angle + 90.0) < 1.0) ){
             // 灯条过小时(长度14.0以下).(远处装甲板一般都是正对的,稍侧转将在低曝光下无法被捕捉)
             // 此时如果两灯条长度存在差别，则需要修正，让两灯条长度一致
             if( l1.length < l2.length){             
@@ -266,17 +287,21 @@ void ArmorPlate::lightCompensate(
     }
 }
 
-double ArmorPlate::cornerAngle(const cv::Point2f *pts, const int start){
+float ArmorPlate::cornerAngle(const cv::Point2f *pts, const int start){
     // 计算四边形四个角的大小，与90度偏差越小，说明与矩形越接近，则可以判断两个共灯条装甲板哪一个才是正确的匹配
-    double sum = 0.0;
-    for(int i = start; i < start + 2; ++i){
+    float _sum = 0.0;
+    for(int i = 0; i < 4; ++i){
         // 内积角度(两相邻边)
-        double inner_pro = (pts[(i+1)%4] - pts[i%4]).ddot((pts[(i+2)%4] - pts[(i+1)%4]));
+        float inner_pro = (pts[(i+1)%4] - pts[i%4]).dot((pts[(i+2)%4] - pts[(i+1)%4]));
         inner_pro /= sqrt(aim_deps::getPointDist(pts[(i+1)%4], pts[i%4]));
         inner_pro /= sqrt(aim_deps::getPointDist(pts[(i+2)%4], pts[(i+1)%4]));
-        sum += abs(inner_pro);              //直接加近似的cos theta
+        // 权重，共灯条处的角度权重大
+        if(i != start % 4 || i != (start + 1)%4 )
+            _sum += 0.5 * std::abs(inner_pro);              //直接加近似的cos theta
+        else
+            _sum += std::abs(inner_pro);
     }
-    return sum;
+    return _sum;
 }
 
 float ArmorPlate::compensation(const float mean){

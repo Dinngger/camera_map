@@ -24,6 +24,7 @@ const float MIN_ARMOR_AREA = 40.0;
 const cv::Point2f NULLPOINT2f = cv::Point2f(0.0, 0.0);
 const cv::Point3f NULLPOINT3f = cv::Point3f(0.0, 0.0, 0.0);
 const float RAD2DEG = 57.2958;     //(constant)(180/pi)
+const float DEG2RAD = 0.017453;     //(constant)(pi/180)
 
 //LightMatch.hpp 的依赖参数
 const float LIGHT_PARAM1 = 10.0;
@@ -104,6 +105,17 @@ inline void getMidPoints(cv::RotatedRect rect, cv::Point2f &p1, cv::Point2f &p2)
     }
 }
 
+inline float getLineAngle(const cv::Point2f p1, const cv::Point2f p2){
+    return atan2f(p2.x - p1.x, p2.y - p1.y) * aim_deps::RAD2DEG;
+}
+
+inline cv::Point2f Rotate(cv::Point2f _vec, const float _a){
+	cv::Point2f res;
+	res.x = _vec.x * cos(_a) - _vec.y * sin(_a);
+	res.y = _vec.x * sin(_a) + _vec.y * cos(_a); 
+	return res;
+}
+
 ///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
 //=======================灯条和装甲板定义========================//
 ///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
@@ -140,10 +152,19 @@ struct LightBox{
 
     inline void rebuild(const cv::Point2f vexes[2], const float len){        //依据另一个灯条来重新构建灯条
         float r = len / length;
-        center = r / (0.4 + r) * ref + 0.4 / (0.4 + r) * center;       //在参考点和观测灯条中点找真实的中点
+        center = r / (0.4 + r) * ref + 0.4 / (0.4 + r) * center;        //在参考点和观测灯条中点找真实的中点
         cv::Point2f direction = vexes[1] - vexes[0];
-        vex[0] = center - direction * 0.375;
-        vex[1] = center + direction * 0.375;        // 长边的长的0.75 / 2为从center到端点的观测长度
+        vex[0] = center - direction * 0.4;
+        vex[1] = center + direction * 0.4;            // 长边的长的0.75 / 2为从center到端点的观测长度
+    }
+
+    inline void rotate(const float ang){              // 旋转灯条(依照坐标系逆时针)
+        cv::Point2f tmp = vex[1] - center;
+        tmp = Rotate(tmp, ang);           
+        vex[1] = center + tmp;
+        vex[0] = center - tmp;
+        // printf("Original: %f, rotation: %f\n", angle, RAD2DEG * ang);
+        angle -= RAD2DEG * ang;                         // 注意我们定义的角度是逆时针正，与旋转矩阵定义恰好相反
     }
 };
 
@@ -157,7 +178,7 @@ struct Light
     Light(int _i, cv::RotatedRect _r, cv::Point2f _p = NULLPOINT2f): index(_i){
         getMidPoints(_r, box.vex[0], box.vex[1]);
         box.length = cv::max(_r.size.height, _r.size.width);
-        box.angle = atan2f(box.vex[1].x - box.vex[0].x, box.vex[1].y - box.vex[0].y) * aim_deps::RAD2DEG;
+        box.angle = aim_deps::getLineAngle(box.vex[0], box.vex[1]);
         box.center = (box.vex[0] + box.vex[1]) / 2;
         box.ref = _p;
     }

@@ -59,8 +59,15 @@ private:
     bool getArmorPlate(aim_deps::LightBox b1, aim_deps::LightBox b2);         //灯条匹配装甲板
     void filter(std::vector<aim_deps::Armor> &tar_list);                //进一步过滤装甲板容器
     bool isAreaGood();                                                  //面积是否正确：面积过小的装甲板将会被过滤
-    inline bool isAngleMatch(const float ang1, const float ang2);                       
-    inline static double cornerAngle(const cv::Point2f *pts, const int start);  //计算共灯条处装甲板的角点处夹角
+    inline bool isAngleMatch(const float ang1, const float ang2);          
+
+    /** @brief 计算共灯条时，装甲板长边与共灯条边形成的夹角，夹角接近90度为真，同时考虑灯条夹角
+     * @param pts 装甲板的四个点列表
+     * @param start 从第start点开始计算角度（只需要算两个角度即可）
+     * @return 角度的cos值之和，越小说明所有角度越接近90度
+     */             
+    inline static float cornerAngle(const cv::Point2f *pts,
+                    const int start);
     inline static float getRatio(const float l);                        //计算自适应装甲板长宽比
     inline static float compensation(const float mean);                 //根据平均灯条长度计算灯条长度补偿值
     static void lightCompensate(aim_deps::LightBox &l1, 
@@ -70,5 +77,6 @@ private:
     cv::Point2f points[4];                                              //装甲板点列的临时容器
     aim_deps::Distance_Params params;                                   //装甲板匹配参数
 };
-
 #endif     //_ARMOR_PLATE_HPP
+
+
