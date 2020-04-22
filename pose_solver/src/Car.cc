@@ -8,6 +8,7 @@
 #include "CarModule.hpp"
 
 // #define PROCESS_DEBUG
+// #define BA_DEBUG
 
 #ifdef PROCESS_DEBUG
 #include "Viewer.h"
@@ -102,7 +103,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         SATR,   // State of changing Armor T & R
         END
     };
-#define BA_DEBUG
+
 #ifdef  BA_DEBUG
     cv::Mat img(1000, 1000, CV_8UC3, cv::Scalar(0, 0, 0));
     auto get_y = [](int x) -> int {
@@ -127,10 +128,8 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
     int state_cnt = 0;
 
     while (state != END) {
-#ifdef BA_DEBUG
         old_error = error_sum;
         old_obv_error = obv_error;
-#endif
         bool isObserved[8] = {false,};
         Eigen::Matrix<double, 6, 1> gradient[8];
         double error[8] = {0,};
@@ -193,12 +192,12 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             moment_sum = BETA1 * moment_sum + (1 - BETA1) * gradient_sum;
             moment2_sum = BETA2 * moment2_sum + (1 - BETA2) * pow(gradient_sum.norm(), 2);
         }
-        gradient_sum = moment_sum / (sqrt(moment2_sum) + 1e-8) * 1e-3;
+        gradient_sum = moment_sum / (sqrt(moment2_sum) + 1e-8) * 5e-4;
         if (state == SCT || state == SCTR) {
             t -= jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
         }
         if (state == SCTR) {
-            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0) * -0.25) * r.matrix());
+            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0) * -0.5) * r.matrix());
         }
         Eigen::Matrix3d car_R = r.matrix();
         Eigen::Matrix3d car_R_T = car_R.transpose();
@@ -211,9 +210,22 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                     gradient_armor += gradient[i*2+j];
                 }
             }
-            if (sum_armor == 0)
-                continue;
-            gradient_armor *= 2.0 / sum_armor;
+            /* Add gradient to standard car module
+                    t       r
+                0: 0,0,z
+                1: x,0,0
+                2: 0,0,z
+                3: x,0,0
+            */
+            if (sum_armor != 0)
+                gradient_armor *= 2.0 / sum_armor;
+            Eigen::Vector3d armor_t_error = armor[i].t * 0.05;
+            if (i % 2 == 0)
+                armor_t_error(2) = 0;
+            else
+                armor_t_error(0) = 0;
+            armor[i].t -= armor_t_error;
+
             if (reset) {
                 moment[i] = gradient_armor;
                 moment2[i] = pow(gradient_armor.norm(), 2);
@@ -237,10 +249,10 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         if (state == SCTR)
             mincnt = 200;
         if (state == SATR)
-            mincnt = 200; // * (1 - confidence_sum);
+            mincnt = 200;
         double min_delte_error = 0.01;
         // if (state > SCTR)
-        //     min_delte_error = confidence_sum;
+        //     min_delte_error = confidence_sum / 5;
         if (abs(delta_error) < min_delte_error && state_cnt > mincnt) {
             next_state = (StateType)((int)next_state + 1);
             state_cnt = 0;
@@ -280,7 +292,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             g_color = cv::Vec3b(180, 255, 255);
             e_color = cv::Vec3b(0, 255, 255);
         }
-        img.at<cv::Vec3b>(get_y(999 - (int)(gradient_sum.norm()*5e5)), get_x(cnt)) = g_color;
+        img.at<cv::Vec3b>(get_y(999 - (int)(gradient_sum.norm()*1e6)), get_x(cnt)) = g_color;
         img.at<cv::Vec3b>(get_y(999 - (int)(state < SAT ? error_sum : obv_error)), get_x(cnt)) = e_color;
 #endif
         state = next_state;
@@ -296,10 +308,12 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             }
             new_confidence_sum /= 4;
             if (new_confidence_sum > confidence_sum)
-                confidence_sum = confidence_sum * 0.6 + new_confidence_sum * 0.4;
+                confidence_sum = confidence_sum * 0.8 + new_confidence_sum * 0.2;
             else
-                confidence_sum = confidence_sum * 0.9 + new_confidence_sum * 0.1;
+                confidence_sum = confidence_sum * 0.95 + new_confidence_sum * 0.05;
+            std::cout << "confidence sum: " << confidence_sum << "\n";
         }
+        regularzation();
 #ifdef BA_DEBUG
 #ifdef PROCESS_DEBUG
         cv::imshow("error", img);
@@ -314,7 +328,6 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
 #endif
 
     std::cout << " error: " << obv_error << "\n";
-    regularzation();
     update_state(delta_time);
 
 #ifdef PROCESS_DEBUG

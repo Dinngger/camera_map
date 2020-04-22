@@ -337,7 +337,7 @@ void LightMatch::readjustAngle(
 			}
 		}		
 		//printf("Light %d iter %d: diff_sum: %f, diff2_sum: %f\n", index, i, diff_sum, diff2_sum);
-		//if(diff2_sum == 0.0) break;
+		if(diff2_sum == 0.0) break;
 		angle -= diff_sum / diff2_sum;				// 牛顿迭代
 		if(std::abs(diff_sum) <= 0.5) 
 		{
