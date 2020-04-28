@@ -1,9 +1,7 @@
 /**============新的MatchLight(明暗交替)============
  * 作者：hqy
  * 创建时间：2020.2.9 00:27
- * 主要思路：设置几个判断条件：（2020.1.18日写）
- * 9/2/2020 修改：
- *      drawArmorPlate需要通过数字判断其是否valid
+ * 主要思路：设置几个判断条件：
  */
 
 #include "../include/ArmorPlate.hpp"
@@ -12,11 +10,13 @@ ArmorPlate::ArmorPlate(){
     for(int i=0; i<4 ;++i) points[i] = aim_deps::NULLPOINT2f;
 }
 
-ArmorPlate::~ArmorPlate(){;}
+ArmorPlate::~ArmorPlate(){
+    ;
+}
 
 void ArmorPlate::matchAll(
     std::vector<cv::Point> matches,
-    std::vector<aim_deps::Light> lights,
+    std::vector<aim_deps::Light> &lights,
     std::vector<aim_deps::Armor> &tar_list
 )
 {
@@ -34,7 +34,7 @@ void ArmorPlate::matchAll(
             amp_debug(rmlog::F_GREEN, "Matched:(", i, "), with matches(", matches[i].x, ", ", matches[i].y,")");
         }
     }
-    filter(tar_list);                   //过滤无效装甲板
+    filter(tar_list, lights);                   //过滤无效装甲板
     //amp_debug("Target list size(%d), valid size(%d).\n", tar_list.size(), _cnt);
 }
 
@@ -90,7 +90,7 @@ void ArmorPlate::drawArmorPlates(cv::Mat &src,
     }
 }
 
-void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list){
+void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list, std::vector<aim_deps::Light> &lights){
     for(size_t i = 0; i<tar_list.size(); ++i){
         if(tar_list[i].valid){
             for(size_t j = i+1; j<tar_list.size(); ++j){
@@ -115,15 +115,15 @@ void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list){
                         if( 0.5*(1 - cos(diff1)) + cos1 > 0.5*(1 - cos(diff2)) + cos2){
                             tar_list[i].valid = false;
                             amp_debug(rmlog::F_RED, "Light ", tar_list[i].left_light.index, " & ",
-                                     tar_list[i].right_light.index, " are invalid:", 
-                                     0.5*(1 - cos(diff1)) + cos1, ", ", 0.5*(1 - cos(diff2)) + cos2);
+                                    tar_list[i].right_light.index, " are invalid:", 
+                                    0.5*(1 - cos(diff1)) + cos1, ", ", 0.5*(1 - cos(diff2)) + cos2);
                             break;
                         }
                         else{
                             tar_list[j].valid = false;
-                             amp_debug(rmlog::F_RED, "Light ", tar_list[j].left_light.index, " & ",
-                                     tar_list[j].right_light.index, " are invalid:", 
-                                     0.5*(1 - cos(diff1)) + cos1, ", ", 0.5*(1 - cos(diff2)) + cos2);
+                            amp_debug(rmlog::F_RED, "Light ", tar_list[j].left_light.index, " & ",
+                                    tar_list[j].right_light.index, " are invalid:", 
+                                    0.5*(1 - cos(diff1)) + cos1, ", ", 0.5*(1 - cos(diff2)) + cos2);
                         }
                     }
                 }
@@ -132,15 +132,30 @@ void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list){
     }
     for(size_t i = 0; i<tar_list.size(); ++i){
         if(tar_list[i].valid){
-            lightCompensate(tar_list[i].left_light.box, tar_list[i].right_light.box, &tar_list[i]);
+            int pos = lightCompensate(tar_list[i].left_light.box, tar_list[i].right_light.box, &tar_list[i]);
             //printf("Now the Light %d: %f\n", tar_list[i].left_light.index, tar_list[i].left_light.box.length);
             //printf("Now the Light %d: %f\n", tar_list[i].right_light.index, tar_list[i].right_light.box.length);    
+            // 装甲板匹配成功的灯条必然是非反光灯条,有效
+            tar_list[i].left_light.valid = true;
+            tar_list[i].right_light.valid = true;
+            lights[tar_list[i].left_light.index].valid = true;
+            lights[tar_list[i].right_light.index].valid = true;
+            if(pos == 0){           //经过补偿的灯条需要替换原来possibles里的灯条
+                lights[tar_list[i].left_light.index] = tar_list[i].left_light;
+            }
+            else if(pos == 1){
+                lights[tar_list[i].right_light.index] = tar_list[i].right_light;
+            }
+            else if(pos == 2){
+                lights[tar_list[i].left_light.index] = tar_list[i].left_light;
+                lights[tar_list[i].right_light.index] = tar_list[i].right_light;
+            }
         }
     }
 }
 
 bool ArmorPlate::getArmorPlate(aim_deps::LightBox b1, aim_deps::LightBox b2){
-    lightCompensate(b1, b2);
+    //lightCompensate(b1, b2);
     points[0] = b1.vex[0];
     points[1] = b1.vex[1];
     points[2] = b2.vex[1];
@@ -214,77 +229,71 @@ float ArmorPlate::getRatio(const float l){
             aim_deps::coeffs[2] * len * len + aim_deps::coeffs[3] * len + aim_deps::coeffs[4];
 }
 
-void ArmorPlate::lightCompensate(
+int ArmorPlate::lightCompensate(
     aim_deps::LightBox &l1,
     aim_deps::LightBox &l2, 
     aim_deps::Armor *_a
 ){
     float max_len = cv::max(l1.length, l2.length);
-    if(_a != nullptr){
-        if(max_len >= 14.0 && std::max( std::abs(l1.angle), std::abs(l2.angle)) >= 2.0){
-            aim_deps::LightBox *min_box, *max_box;
-            if(l1.length > l2.length){
-                min_box = &l2;
-                max_box = &l1;
-            }
-            else{
-                min_box = &l1;
-                max_box = &l2;
-            }
-            //printf("Lights %d and %d\n", _a->left_light.index, _a->right_light.index);
-            //printf("Max len : %f, min_len : %f\n", max_len, min_box->length);
-            if(max_len / min_box->length >= 1.3){
-                if(min_box->ref == aim_deps::NULLPOINT2f){          //参考点没有被赋值成功
-                    cv::Point2f diff_up = min_box->center - max_box->vex[0];
-                    cv::Point2f diff_center = min_box->center - max_box->center;
-                    if( std::abs( diff_up.y ) < std::abs( diff_center.y ) ){              // 需补偿box的中点离正确box的上顶点更接近
-                        min_box->add((max_len - min_box->length) * 0.5, false); // 补偿下方，下顶点下移 
-                    }           
-                    else{                                                       // 需补偿box的中点离正确box的中点更接近
-                        min_box->add((max_len - min_box->length) * 0.5, true);  // 补偿上方（上顶点上移）
-                    }
-                    //printf("No reference point.\n");
-                }else{
-                    min_box->rebuild(max_box->vex, max_len);
-                }
-                if(min_box == &(_a->left_light.box)){       // [0][1]点重新赋值
-                    _a->vertex[0] = min_box->vex[0];
-                    _a->vertex[1] = min_box->vex[1];
-                    // printf("Left\n");
-                }
-                else if(min_box == &(_a->right_light.box)){ // [2][3]点重新赋值
-                    _a->vertex[3] = min_box->vex[0];
-                    _a->vertex[2] = min_box->vex[1];
-                    // printf("Right\n");
-                }
-            }
-        }
-        return;
-    }
-    float len_diff = std::abs(l1.length - l2.length);
-    if(max_len <= 14.0 && len_diff > 0.5){
-        if( (std::abs(l1.angle) < 1.0 || std::abs(l1.angle + 90.0) < 1.0) &&
-            (std::abs(l2.angle) < 1.0 || std::abs(l2.angle + 90.0) < 1.0) ){
-            // 灯条过小时(长度14.0以下).(远处装甲板一般都是正对的,稍侧转将在低曝光下无法被捕捉)
-            // 此时如果两灯条长度存在差别，则需要修正，让两灯条长度一致
-            if( l1.length < l2.length){             
-                l1.add(len_diff * 0.5);
-            }
-            else{
-                l2.add(len_diff * 0.5);
-            }
-        }
-        if(max_len <= 5.0) {       //可能略大
-            l1.add(2.1);
-            l2.add(2.1);
+    if(max_len > 10.0){
+        aim_deps::LightBox *min_box, *max_box;
+        if(l1.length > l2.length){
+            min_box = &l2;
+            max_box = &l1;
         }
         else{
-            float comp = compensation(max_len);
-            l1.add(comp * 0.8);
-            l2.add(comp * 0.8);
-            // printf("Comp added to the lights:%f\n", comp);
+            min_box = &l1;
+            max_box = &l2;
+        }
+        //printf("Max len : %f, min_len : %f\n", max_len, min_box->length);
+        if(max_len / min_box->length >= 1.4){
+            float ratio = rebuildRatio(_a->vertex);
+            min_box->rebuild(max_box->vex, ratio);
+            if(min_box == &(_a->left_light.box)){       // [0][1]点重新赋值
+                _a->vertex[0] = min_box->vex[0];
+                _a->vertex[1] = min_box->vex[1];
+                //rmlog::LOG::printc(rmlog::F_RED, "Light ", _a->left_light.index, " is compensated. ");
+                return 0;
+            }
+            else if(min_box == &(_a->right_light.box)){ // [2][3]点重新赋值
+                _a->vertex[3] = min_box->vex[0];
+                _a->vertex[2] = min_box->vex[1];
+                //rmlog::LOG::printc(rmlog::F_RED, "Light ", _a->right_light.index, " is compensated. ");
+                return 1;
+            }
+        }
+        return -1;
+    }
+    int res = -1;
+    if(max_len <= 10 && max_len > 5){         // 不进行补偿，直接灯条复制
+        l1.even(l2);
+        res = 2;
+    }
+    else if(max_len <= 5){
+        if(l1.length > l2.length){
+            l2.copy(l1);
+            res = 1;
+        }
+        else{
+            l1.copy(l2);
+            res = 0;
         }
     }
+    if(res >= 0){
+        if(&_a->left_light.box == &l1){
+            _a->vertex[0] = l1.vex[0];
+            _a->vertex[1] = l1.vex[1];
+            _a->vertex[2] = l2.vex[1];
+            _a->vertex[3] = l2.vex[0];
+        }
+        else{
+            _a->vertex[0] = l2.vex[0];
+            _a->vertex[1] = l2.vex[1];
+            _a->vertex[2] = l1.vex[1];
+            _a->vertex[3] = l1.vex[0];
+        }
+    }
+    return -1;
 }
 
 float ArmorPlate::cornerAngle(const cv::Point2f *pts, const int start){
@@ -302,6 +311,27 @@ float ArmorPlate::cornerAngle(const cv::Point2f *pts, const int start){
             _sum += std::abs(inner_pro);
     }
     return _sum;
+}
+
+// 计算灯条rebuild时向下延长的比例a, 则向上延长的比例为 1 - a
+float ArmorPlate::rebuildRatio(const cv::Point2f *pts){
+    float top = 0.0, bot = 0.0;
+    for(int i = 0; i < 4; ++i){
+        // 内积角度(两相邻边)
+        float inner_pro = (pts[(i+1)%4] - pts[i%4]).dot((pts[(i+2)%4] - pts[(i+1)%4]));
+        inner_pro /= sqrt(aim_deps::getPointDist(pts[(i+1)%4], pts[i%4]));
+        inner_pro /= sqrt(aim_deps::getPointDist(pts[(i+2)%4], pts[(i+1)%4]));
+        if(i < 2){
+            bot += std::abs(inner_pro);
+        }
+        else{
+            top += std::abs(inner_pro);
+        }
+    }
+    if(top <= 0.1744 || bot <= 0.1744) return 0.5;          //装甲板角点若存在有一边算的很准确
+    top *= 1.25;             //实际情况中需要增强向上补偿
+    /// @note 如果两个底部角的cos值更大，说明底部角度不准，需要向下补偿，bot大，补偿系数大
+    return bot / (top + bot);
 }
 
 float ArmorPlate::compensation(const float mean){

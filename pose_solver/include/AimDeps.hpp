@@ -123,39 +123,54 @@ inline cv::Point2f Rotate(cv::Point2f _vec, const float _a){
 struct LightBox{
     float length;                   // 灯条长度
     float angle;                    // 灯条角度
-    cv::Point2f ref;                //参考点（由一次阈值化的外层minAreaRect得来）
+    cv::Point3f ref;                //参考点(x: 参考中心x, y:参考中心y, z:参考长度)
     cv::Point2f vex[2];             // vex[0]在上, vex[1]在下
     cv::Point2f center;
     inline void extend(const float k){     // 长度乘以系数变化
         vex[0] += (k - 1.0) * (vex[0] - center);
         vex[1] += (k - 1.0) * (vex[1] - center);
         length *= k;
+    }             
+
+    inline void copy(LightBox &lb){
+        cv::Point2f direction = lb.vex[1] - lb.center;
+        vex[1] = center + direction;
+        vex[0] = center - direction;
+        length = lb.length;
+        angle = lb.angle;
+    }    
+
+    inline void even(LightBox &lb){
+        float mean_len = (lb.length + length) / 2,
+            mean_ang = (lb.angle + angle) / 2;
+        if(length < lb.length){
+            extend( mean_len / length );
+        }
+        else{
+            lb.extend( mean_len / lb.length);
+        }
+        rotate(aim_deps::DEG2RAD * (mean_ang - angle) / 2);
+        lb.rotate(aim_deps::DEG2RAD * (mean_ang - lb.angle) / 2);
     }
 
-    inline void add(const float l){        // 长度加常数导致的变化
-        cv::Point2f vec = (vex[1] - vex[0]) * (l / length / 2); //计算点移动需要的向量
-        vex[0] -= vec;
-        vex[1] += vec;
-        length += l;
-    }                   
-
-    inline void add(const float l, const bool add_top){    //非中心增长
-        cv::Point2f vec = (vex[1] - vex[0]) * (l / length);
-        if(add_top){                                //加在上方的顶点
-            vex[0] -= vec;
-        }
-        else{                                       //加在下方的顶点
-            vex[1] += vec;
-        }
-        length += l;
-    }
-
-    inline void rebuild(const cv::Point2f vexes[2], const float len){        //依据另一个灯条来重新构建灯条
-        float r = len / length;
-        center = r / (0.4 + r) * ref + 0.4 / (0.4 + r) * center;        //在参考点和观测灯条中点找真实的中点
+    //依据另一个灯条来重新构建灯条
+    inline void rebuild(const cv::Point2f vexes[2], float ratio){        
+        float r = ref.z / length;
         cv::Point2f direction = vexes[1] - vexes[0];
-        vex[0] = center - direction * 0.4;
-        vex[1] = center + direction * 0.4;            // 长边的长的0.75 / 2为从center到端点的观测长度
+        if(r >= 1.2){                   //外矩形与内矩形长度相差太大，认为是中心位置有误（以外矩形为准）
+            length = sqrt(getPointDist(vexes[1], vexes[0]));
+            float k = 0.2 + ref.z / 4 / length;
+            length *= 2 * k;                        // 参考长度/(2×另一灯条长) 与 0.4 的算术平均
+            center = cv::Point2f(ref.x, ref.y);
+            vex[0] = center - direction * k;
+            vex[1] = center + direction * k;         // 长边的长的0.8 / 2为从center到端点的观测长度
+        }
+        else{                                           // 外矩形匹配也失败了，只能进行经验式的补偿
+            vex[0] = center - direction * 0.8 * (1.0f - ratio);
+            vex[1] = center + direction * 0.8 * ratio;         // 长边的长的0.75 / 2为从center到端点的观测长度
+            center = (vex[1] + vex[0]) / 2;
+            length = sqrt(getPointDist(vex[1], vex[0]));
+        }
     }
 
     inline void rotate(const float ang){              // 旋转灯条(依照坐标系逆时针)
@@ -163,7 +178,7 @@ struct LightBox{
         tmp = Rotate(tmp, ang);           
         vex[1] = center + tmp;
         vex[0] = center - tmp;
-        // printf("Original: %f, rotation: %f\n", angle, RAD2DEG * ang);
+        //printf("Original: %f, rotation: %f\n", angle, RAD2DEG * ang);
         angle -= RAD2DEG * ang;                         // 注意我们定义的角度是逆时针正，与旋转矩阵定义恰好相反
     }
 };
@@ -172,15 +187,20 @@ struct LightBox{
 /// @brief 灯条的两点式线段表示
 struct Light
 {
+    bool valid;                 //是否是有效灯条(反光灯条过滤无法完全精准判定，需要依靠装甲板匹配)
     int index;       
     LightBox box;
-    Light(){}
-    Light(int _i, cv::RotatedRect _r, cv::Point2f _p = NULLPOINT2f): index(_i){
+    Light(){
+        valid = true;
+    }
+    Light(int _i, cv::RotatedRect _r, cv::Point2f _p = NULLPOINT2f, float len = 0.0, bool _v = true):
+        valid(_v), index(_i)
+    {
         getMidPoints(_r, box.vex[0], box.vex[1]);
         box.length = cv::max(_r.size.height, _r.size.width);
         box.angle = aim_deps::getLineAngle(box.vex[0], box.vex[1]);
         box.center = (box.vex[0] + box.vex[1]) / 2;
-        box.ref = _p;
+        box.ref = cv::Point3f(_p.x, _p.y, len);
     }
 };
 
@@ -251,7 +271,7 @@ struct Light_Params{
 extern Light_Params light_params;
 
 struct Distance_Params{
-    const float OPS_RATIO_HEIGHT    = 9.0;      //对边宽比例
+    const float OPS_RATIO_HEIGHT    = 16.0;      //对边宽比例
     const float OPS_RATIO_WIDTH     = 1.44;     //对边长比例
     const float NEAR_RATIO_MIN      = 12.5;    //邻边装甲板比例
     const float NEAR_RATIO_MAX      = 30.0;

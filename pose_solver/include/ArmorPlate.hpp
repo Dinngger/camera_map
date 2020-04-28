@@ -36,7 +36,7 @@ public:
      */
     void matchAll(
         std::vector<cv::Point> matches,
-        std::vector<aim_deps::Light> lights, 
+        std::vector<aim_deps::Light> &lights, 
         std::vector<aim_deps::Armor> &tar_list);
     /**
      * @brief 绘制装甲板于图像
@@ -57,7 +57,8 @@ private:
     */
     bool isMatch(aim_deps::Light l1, aim_deps::Light l2);
     bool getArmorPlate(aim_deps::LightBox b1, aim_deps::LightBox b2);         //灯条匹配装甲板
-    void filter(std::vector<aim_deps::Armor> &tar_list);                //进一步过滤装甲板容器
+    void filter(std::vector<aim_deps::Armor> &tar_list,
+            std::vector<aim_deps::Light> &lights);                //进一步过滤装甲板容器
     bool isAreaGood();                                                  //面积是否正确：面积过小的装甲板将会被过滤
     inline bool isAngleMatch(const float ang1, const float ang2);          
 
@@ -70,12 +71,16 @@ private:
                     const int start);
     inline static float getRatio(const float l);                        //计算自适应装甲板长宽比
     inline static float compensation(const float mean);                 //根据平均灯条长度计算灯条长度补偿值
-    static void lightCompensate(aim_deps::LightBox &l1, 
+    static int lightCompensate(aim_deps::LightBox &l1, 
             aim_deps::LightBox &l2, aim_deps::Armor *_a = nullptr);     //灯条补偿
+    inline static float rebuildRatio(const cv::Point2f *pts);           //灯条重建系数
 private:
     bool _is_enemy_blue;                                                //敌人颜色
     cv::Point2f points[4];                                              //装甲板点列的临时容器
     aim_deps::Distance_Params params;                                   //装甲板匹配参数
+
+    /// TODO: 需删除-----补偿次数
+    int compensate_cnt;
 };
 #endif     //_ARMOR_PLATE_HPP
 
