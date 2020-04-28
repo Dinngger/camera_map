@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
 #endif
 #define path1 "/mine/cv_output1.avi"
 #define path2 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
-    cv::VideoCapture cap(path2);
+    cv::VideoCapture cap(path1);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
