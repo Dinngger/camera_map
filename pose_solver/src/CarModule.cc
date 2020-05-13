@@ -22,11 +22,15 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars,
     for (const LightBarP& point2d : light_bars) {
         light_bars_car[point2d.car_id].push_back(point2d);
     }
-    for (size_t i=0; i<cars.size(); i++) {
+    for (size_t i=cars.size()-1; i>=0; i--) {
         int size = light_bars_car[i].size();
         // cars[i].car_info = (cars[i].car_info + size) / 2;
         if (size > 0)
             cars[i].bundleAdjustment(light_bars_car[i], K, delta_time);
+        else {
+            std::cout << "erase car " << i << "\n";
+            cars.erase(cars.begin() + i);
+        }
     }
     module_time = time;
     return 0;
@@ -103,7 +107,7 @@ int CarModule::add_car(const Armor3d& _armor)
     c.confidence[0] = 1;
     c.t = _armor.t + Eigen::Vector3d(0, 0, 0.25);
     c.armor[0].t = Eigen::Vector3d(0, 0, -0.25);
-    c.armor[0].r = _armor.r;
+    c.armor[0].r = Eigen::Quaterniond::Identity();
     Eigen::Quaterniond _r(Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d(0, -1, 0)));
     Eigen::Matrix3d _R = _r.matrix();
     for (int i=1; i<4; i++) {

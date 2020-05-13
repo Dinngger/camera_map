@@ -50,8 +50,10 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     search_module.runSearch(match.possibles, 80, id_set1);
 
     match_result.clear();
+    // std::cout << "find in last frame:\n";
     for (const LightBarP& lbp : search_last_frame.getResultLBPs()) {
         match_result.push_back(lbp);
+        // std::cout << lbp.car_id ;
     }
     for (const LightBarP& lbp : search_module.getResultLBPs()) {
         match_result.push_back(lbp);

@@ -51,6 +51,7 @@ int Car::predict(double delta_time, Eigen::Quaterniond &pre_r, Eigen::Vector3d &
 
 int Car::regularzation()
 {
+    r.normalize();
     // update t
     Eigen::Vector3d car_center = (armor[0].t + armor[1].t + armor[2].t + armor[3].t) / 4;
     t += r.matrix() * car_center;
@@ -79,10 +80,10 @@ int Car::regularzation()
         R = svd.matrixU() * sigma * svd.matrixV().transpose();
     }
     for (int i=0; i<4; i++) {
-        armor[i].r = Eigen::Quaterniond(R * armor[i].r.matrix());
+        armor[i].r = Eigen::Quaterniond(R * armor[i].r.normalized().matrix()).normalized();
         armor[i].t = R * armor[i].t;
     }
-    r = Eigen::Quaterniond(r.matrix() * R.transpose());
+    r = Eigen::Quaterniond(r.matrix() * R.transpose()).normalized();
     return 0;
 }
 
@@ -198,9 +199,13 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         }
         if (state == SCTR) {
             r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0) * -0.5) * r.matrix());
+            r.normalize();
         }
         Eigen::Matrix3d car_R = r.matrix();
         Eigen::Matrix3d car_R_T = car_R.transpose();
+
+        Eigen::Quaterniond transform90_r(Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d(0, -1, 0)));
+        Eigen::Quaterniond standard_r = Eigen::Quaterniond::Identity();
         for (int i=0; i<4; i++) {
             Eigen::Matrix<double, 6, 1> gradient_armor = Eigen::Matrix<double, 6, 1>::Zero();
             int sum_armor = 0;
@@ -219,12 +224,15 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             */
             if (sum_armor != 0)
                 gradient_armor *= 2.0 / sum_armor;
-            Eigen::Vector3d armor_t_error = armor[i].t * 0.05;
+
+            // 修正t
+            Eigen::Vector3d armor_t_error = armor[i].t * 0.01;
             if (i % 2 == 0)
                 armor_t_error(2) = 0;
             else
                 armor_t_error(0) = 0;
             armor[i].t -= armor_t_error;
+
 
             if (reset) {
                 moment[i] = gradient_armor;
@@ -237,6 +245,11 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             if (state == SAT || state == SATR)
                 armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
             if (state == SATR) {
+                // 修正r
+                armor[i].r = armor[i].r.slerp(0.0001, standard_r).normalized();
+                standard_r = transform90_r * standard_r;
+                armor[i].r.normalize();
+
                 armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0) * -0.25) *
                                                 car_R * armor[i].r.matrix());
             }
