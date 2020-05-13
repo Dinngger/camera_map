@@ -226,7 +226,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                 gradient_armor *= 2.0 / sum_armor;
 
             // 修正t
-            Eigen::Vector3d armor_t_error = armor[i].t * 0.01;
+            Eigen::Vector3d armor_t_error = armor[i].t * 0.05;
             if (i % 2 == 0)
                 armor_t_error(2) = 0;
             else
@@ -246,9 +246,9 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                 armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
             if (state == SATR) {
                 // 修正r
-                armor[i].r = armor[i].r.slerp(0.0001, standard_r).normalized();
-                standard_r = transform90_r * standard_r;
-                armor[i].r.normalize();
+                // armor[i].r = armor[i].r.slerp(0.0001, standard_r).normalized();
+                // standard_r = transform90_r * standard_r;
+                // armor[i].r.normalize();
 
                 armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0) * -0.25) *
                                                 car_R * armor[i].r.matrix());
