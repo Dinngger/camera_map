@@ -80,6 +80,12 @@ struct LightBarP
     }
 };
 
+class KeyFrame
+{
+private:
+    Eigen::Quaterniond pose;
+};
+
 // lb[0] was the first light bar to be seen.
 class Car
 {
