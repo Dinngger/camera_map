@@ -1,5 +1,6 @@
 /USELESS
 /pose_solver/build
+/.vscode
 *.*
 !*.md
 !*.cc
