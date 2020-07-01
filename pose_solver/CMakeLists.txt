@@ -56,7 +56,7 @@ ${Pangolin_INCLUDE_DIRS}
 #${CHOLMOD_INCLUDE_DIR}
 )
 
-#message(STATUS "G2O include path: " ${G2O_INCLUDE_DIR})
+#message(STATUS "Pangolin include path: " ${Pangolin_INCLUDE_DIR})
 
 link_directories(
 /usr/local/lib
