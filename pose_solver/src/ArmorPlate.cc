@@ -15,7 +15,7 @@ ArmorPlate::~ArmorPlate(){
 }
 
 void ArmorPlate::matchAll(
-    std::vector<cv::Point> matches,
+    const std::vector<cv::Point> &matches,
     std::vector<aim_deps::Light> &lights,
     std::vector<aim_deps::Armor> &tar_list
 )
@@ -38,7 +38,7 @@ void ArmorPlate::matchAll(
     //amp_debug("Target list size(%d), valid size(%d).\n", tar_list.size(), _cnt);
 }
 
-bool ArmorPlate::isMatch(aim_deps::Light l1, aim_deps::Light l2)
+bool ArmorPlate::isMatch(const aim_deps::Light &l1, const aim_deps::Light &l2)
 {
     bool judge = true;                                  //灯条角度过大（与x轴成的夹角小）时退出
     if(l1.box.center.x < l2.box.center.x)               //r1灯条在左侧
@@ -50,7 +50,7 @@ bool ArmorPlate::isMatch(aim_deps::Light l1, aim_deps::Light l2)
         amp_debug(rmlog::F_RED, "Angle mismatch:(", l1.index, ", ", l2.index, ")");
         return false;
     }
-    if(isRatioValid() && isEdgesValid() && isAreaGood()){
+    if(isRatioValid(l1.box.length, l2.box.length) && isEdgesValid() && isAreaGood()){
         amp_debug(rmlog::F_BLUE, "Push in:(", l1.index, ", ", l2.index, ")");
         return true;
     }
@@ -61,7 +61,7 @@ bool ArmorPlate::isMatch(aim_deps::Light l1, aim_deps::Light l2)
 }
 
 void ArmorPlate::drawArmorPlates(cv::Mat &src, 
-    const std::vector<aim_deps::Armor> tar_list, const int optimal){
+    const std::vector<aim_deps::Armor>& tar_list, const int optimal) const{
 	char str[2];
     cv::line(src, cv::Point(720, 0), cv::Point(720, 1080), cv::Scalar(255, 0, 0));
 	cv::line(src, cv::Point(0, 540), cv::Point(1440, 540), cv::Scalar(255, 0, 0));
@@ -83,9 +83,8 @@ void ArmorPlate::drawArmorPlates(cv::Mat &src,
 	        ///cv::putText(src, str, tar_list[i].vertex[j]+cv::Point2f(2, 2),
 	        ///    cv::FONT_HERSHEY_PLAIN, 1.1, cv::Scalar(0, 100, 255));
             snprintf(str, 2, "%d", tar_list[i].armor_number);
-            cv::putText(src, str, tar_list[i].center + cv::Point2f(25, 10),
+            cv::putText(src, str, tar_list[i].vertex[2] + cv::Point2f(8, 4),
                 cv::FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 255, 255));
-            cv::circle(src, tar_list[i].center, 3, cv::Scalar(0, 0, 255), -1);
         }
     }
 }
@@ -95,34 +94,51 @@ void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list, std::vector<aim_
         if(tar_list[i].valid){
             for(size_t j = i+1; j<tar_list.size(); ++j){
                 if(tar_list[j].valid){
-                    /// TODO: 此处是否判断失效？
                     int judge = tar_list[i].collide(tar_list[j]);
                     if(judge >= 0){                  //装甲板有共灯条冲突
                         int start1 = 1, start2 = 1;
                         // 是左灯条，则从位置3开始算夹角, 是右灯条，则从位置1开始算夹角
-                        if(judge == tar_list[i].left_light.index) start1 = 3;         
-                        else start1 = 1;         
-                        if(judge == tar_list[j].left_light.index) start2 = 3;
-                        else start2 = 1;
+                        aim_deps::Light &li = tar_list[i].left_light,
+                            &lj = tar_list[j].left_light,
+                            &ri = tar_list[i].right_light,
+                            &rj = tar_list[j].right_light;
+                        if(judge == li.index) start1 = 3;         
+                        if(judge == lj.index) start2 = 3;
+                        if(start1 == start2){           // 冲突的灯条对于两个装甲板都是左灯条或者右灯条
+                            if(start1 == 3){            // 冲突灯条均为左灯条
+                                if(ri.box.center.x < rj.box.center.x){
+                                    tar_list[j].valid = false; continue; //内层判断为无效则继续内层循环
+                                }else{
+                                    tar_list[i].valid = false; break;    //外层判断无效则退出内层循环
+                                }
+                            }
+                            else{                       // 冲突灯条均为右灯条
+                                if(li.box.center.x > lj.box.center.x){
+                                    tar_list[j].valid = false; continue;
+                                }else{
+                                    tar_list[i].valid = false; break;
+                                }
+                            }
+                        }
                         double cos1 = cornerAngle(tar_list[i].vertex, start1),
                             cos2 = cornerAngle(tar_list[j].vertex, start2); 
-                        float diff1 = tar_list[i].left_light.box.angle - 
-                                    tar_list[i].right_light.box.angle,
-                            diff2 = tar_list[j].left_light.box.angle - 
-                                    tar_list[j].right_light.box.angle;
+                        float diff1 = li.box.angle - ri.box.angle,
+                            diff2 = lj.box.angle - rj.box.angle;
                         diff1 *= aim_deps::DEG2RAD;
                         diff2 *= aim_deps::DEG2RAD;
+                        // 加权判断共灯条的两装甲哪一个是真实装甲板(需要考虑装甲板接近矩形的程度以及灯条角度差)
+
                         if( 0.5*(1 - cos(diff1)) + cos1 > 0.5*(1 - cos(diff2)) + cos2){
-                            tar_list[i].valid = false;
-                            amp_debug(rmlog::F_RED, "Light ", tar_list[i].left_light.index, " & ",
-                                    tar_list[i].right_light.index, " are invalid:", 
+                            tar_list[i].valid = false; 
+                            amp_debug(rmlog::F_RED, "Light ", li.index, " & ",
+                                    ri.index, " are invalid:", 
                                     0.5*(1 - cos(diff1)) + cos1, ", ", 0.5*(1 - cos(diff2)) + cos2);
                             break;
                         }
                         else{
                             tar_list[j].valid = false;
-                            amp_debug(rmlog::F_RED, "Light ", tar_list[j].left_light.index, " & ",
-                                    tar_list[j].right_light.index, " are invalid:", 
+                            amp_debug(rmlog::F_RED, "Light ", lj.index, " & ",
+                                    rj.index, " are invalid:", 
                                     0.5*(1 - cos(diff1)) + cos1, ", ", 0.5*(1 - cos(diff2)) + cos2);
                         }
                     }
@@ -154,7 +170,7 @@ void ArmorPlate::filter(std::vector<aim_deps::Armor> &tar_list, std::vector<aim_
     }
 }
 
-bool ArmorPlate::getArmorPlate(aim_deps::LightBox b1, aim_deps::LightBox b2){
+bool ArmorPlate::getArmorPlate(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2){
     //lightCompensate(b1, b2);
     points[0] = b1.vex[0];
     points[1] = b1.vex[1];
@@ -165,12 +181,12 @@ bool ArmorPlate::getArmorPlate(aim_deps::LightBox b1, aim_deps::LightBox b2){
     return diff.x/diff.y < 1.5;                 
 }
 
-bool ArmorPlate::isRatioValid(){                    //对边中点连线的长度平方比值是否合适
+bool ArmorPlate::isRatioValid(float l1, float l2) const{                    //对边中点连线的长度平方比值是否合适
     float len1 = aim_deps::getPointDist((points[0]+points[1])/2, (points[2]+points[3])/2),
-         len2 = aim_deps::getPointDist((points[0]+points[3])/2, (points[1]+points[2])/2),
-         ratio = len1/len2, 
+         len2 = (l1 + l2) / 2,
+         ratio = len1/(len2 * len2), 
          thresh = getRatio(len2);
-    if(len2 < 25.0){                                //灯条高度平方小于25时，过小的两灯条需要进行一个判断
+    if(len2 * len2 < 25.0){                                //灯条高度平方小于25时，过小的两灯条需要进行一个判断
         if (ratio < thresh && ratio > thresh / 4){  //如果过小的两个灯条过于接近（ratio<= thresh/4）,就是错的
             return true;
         }
@@ -186,7 +202,7 @@ bool ArmorPlate::isRatioValid(){                    //对边中点连线的长�
 }
 
 //从最左上角开始的点，逆时针方向标号是0,1,2,3
-bool ArmorPlate::isEdgesValid(){  //对边长度平方比值是否合适
+bool ArmorPlate::isEdgesValid() const{  //对边长度平方比值是否合适
     float edges[4];
     for(int i = 0; i<4; ++i){
         edges[i] = aim_deps::getPointDist(points[i], points[(i+1)%4]);
@@ -198,35 +214,30 @@ bool ArmorPlate::isEdgesValid(){  //对边长度平方比值是否合适
     if (judge1 && judge2){
         return true;
     }
-    ///DEBUG
-    if(!judge1) amp_debug(rmlog::F_RED, "Judge 1 failed:", edges[0]/edges[2], ", ", edges[2]/edges[0]);
-    if(!judge2) amp_debug(rmlog::F_RED, "Judge 2 failed:", edges[1]/edges[3], ", ", edges[3]/edges[1]);
+    /// DEBUG
+    //if(!judge1) amp_debug(rmlog::F_RED, "Judge 1 failed:", edges[0]/edges[2], ", ", edges[2]/edges[0]);
+    //if(!judge2) amp_debug(rmlog::F_RED, "Judge 2 failed:", edges[1]/edges[3], ", ", edges[3]/edges[1]);
     return false;
 }
 
-bool ArmorPlate::isAngleMatch(const float ang1, const float ang2){
+bool ArmorPlate::isAngleMatch(float ang1, float ang2) const{
     //输入按照装甲板上点的顺序: 从左上角开始逆时针,
     // |0        3|
     // |1        2|   
-    if (std::abs(ang1-ang2) < params.ANGLE_THRESH){
-        return true;
-    }
-    return false;
+    return (std::abs(ang1-ang2) < params.ANGLE_THRESH);
 }
 
-bool ArmorPlate::isAreaGood(){
+bool ArmorPlate::isAreaGood() const{
     std::vector<cv::Point2f> tmp = {points[0], points[1], points[2], points[3]};
-    /// float res = cv::contourArea(tmp);
     return cv::contourArea(tmp) >= aim_deps::MIN_ARMOR_AREA;
 }
 
 float ArmorPlate::getRatio(const float l){                 
     // 默认输入的len2是灯条长度平方的平均值
-    if(l > 56.25) return aim_deps::distance_params.NEAR_RATIO_MIN;            //12.5   (56.25是7.5的平方)
-    else if(l <= 14.44) return aim_deps::distance_params.NEAR_RATIO_MAX;      //17.64是3.8（像素）的平方，30.0
-    float len = sqrt(l);                    //最后函数的输入是sqrt(l),是一个关于sqrt(l)的四次函数
-    return aim_deps::coeffs[0] * powf(len, 4) + aim_deps::coeffs[1] * powf(len, 3) +
-            aim_deps::coeffs[2] * len * len + aim_deps::coeffs[3] * len + aim_deps::coeffs[4];
+    if(l > 7.5) return aim_deps::distance_params.NEAR_RATIO_MIN;            //12.5   (56.25是7.5的平方)
+    else if(l <= 4) return aim_deps::distance_params.NEAR_RATIO_MAX;      //17.64是3.8（像素）的平方，30.0
+    return aim_deps::coeffs[0] * powf(l, 3) + aim_deps::coeffs[1] * pow(l, 2) +
+            aim_deps::coeffs[2] * l + aim_deps::coeffs[3];
 }
 
 int ArmorPlate::lightCompensate(

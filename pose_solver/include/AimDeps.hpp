@@ -20,6 +20,8 @@ namespace aim_deps{
 //==========================通用的预设===========================//
 ///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
 //=================最小装甲板面积==============
+const uint8_t NO_SHOOTING = 64;
+
 const float MIN_ARMOR_AREA = 40.0;
 const cv::Point2f NULLPOINT2f = cv::Point2f(0.0, 0.0);
 const cv::Point3f NULLPOINT3f = cv::Point3f(0.0, 0.0, 0.0);
@@ -28,45 +30,49 @@ const float DEG2RAD = 0.017453;     //(constant)(pi/180)
 
 //LightMatch.hpp 的依赖参数
 const float LIGHT_PARAM1 = 10.0;
-const float LIGHT_PARAM2 = 6.0;
+const float LIGHT_PARAM2 = 7.0;
 const float LIGHT_mean = 40.0;
 const float FAILED_SCORE = INFINITY;
 
 //自适应装甲板宽高比(四次多项式，降幂排列)
-const float coeffs[5] = {
-    0.09331009,     //0.081676,
-    -1.60621302,    //-2.66139,
-    9.1013089,      //32.298636,
-    -22.80810291,   //-173.213,
-    54.00678226,    //360.15463
+const float coeffs[4] = {
+    //0.09331009,  
+    //-1.60621302, 
+    //9.1013089,   
+    //-22.80810291,
+    //360.15463
+    0.07035755,
+    -1.72565497,
+    10.9065332 ,
+    5.4503213
 };
 
 enum PLATE_TYPE{
     UNKNOWN = 0,
-    SMALL = 1,
-    LARGE = 2
+    SMALL   = 1,
+    LARGE   = 2
 };
 
 //决策所需参数
 struct PnP_depended_param
 {
-    float Distant_base=0.03;
-    float Rotation_base=30;
-    float Size_base=0.1;
-    int Distance_multi=1;
-    int Sentry_score=1;
-    int Hero_score=1;
-    int Infantry_score=1;
-    int Dad_score=0;
-    int Base_score=10;
-    int None_score=0;
+    float Distant_base  = 0.03;
+    float Rotation_base = 30;
+    float Size_base     = 0.1;
+    int Distance_multi  = 1;
+    int Sentry_score    = 1;
+    int Hero_score      = 1;
+    int Infantry_score  = 1;
+    int Dad_score       = 0;
+    int Base_score      = 10;
+    int None_score      = 0;
 };
 extern PnP_depended_param pnp_depended_param;
 
 struct Sentry_decision
 {
-    int blood_limit=50;
-    int bullet_limit=150;
+    int blood_limit     = 50;
+    int bullet_limit    = 150;
 };
 //装甲板类别
 enum Armor_type
@@ -74,7 +80,7 @@ enum Armor_type
     Sentry,                         //哨兵   
     Hero,                           //英雄             
     Infantry,                       //步兵
-    Dad,                            //奶爸
+    Dad,                            //奶3.5爸
     Base,                           //基地
     None,                           //未知
 };
@@ -83,11 +89,11 @@ enum Armor_type
 ///=========================通用函数========================///
 ///++++++++++++++++++++++++++++++++++++++++++++++++++++++++///
 /// 返回距离的平方
-inline float getPointDist(const cv::Point2f p1, const cv::Point2f p2){
+inline float getPointDist(const cv::Point2f &p1, const cv::Point2f &p2){
     return ((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
 }
 
-inline void getMidPoints(cv::RotatedRect rect, cv::Point2f &p1, cv::Point2f &p2){
+inline void getMidPoints(const cv::RotatedRect &rect, cv::Point2f &p1, cv::Point2f &p2){
     cv::Point2f tmp_p1, tmp_p2, corners[4];                                     //找出角点
     rect.points(corners);
     float d1 = getPointDist(corners[0], corners[1]);            //0/1点距离的平方
@@ -105,11 +111,15 @@ inline void getMidPoints(cv::RotatedRect rect, cv::Point2f &p1, cv::Point2f &p2)
     }
 }
 
-inline float getLineAngle(const cv::Point2f p1, const cv::Point2f p2){
-    return atan2f(p2.x - p1.x, p2.y - p1.y) * aim_deps::RAD2DEG;
+inline float getLineAngleRad(const cv::Point2f &p1, const cv::Point2f &p2){
+    return atan2f(p2.x - p1.x, p2.y - p1.y);
 }
 
-inline cv::Point2f Rotate(cv::Point2f _vec, const float _a){
+inline float getLineAngle(const cv::Point2f &p1, const cv::Point2f &p2){
+    return getLineAngleRad(p1, p2) * aim_deps::RAD2DEG;
+}
+
+inline cv::Point2f Rotate(const cv::Point2f &_vec, float _a){
 	cv::Point2f res;
 	res.x = _vec.x * cos(_a) - _vec.y * sin(_a);
 	res.y = _vec.x * sin(_a) + _vec.y * cos(_a); 
@@ -180,6 +190,12 @@ struct LightBox{
         vex[0] = center - tmp;
         //printf("Original: %f, rotation: %f\n", angle, RAD2DEG * ang);
         angle -= RAD2DEG * ang;                         // 注意我们定义的角度是逆时针正，与旋转矩阵定义恰好相反
+        while(std::abs(angle - 360) < std::abs(angle)){
+            angle -= 360;
+        }
+        while(std::abs(angle + 360) < std::abs(angle)){
+            angle += 360;
+        }
     }
 };
 
@@ -193,8 +209,12 @@ struct Light
     Light(){
         valid = true;
     }
-    Light(int _i, cv::RotatedRect _r, cv::Point2f _p = NULLPOINT2f, float len = 0.0, bool _v = true):
-        valid(_v), index(_i)
+    Light(
+        const cv::RotatedRect &_r,
+        const cv::Point2f &_p = NULLPOINT2f,
+        float len = 0.0, bool _v = true
+    ):
+        valid(_v)
     {
         getMidPoints(_r, box.vex[0], box.vex[1]);
         box.length = cv::max(_r.size.height, _r.size.width);
@@ -213,19 +233,17 @@ struct Armor
     int armor_number;                              
     cv::Point3f t_vec;
     cv::Point2f vertex[4];
-    cv::Point2f center;                             //center of the armorplate
     Light left_light;
     Light right_light;
     Armor(){ valid = true; }                                       //default
     Armor(cv::Point2f _pts[4], int _num, Light _l, Light _r, bool _big = false):
         valid(true), Isbigarmor(_big), armor_number(_num), left_light(_l), right_light(_r)
     {
-        for(int i=0; i<4;++i) vertex[i]=_pts[i];							//copy by points
-        center = (_pts[0]+_pts[1]+_pts[2]+_pts[3])/4;			//calc center(maybe useless)
+        for(int i = 0; i < 4; ++i) vertex[i]=_pts[i];							//copy by points
     }
 
     /// @brief 存在共灯条,则返回相同的灯条的下标，否则返回-1
-    inline int collide(Armor a){
+    inline int collide(const Armor &a){
         if( left_light.index == a.left_light.index ||
             left_light.index == a.right_light.index)
             return left_light.index;
@@ -254,28 +272,28 @@ struct Evaluated_armor
 ////////////////////////////////////////////////////////////////////////////////
 struct Light_Params{
     //============敌方红色=====================================//
-    const int red_thresh_low    = 120;          //二值图threshold下阈值
+    const int red_thresh_low    = 92;           //二值图threshold下阈值
     const int red_thresh_high   = 250;          //二值图threshold上阈值 
     const int red_exp_short     = 70;           //曝光时间(短曝光)
     const int red_exp_long      = 7000;         //曝光时间(长曝光)
     const int red_r_balance     = 0;            //白平衡（红色通道）
     const int red_b_balance     = 3600;         //白平衡（蓝色通道）
     //============敌方蓝色=====================================//
-    const int blue_thresh_low   = 120;          //二值图threshold下阈值
+    const int blue_thresh_low   = 92;           //二值图threshold下阈值
     const int blue_thresh_high  = 250;          //二值图threshold上阈值
     const int blue_exp_short    = 70;           //曝光时间(短曝光)
-    const int blue_exp_long     = 7000;         //曝光时间(长曝光)
+    const int blue_exp_long     = 7000;         //曝光时间(长曝光) // 暂时修改
     const int blue_r_balance     = 3600;        //白平衡（红色通道）
     const int blue_b_balance     = 0;           //白平衡（蓝色通道）
 };
 extern Light_Params light_params;
 
 struct Distance_Params{
-    const float OPS_RATIO_HEIGHT    = 16.0;      //对边宽比例
-    const float OPS_RATIO_WIDTH     = 1.44;     //对边长比例
-    const float NEAR_RATIO_MIN      = 12.5;    //邻边装甲板比例
-    const float NEAR_RATIO_MAX      = 30.0;
-    const float ANGLE_THRESH        = 13.5;     //角度差阈值
+    const float OPS_RATIO_HEIGHT    = 16.0;         //对边宽比例        (16.0)
+    const float OPS_RATIO_WIDTH     = 1.44;         //对边长比例        (1.44)
+    const float NEAR_RATIO_MIN      = 20.0;         //邻边装甲板比例     (12.5)(开放大装甲板)
+    const float NEAR_RATIO_MAX      = 26.0;         //中点长宽比        (30.0)            
+    const float ANGLE_THRESH        = 14.0;         //角度差阈值        (13.5)
 };
 extern Distance_Params distance_params;
 

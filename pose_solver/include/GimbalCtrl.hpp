@@ -7,7 +7,7 @@
 #ifndef _GIMBAL_CTRL_HPP
 #define _GIMBAL_CTRL_HPP
 //#define DEBUG
-//#define SINGLE_DIRECTION
+//#define SINGLE_DIRECTION                  // 使用单方向空气阻力模型则删除此注释
 
 #include <iostream>
 #include <cmath>
@@ -18,8 +18,8 @@ namespace ballistic{                        //命名空间：弹道模型
 
 const float GRAVITY = 9.7944;
 const float RAD2DEG = 57.29578;             //180/PI
-const float DEFAULT_K_42 = 0.017772;        //42mm弹丸的初始k值
-const float DEFAULT_K_17 = 0.0;             //17MM弹丸的初始k值
+const float DEFAULT_K_42 = 0.035544;        //42mm弹丸的初始k值 ///0.017772f;        
+const float DEFAULT_K_17 = 0.08334;        //17MM弹丸的初始k值
 
 class GimbalCtrl{
 private:
@@ -90,9 +90,9 @@ private:
      * init k的确定：k = k0/m
      * k0 = C*p*S/2, C为摩擦系数，取0.47, p为空气密度，取1.25kg/m^3, S为接触面积， 取球表面积的一半
      * m 的数值暂不清楚，取高尔夫球质量：0.0458kg,计算的结果：init_k取值为0.017772
+     * 小弹丸 3.2 g, k0 = 0.08334
     */
 };
-
-} //namespace ballistic
+} // ballistic
 
 #endif //_GIMBAL_CTRL_HPP

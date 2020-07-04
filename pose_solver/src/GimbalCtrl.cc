@@ -5,7 +5,7 @@
  *    2.摩擦系数未确定
  */
 
-#include "GimbalCtrl.hpp"
+#include "../include/GimbalCtrl.hpp"
 
 namespace ballistic {
 

@@ -15,7 +15,7 @@
 #include <opencv2/imgproc.hpp>
 #include "LOG.hpp"
 #include "AimDeps.hpp"
-// #define ARMORPLATE_DEBUG 
+//#define ARMORPLATE_DEBUG                      //无需灯条配对信息输出时注释此行
 #ifdef ARMORPLATE_DEBUG
     #define amp_debug rmlog::LOG::printc        //彩色输出
 #else
@@ -35,7 +35,7 @@ public:
      * @param tar_list 入参/输出，由更高层的AimDistance类传入
      */
     void matchAll(
-        std::vector<cv::Point> matches,
+        const std::vector<cv::Point>& matches,
         std::vector<aim_deps::Light> &lights, 
         std::vector<aim_deps::Armor> &tar_list);
     /**
@@ -45,22 +45,23 @@ public:
      * @param optimal 最优装甲板的位置(使用绿色绘制)
      */
     void drawArmorPlates(cv::Mat &src, 
-        const std::vector<aim_deps::Armor> tar_list, const int optimal);                                            //消息发布
+        const std::vector<aim_deps::Armor>& tar_list, const int optimal) const;                                            //消息发布
 private:
-    bool isRatioValid();                                                //中点连线（平方）的比是否合适
-    bool isEdgesValid();                                                //两对边(平方)的比是否合适
+    bool isRatioValid(float l1, float l2) const;                //中点连线（平方）的比是否合适
+    bool isEdgesValid() const;                                                //两对边(平方)的比是否合适
 
     /**
      * @brief 对两个灯条的RotatedRect进行匹配，直接在tar_list中emplace_back符合条件的装甲板
      * @param l1 灯条1
      * @param l2 灯条2
     */
-    bool isMatch(aim_deps::Light l1, aim_deps::Light l2);
-    bool getArmorPlate(aim_deps::LightBox b1, aim_deps::LightBox b2);         //灯条匹配装甲板
+    bool isMatch(const aim_deps::Light &l1, const aim_deps::Light &l2);
+    bool getArmorPlate(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2);         //灯条匹配装甲板
     void filter(std::vector<aim_deps::Armor> &tar_list,
-            std::vector<aim_deps::Light> &lights);                //进一步过滤装甲板容器
-    bool isAreaGood();                                                  //面积是否正确：面积过小的装甲板将会被过滤
-    inline bool isAngleMatch(const float ang1, const float ang2);          
+            std::vector<aim_deps::Light> &lights);                      //进一步过滤装甲板容器
+    bool isAreaGood() const;                                            //面积是否正确：面积过小的装甲板将会被过滤
+
+    inline bool isAngleMatch(float ang1, float ang2) const;          
 
     /** @brief 计算共灯条时，装甲板长边与共灯条边形成的夹角，夹角接近90度为真，同时考虑灯条夹角
      * @param pts 装甲板的四个点列表
@@ -78,9 +79,6 @@ private:
     bool _is_enemy_blue;                                                //敌人颜色
     cv::Point2f points[4];                                              //装甲板点列的临时容器
     aim_deps::Distance_Params params;                                   //装甲板匹配参数
-
-    /// TODO: 需删除-----补偿次数
-    int compensate_cnt;
 };
 #endif     //_ARMOR_PLATE_HPP
 
