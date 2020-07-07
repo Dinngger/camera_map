@@ -7,15 +7,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "CarModule.hpp"
 
-// #define PROCESS_DEBUG
-// #define BA_DEBUG
-
-#ifdef PROCESS_DEBUG
-#include "Viewer.h"
-#include <thread>
-#include <mutex>
-#endif
-
 int Car::update_state()
 {
     last_t = t;
@@ -92,10 +83,6 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                             double delta_time)
 {
     predict(delta_time, r, t);
-#ifdef PROCESS_DEBUG
-    Viewer *viewer = new Viewer("ba", K(0, 0), K(1, 1));
-    std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
-#endif
 
     enum StateType {
         SCT = 0,    // State of changing Car T
@@ -104,16 +91,6 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         SATR,   // State of changing Armor T & R
         END
     };
-
-#ifdef  BA_DEBUG
-    cv::Mat img(1000, 1000, CV_8UC3, cv::Scalar(0, 0, 0));
-    auto get_y = [](int x) -> int {
-        return x < 0 ? 0 : (x > 999 ? 999 : x);
-    };
-    auto get_x = [](int x) -> int {
-        return x < 0 ? 0 : (x > 999 ? x % 1000 : x);
-    };
-#endif
 
     double error_sum = 1e8;
     double obv_error = 1e8;
@@ -276,38 +253,6 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         cnt++;
         state_cnt++;
 
-#ifdef PROCESS_DEBUG
-        std::vector<cv::Mat> Twcs;
-        std::vector<cv::Point3d> lbs;
-        for (int j=0; j<4; j++) {
-            Eigen::Matrix3d armor_R = armor[j].r.matrix();
-            Eigen::Vector3d armor_t = armor[j].t;
-            for (int k=0; k<4; k++) {
-                Eigen::Vector3d tmp_p = r.matrix() * (armor_R * armor_module[k] + armor_t) + t;
-                lbs.emplace_back(tmp_p(0), tmp_p(1), tmp_p(2));
-            }
-        }
-        viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs);
-#endif
-
-#ifdef BA_DEBUG
-        cv::Vec3b g_color, e_color;
-        if (state == SCT) {
-            g_color = cv::Vec3b(255, 180, 180);
-            e_color = cv::Vec3b(255, 0, 0);
-        } else if (state == SCTR) {
-            g_color = cv::Vec3b(180, 255, 180);
-            e_color = cv::Vec3b(0, 255, 0);
-        } else if (state == SAT) {
-            g_color = cv::Vec3b(180, 180, 255);
-            e_color = cv::Vec3b(0, 0, 255);
-        } else {
-            g_color = cv::Vec3b(180, 255, 255);
-            e_color = cv::Vec3b(0, 255, 255);
-        }
-        img.at<cv::Vec3b>(get_y(999 - (int)(gradient_sum.norm()*1e6)), get_x(cnt)) = g_color;
-        img.at<cv::Vec3b>(get_y(999 - (int)(state < SAT ? error_sum : obv_error)), get_x(cnt)) = e_color;
-#endif
         state = next_state;
         if (cnt >= 1e4) {
             std::cout << "cnt >= 1e4 !!! state: " << state << "\n";
@@ -342,12 +287,6 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
 
     std::cout << " error: " << obv_error << "\n";
     update_state(delta_time);
-
-#ifdef PROCESS_DEBUG
-    viewer->RequestFinish();
-    if (mpViewer->joinable())
-        mpViewer->join();
-#endif
 
     return 0;
 }
