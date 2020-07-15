@@ -5,16 +5,9 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <ceres/ceres.h>
+#include <ceres/rotation.h>
 #include "CarModule.hpp"
-
-// #define PROCESS_DEBUG
-// #define BA_DEBUG
-
-#ifdef PROCESS_DEBUG
-#include "Viewer.h"
-#include <thread>
-#include <mutex>
-#endif
 
 int Car::update_state()
 {
@@ -87,267 +80,142 @@ int Car::regularzation()
     return 0;
 }
 
+struct Edge2EdgeError {
+    const Eigen::Matrix3d K;
+    const Eigen::Vector3d pt3d;
+    const Eigen::Vector2d pt2d;
+    Edge2EdgeError(
+        const Eigen::Matrix3d K,
+        const Eigen::Vector3d pt3d,
+        const Eigen::Vector2d pt2d) :
+        K(K), pt3d(pt3d), pt2d(pt2d) {}
+    template <typename T>
+    bool operator()(const T* const _q1, const T* const _t1, const T* const _q2, const T* const _t2, T* residuals) const {
+        Eigen::Matrix<T, 3, 1> p{T(pt3d[0]), T(pt3d[1]), T(pt3d[2])};
+        Eigen::Matrix<T, 3, 1> t1{_t1[0], _t1[1], _t1[2]};
+        Eigen::Matrix<T, 3, 1> t2{_t2[0], _t2[1], _t2[2]};
+        Eigen::Quaternion<T> q1{_q1[3], _q1[0], _q1[1], _q1[2]};
+        Eigen::Quaternion<T> q2{_q2[3], _q2[0], _q2[1], _q2[2]};
+        p = q1 * (q2 * p + t2) + t1;
+        p = K * p;
+        p /= p(2);
+        residuals[0] = p(0) - pt2d(0);
+        residuals[1] = p(1) - pt2d(1);
+        return true;
+    }
+};
+
+struct HistoryError {
+    const Eigen::Quaterniond q;
+    const Eigen::Vector3d t;
+    const double alpha;
+    HistoryError(
+        const Eigen::Quaterniond q,
+        const Eigen::Vector3d t,
+        const double alpha) :
+        q(q), t(t), alpha(alpha) {}
+    template <typename T>
+    bool operator()(const T* const _q, const T* const _t, T* residuals) const {
+        for (int i=0; i<4; i++)
+            residuals[i] = (_q[(i+1)%4] - (T)q.coeffs()(i)) * alpha;
+        for (int i=0; i<3; i++)
+            residuals[4+i] = (_t[i] - (T)t(i)) * alpha;
+        return true;
+    }
+};
+
 int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                             const Eigen::Matrix3d &K,
                             double delta_time)
 {
     predict(delta_time, r, t);
-#ifdef PROCESS_DEBUG
-    Viewer *viewer = new Viewer("ba", K(0, 0), K(1, 1));
-    std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
-#endif
-
-    enum StateType {
-        SCT = 0,    // State of changing Car T
-        SCTR,   // State of changing Car T & R
-        SAT,    // State of changing Armor T
-        SATR,   // State of changing Armor T & R
-        END
-    };
-
-#ifdef  BA_DEBUG
-    cv::Mat img(1000, 1000, CV_8UC3, cv::Scalar(0, 0, 0));
-    auto get_y = [](int x) -> int {
-        return x < 0 ? 0 : (x > 999 ? 999 : x);
-    };
-    auto get_x = [](int x) -> int {
-        return x < 0 ? 0 : (x > 999 ? x % 1000 : x);
-    };
-#endif
-
-    double error_sum = 1e8;
-    double obv_error = 1e8;
-    double old_error;
-    double old_obv_error;
-    Eigen::Matrix<double, 6, 1> moment[4];
-    Eigen::Matrix<double, 6, 1> moment_sum;
-    double moment2[4];
-    double moment2_sum = 0;
-    StateType state = SCT;
-    bool reset = true;
-    int cnt = 0;
-    int state_cnt = 0;
-
-    while (state != END) {
-        old_error = error_sum;
-        old_obv_error = obv_error;
-        bool isObserved[8] = {false,};
-        Eigen::Matrix<double, 6, 1> gradient[8];
-        double error[8] = {0,};
-        int sum = 0;
-
-        // computeGradient
-        double fx = K(0, 0);
-        double fy = K(1, 1);
-        for (const LightBarP &lbp : light_bars) {
-            Eigen::Matrix3d armor_R = armor[lbp.armor_id].r.matrix();
-            const Eigen::Vector3d& armor_t = armor[lbp.armor_id].t;
-            isObserved[lbp.armor_id*2+lbp.lb_id] = true;
-            sum++;
-            gradient[lbp.armor_id*2+lbp.lb_id] = Eigen::Matrix<double, 6, 1>::Zero();
-            for (size_t i=0; i<2; i++) {
-                Eigen::Vector3d _p = r.matrix() * (armor_R * armor_module[lbp.lb_id*2+i] + armor_t) + t;
-                Eigen::Matrix<double, 1, 3> gradient_l[2];
-                gradient_l[0] << fx/_p(2), 0, -fx*_p(0)/(_p(2)*_p(2));
-                gradient_l[1] << 0, fy/_p(2), -fy*_p(1)/(_p(2)*_p(2));
-                Eigen::Matrix<double, 3, 6> gradient_r;
-                gradient_r.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
-                gradient_r.block<3, 3>(0, 3) = -up(_p);
-                _p = K * _p / _p(2);
-                Eigen::Vector2d error2d = Eigen::Vector2d(_p(0), _p(1)) - lbp[i];
-                error[lbp.armor_id*2+lbp.lb_id] += pow(error2d.norm(), 2);
-                for (int j=0; j<2; j++) {
-                    Eigen::Matrix<double, 6, 1> tmp = (gradient_l[j]*gradient_r).transpose();
-                    tmp = tmp * 1e-8 * error2d(j);
-                    gradient[lbp.armor_id*2+lbp.lb_id] += tmp;
-                }
-            }
+    ceres::Problem problem;
+    ceres::LossFunction* loss_function (new ceres::SoftLOneLoss(1));
+    ceres::LocalParameterization* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
+    problem.AddParameterBlock(r.coeffs().data(), 4, quaternion_local_parameterization);
+    bool isValid[8] = {false, };
+    bool isValidAll[8] = {false, };
+    for (const LightBarP &lbp : light_bars) {
+        for (size_t i=0; i<2; i++) {
+            Eigen::Vector3d p = armor_module[lbp.lb_id*2+i];
+            ceres::CostFunction* cost = new ceres::AutoDiffCostFunction<Edge2EdgeError, 2, 4, 3, 4, 3>(
+                new Edge2EdgeError(K, p, lbp[i])
+            );
+            problem.AddResidualBlock(cost, loss_function, r.coeffs().data(), t.data(),
+                armor[lbp.armor_id].r.coeffs().data(), armor[lbp.armor_id].t.data());
         }
-
-        error_sum = 0;
-        obv_error = 0;
-        Eigen::Matrix<double, 6, 1> gradient_sum = Eigen::Matrix<double, 6, 1>::Zero();
-        double rate_sum = 0;
-        int observed_sum = 0;
-        for (int i=0; i<4; i++) {
-            for (int j=0; j<2; j++) {
-                if (isObserved[2*i+j]) {
-                    rate_sum += confidence[i];
-                    observed_sum += 1;
-                    obv_error += error[2*i+j];
-                    error_sum += error[2*i+j] * confidence[i];
-                    gradient_sum += gradient[2*i+j] * confidence[i];
-                }
-            }
-        }
-        obv_error *= 2.0 / observed_sum;
-        error_sum *= 2.0 / rate_sum;
-        gradient_sum *= 1.0 / rate_sum;
-
-#define BETA1 0.9
-#define BETA2 0.99
-        if (reset) {
-            moment_sum = gradient_sum;
-            moment2_sum = pow(gradient_sum.norm(), 2);
-        } else {
-            moment_sum = BETA1 * moment_sum + (1 - BETA1) * gradient_sum;
-            moment2_sum = BETA2 * moment2_sum + (1 - BETA2) * pow(gradient_sum.norm(), 2);
-        }
-        gradient_sum = moment_sum / (sqrt(moment2_sum) + 1e-8) * 5e-4;
-        if (state == SCT || state == SCTR) {
-            t -= jacobi(gradient_sum.block<3, 1>(3, 0)) * gradient_sum.block<3, 1>(0, 0);
-        }
-        if (state == SCTR) {
-            r = Eigen::Quaterniond(exp(gradient_sum.block<3, 1>(3, 0) * -0.5) * r.matrix());
-            r.normalize();
-        }
-        Eigen::Matrix3d car_R = r.matrix();
-        Eigen::Matrix3d car_R_T = car_R.transpose();
-
-        Eigen::Quaterniond transform90_r(Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d(0, -1, 0)));
-        Eigen::Quaterniond standard_r = Eigen::Quaterniond::Identity();
-        for (int i=0; i<4; i++) {
-            Eigen::Matrix<double, 6, 1> gradient_armor = Eigen::Matrix<double, 6, 1>::Zero();
-            int sum_armor = 0;
-            for (int j=0; j<2; j++) {
-                if (isObserved[i*2+j]) {
-                    sum_armor++;
-                    gradient_armor += gradient[i*2+j];
-                }
-            }
-            /* Add gradient to standard car module
-                    t       r
-                0: 0,0,z
-                1: x,0,0
-                2: 0,0,z
-                3: x,0,0
-            */
-            if (sum_armor != 0)
-                gradient_armor *= 2.0 / sum_armor;
-
-            // 修正t
-            Eigen::Vector3d armor_t_error = armor[i].t * 0.05;
-            if (i % 2 == 0)
-                armor_t_error(2) = 0;
-            else
-                armor_t_error(0) = 0;
-            armor[i].t -= armor_t_error;
-
-
-            if (reset) {
-                moment[i] = gradient_armor;
-                moment2[i] = pow(gradient_armor.norm(), 2);
-            } else {
-                moment[i] = BETA1 * moment[i] + (1 - BETA1) * gradient_armor;
-                moment2[i] = BETA2 * moment2[i] + (1 - BETA2) * pow(gradient_armor.norm(), 2);
-            }
-            gradient_armor = moment[i] / (sqrt(moment2[i]) + 1e-8) * 1e-3;
-            if (state == SAT || state == SATR)
-                armor[i].t -= car_R_T * jacobi(gradient_armor.block<3, 1>(3, 0)) * gradient_armor.block<3, 1>(0, 0);
-            if (state == SATR) {
-                // 修正r
-                // armor[i].r = armor[i].r.slerp(0.0001, standard_r).normalized();
-                // standard_r = transform90_r * standard_r;
-                // armor[i].r.normalize();
-
-                armor[i].r = Eigen::Quaterniond(car_R_T * exp(gradient_armor.block<3, 1>(3, 0) * -0.25) *
-                                                car_R * armor[i].r.matrix());
-            }
-        }
-
-        reset = false;
-        double delta_error = state < SAT ? (old_error - error_sum) : (old_obv_error - obv_error);
-        StateType next_state = state;
-        int mincnt = 50;
-        if (state == SCTR)
-            mincnt = 200;
-        if (state == SATR)
-            mincnt = 200;
-        double min_delte_error = 0.01;
-        // if (state > SCTR)
-        //     min_delte_error = confidence_sum / 5;
-        if (abs(delta_error) < min_delte_error && state_cnt > mincnt) {
-            next_state = (StateType)((int)next_state + 1);
-            state_cnt = 0;
-        }
-
-        if (cnt == 0)
-            std::cout << "sum: " << sum << " error: " << obv_error << "\n";
-        cnt++;
-        state_cnt++;
-
-#ifdef PROCESS_DEBUG
-        std::vector<cv::Mat> Twcs;
-        std::vector<cv::Point3d> lbs;
-        for (int j=0; j<4; j++) {
-            Eigen::Matrix3d armor_R = armor[j].r.matrix();
-            Eigen::Vector3d armor_t = armor[j].t;
-            for (int k=0; k<4; k++) {
-                Eigen::Vector3d tmp_p = r.matrix() * (armor_R * armor_module[k] + armor_t) + t;
-                lbs.emplace_back(tmp_p(0), tmp_p(1), tmp_p(2));
-            }
-        }
-        viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs);
-#endif
-
-#ifdef BA_DEBUG
-        cv::Vec3b g_color, e_color;
-        if (state == SCT) {
-            g_color = cv::Vec3b(255, 180, 180);
-            e_color = cv::Vec3b(255, 0, 0);
-        } else if (state == SCTR) {
-            g_color = cv::Vec3b(180, 255, 180);
-            e_color = cv::Vec3b(0, 255, 0);
-        } else if (state == SAT) {
-            g_color = cv::Vec3b(180, 180, 255);
-            e_color = cv::Vec3b(0, 0, 255);
-        } else {
-            g_color = cv::Vec3b(180, 255, 255);
-            e_color = cv::Vec3b(0, 255, 255);
-        }
-        img.at<cv::Vec3b>(get_y(999 - (int)(gradient_sum.norm()*1e6)), get_x(cnt)) = g_color;
-        img.at<cv::Vec3b>(get_y(999 - (int)(state < SAT ? error_sum : obv_error)), get_x(cnt)) = e_color;
-#endif
-        state = next_state;
-        if (cnt >= 1e4) {
-            std::cout << "cnt >= 1e4 !!! state: " << state << "\n";
-            state = END;
-        }
-        if (state == END) {
-            double new_confidence_sum = 0;
-            for (int i=0; i<4; i++) {
-                confidence[i] = confidence[i] * 0.6 + 0.4 * pow((isObserved[2*i] + isObserved[2*i+1]) / 2, 2);
-                new_confidence_sum += confidence[i];
-            }
-            new_confidence_sum /= 4;
-            if (new_confidence_sum > confidence_sum)
-                confidence_sum = confidence_sum * 0.8 + new_confidence_sum * 0.2;
-            else
-                confidence_sum = confidence_sum * 0.95 + new_confidence_sum * 0.05;
-            std::cout << "confidence sum: " << confidence_sum << "\n";
-        }
-        regularzation();
-#ifdef BA_DEBUG
-#ifdef PROCESS_DEBUG
-        cv::imshow("error", img);
-        cv::waitKey(0);
+        isValid[lbp.armor_id * 2 + lbp.lb_id] = true;
+        isValidAll[lbp.armor_id * 2 + lbp.lb_id] = true;
     }
-#else
+    for (int i=0; i<4; i++) {
+        if (kfs[i].valid) {
+            problem.AddParameterBlock(kfs[i].kf_r.coeffs().data(), 4, quaternion_local_parameterization);
+            for (const LightBarP &lbp : kfs[i].lbps) {
+                for (size_t j=0; j<2; j++) {
+                    Eigen::Vector3d p = armor_module[lbp.lb_id*2+j];
+                    ceres::CostFunction* cost = new ceres::AutoDiffCostFunction<Edge2EdgeError, 2, 4, 3, 4, 3>(
+                        new Edge2EdgeError(K, p, lbp[j])
+                    );
+                    problem.AddResidualBlock(cost, loss_function, kfs[i].kf_r.coeffs().data(), kfs[i].kf_t.data(),
+                        armor[lbp.armor_id].r.coeffs().data(), armor[lbp.armor_id].t.data());
+                }
+                isValidAll[lbp.armor_id * 2 + lbp.lb_id] = true;
+            }
+        }
     }
-    cv::imshow("error", img);
-#endif
-#else
+    Eigen::Vector3d t0 = Eigen::Vector3d(0, 0, -0.25);
+    Eigen::Quaterniond r0 = Eigen::Quaterniond::Identity();
+    Eigen::Quaterniond r_90(Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d(0, -1, 0)));
+    Eigen::Matrix3d R_90 = r_90.matrix();
+    for (int i=0; i<4; i++) {
+        if (i > 0) {
+            t0 = R_90 * t0;
+            r0 = r_90 * r0;
+        }
+        if (isValidAll[i*2] || isValidAll[i*2+1]) {
+            ceres::CostFunction* cost = new ceres::AutoDiffCostFunction<HistoryError, 7, 4, 3>(
+                new HistoryError(r0, t0, 200)
+            );
+            problem.AddResidualBlock(cost, loss_function, armor[i].r.coeffs().data(), armor[i].t.data());
+            ceres::CostFunction* cost2 = new ceres::AutoDiffCostFunction<HistoryError, 7, 4, 3>(
+                new HistoryError(armor[i].r, armor[i].t, 200)
+            );
+            problem.AddResidualBlock(cost2, loss_function, armor[i].r.coeffs().data(), armor[i].t.data());
+            problem.SetParameterization(armor[i].r.coeffs().data(), quaternion_local_parameterization);
+        }
     }
-#endif
+    ceres::Solver::Options options;
+    options.linear_solver_type = ceres::DENSE_QR;
+    options.function_tolerance = 1e-3;
+    options.max_num_iterations = 50;
+    options.num_threads = 1;
+    ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+    std::cout << summary.BriefReport() << std::endl;
 
-    std::cout << " error: " << obv_error << "\n";
+    regularzation();
     update_state(delta_time);
-
-#ifdef PROCESS_DEBUG
-    viewer->RequestFinish();
-    if (mpViewer->joinable())
-        mpViewer->join();
-#endif
-
+    Eigen::Vector3d angle = r.toRotationMatrix().eulerAngles(2, 1, 0);
+    int kfs_cnt = 0;
+    for (int i=0; i<4; i++) {
+        if (isValid[i*2] && isValid[i*2+1]) {
+            double d1 = angle(0) - i * 90;
+            double d2 = 180 - abs(d1);
+            if (d1 > 0)
+                d2 *= -1.0;
+            d1 = d1 < d2 ? d1 : d2;
+            if ((kfs[i].valid && kfs[i].score > d1) || !kfs[i].valid) {
+                std::cout << "update kfs: " << i << "angle: " << angle(0) << "\n";
+                kfs[i].valid = true;
+                kfs[i].score = d1;
+                kfs[i].kf_r = r;
+                kfs[i].kf_t = t;
+                kfs[i].lbps.assign(light_bars.begin(), light_bars.end());
+            }
+        }
+        if (kfs[i].valid)
+            kfs_cnt++;
+    }
+    std::cout << "kfs cnt: " << kfs_cnt << "\n";
     return 0;
 }
