@@ -22,14 +22,16 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars,
     for (const LightBarP& point2d : light_bars) {
         light_bars_car[point2d.car_id].push_back(point2d);
     }
-    for (int i=cars.size()-1; i>=0; i--) {
+    for (size_t i=0; i < cars.size(); i++) {
         int size = light_bars_car[i].size();
         // cars[i].car_info = (cars[i].car_info + size) / 2;
-        if (size > 0)
+        if (!cars[i].car_valid)
+            continue;
+        if (size > 0) {
             cars[i].bundleAdjustment(light_bars_car[i], K, delta_time);
-        else {
+        } else {
             std::cout << "erase car " << i << "\n";
-            cars.erase(cars.begin() + i);
+            cars[i].car_valid = false;
         }
     }
     module_time = time;
@@ -62,6 +64,8 @@ int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d,
         LBPset.insert(lbp);
     int num = 0;
     for (size_t c=0; c < cars.size(); c++) {
+        if (!cars[c].car_valid)
+            continue;
         Eigen::Quaterniond car_r;
         Eigen::Vector3d car_t;
         cars[c].predict(time - module_time, car_r, car_t);
@@ -125,6 +129,8 @@ int CarModule::add_car(const Armor3d& _armor)
 
 void CarModule::get_lbs(std::vector<cv::Point3d> &lbs) const {
     for (size_t i=0; i<cars.size(); i++) {
+        if (!cars[i].car_valid)
+            continue;
         Eigen::Matrix3d car_R = cars[i].r.matrix();
         Eigen::Vector3d car_t = cars[i].t;
         for (int j=0; j<4; j++) {

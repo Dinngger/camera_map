@@ -135,6 +135,7 @@ private:
     }
 
 public:
+    bool car_valid=true;
     double car_info=1;  // Average number of light bars recently seen.
     Car() {
         ddt = Eigen::Vector3d::Zero();
