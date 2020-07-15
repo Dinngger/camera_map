@@ -108,25 +108,21 @@ struct Edge2EdgeError {
 struct HistoryError {
     const Eigen::Quaterniond q;
     const Eigen::Vector3d t;
+    const double alpha;
     HistoryError(
         const Eigen::Quaterniond q,
-        const Eigen::Vector3d t) :
-        q(q), t(t) {}
+        const Eigen::Vector3d t,
+        const double alpha) :
+        q(q), t(t), alpha(alpha) {}
     template <typename T>
     bool operator()(const T* const _q, const T* const _t, T* residuals) const {
         for (int i=0; i<4; i++)
-            residuals[i] = (_q[(i+1)%4] - (T)q.coeffs()(i)) * 300.0;
+            residuals[i] = (_q[(i+1)%4] - (T)q.coeffs()(i)) * alpha;
         for (int i=0; i<3; i++)
-            residuals[4+i] = (_t[i] - (T)t(i)) * 200.0;
+            residuals[4+i] = (_t[i] - (T)t(i)) * alpha;
         return true;
     }
 };
-
-template <typename T>
-void printVector(const T& a, int n) {
-    for (int i=0; i<n; i++)
-        std::cout << a(i) << ", ";
-}
 
 int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                             const Eigen::Matrix3d &K,
@@ -138,6 +134,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
     ceres::LocalParameterization* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
     problem.AddParameterBlock(r.coeffs().data(), 4, quaternion_local_parameterization);
     bool isValid[8] = {false, };
+    bool isValidAll[8] = {false, };
     for (const LightBarP &lbp : light_bars) {
         for (size_t i=0; i<2; i++) {
             Eigen::Vector3d p = armor_module[lbp.lb_id*2+i];
@@ -148,19 +145,21 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                 armor[lbp.armor_id].r.coeffs().data(), armor[lbp.armor_id].t.data());
         }
         isValid[lbp.armor_id * 2 + lbp.lb_id] = true;
+        isValidAll[lbp.armor_id * 2 + lbp.lb_id] = true;
     }
     for (int i=0; i<4; i++) {
         if (kfs[i].valid) {
             problem.AddParameterBlock(kfs[i].kf_r.coeffs().data(), 4, quaternion_local_parameterization);
             for (const LightBarP &lbp : kfs[i].lbps) {
-                for (size_t i=0; i<2; i++) {
-                    Eigen::Vector3d p = armor_module[lbp.lb_id*2+i];
+                for (size_t j=0; j<2; j++) {
+                    Eigen::Vector3d p = armor_module[lbp.lb_id*2+j];
                     ceres::CostFunction* cost = new ceres::AutoDiffCostFunction<Edge2EdgeError, 2, 4, 3, 4, 3>(
-                        new Edge2EdgeError(K, p, lbp[i])
+                        new Edge2EdgeError(K, p, lbp[j])
                     );
                     problem.AddResidualBlock(cost, loss_function, kfs[i].kf_r.coeffs().data(), kfs[i].kf_t.data(),
                         armor[lbp.armor_id].r.coeffs().data(), armor[lbp.armor_id].t.data());
                 }
+                isValidAll[lbp.armor_id * 2 + lbp.lb_id] = true;
             }
         }
     }
@@ -173,23 +172,22 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             t0 = R_90 * t0;
             r0 = r_90 * r0;
         }
-        std::cout << "armor_r: ";
-        printVector(armor[i].r.coeffs(), 4);
-        std::cout << "t: ";
-        printVector(armor[i].t, 3);
-        std::cout << "\n";
-        if (isValid[i*2] || isValid[i*2+1]) {
+        if (isValidAll[i*2] || isValidAll[i*2+1]) {
             ceres::CostFunction* cost = new ceres::AutoDiffCostFunction<HistoryError, 7, 4, 3>(
-                new HistoryError(r0, t0)
+                new HistoryError(r0, t0, 200)
             );
             problem.AddResidualBlock(cost, loss_function, armor[i].r.coeffs().data(), armor[i].t.data());
+            ceres::CostFunction* cost2 = new ceres::AutoDiffCostFunction<HistoryError, 7, 4, 3>(
+                new HistoryError(armor[i].r, armor[i].t, 200)
+            );
+            problem.AddResidualBlock(cost2, loss_function, armor[i].r.coeffs().data(), armor[i].t.data());
             problem.SetParameterization(armor[i].r.coeffs().data(), quaternion_local_parameterization);
         }
     }
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::DENSE_QR;
-    options.function_tolerance = 1e-2;
-    options.max_num_iterations = 10;
+    options.function_tolerance = 1e-3;
+    options.max_num_iterations = 50;
     options.num_threads = 1;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
@@ -206,8 +204,8 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             if (d1 > 0)
                 d2 *= -1.0;
             d1 = d1 < d2 ? d1 : d2;
-            if ((kfs[i].valid && kfs[i].score >= d1) || !kfs[i].valid) {
-                std::cout << "update kfs: " << i << "\n";
+            if ((kfs[i].valid && kfs[i].score > d1) || !kfs[i].valid) {
+                std::cout << "update kfs: " << i << "angle: " << angle(0) << "\n";
                 kfs[i].valid = true;
                 kfs[i].score = d1;
                 kfs[i].kf_r = r;
