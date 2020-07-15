@@ -82,8 +82,13 @@ struct LightBarP
 
 class KeyFrame
 {
-private:
-    Eigen::Quaterniond pose;
+public:
+    bool valid;
+    double score;
+    Eigen::Quaterniond kf_r;
+    Eigen::Vector3d kf_t;
+    std::vector<LightBarP> lbps;
+    KeyFrame() : valid(false), score(100) {}
 };
 
 // lb[0] was the first light bar to be seen.
@@ -104,6 +109,8 @@ private:
     Eigen::Vector3d dt;
     Eigen::Vector3d last_t;
     Eigen::Vector3d t;
+
+    KeyFrame kfs[4];
 
     static Eigen::Matrix3d up(const Eigen::Vector3d& a) {
         Eigen::Matrix3d res;

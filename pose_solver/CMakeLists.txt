@@ -39,6 +39,10 @@ find_package(Pangolin REQUIRED)
 if(NOT Pangolin_FOUND)
    message(FATAL_ERROR "Pangolin not found.")
 endif()
+find_package(Ceres REQUIRED)
+if(NOT Ceres_FOUND)
+   message(FATAL_ERROR "Ceres not found.")
+endif()
 # message(STATUS ${EIGEN3_INCLUDE_DIRS})
 
 #LIST( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules )
@@ -51,6 +55,7 @@ include_directories(
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
+${CERES_INCLUDE_DIRS}
 #${G2O_INCLUDE_DIR}
 #${CSPARSE_INCLUDE_DIR}
 #${CHOLMOD_INCLUDE_DIR}
@@ -76,6 +81,7 @@ ${PROJ_SRC}
 target_link_libraries(viewer
 ${Pangolin_LIBRARIES}
 ${OpenCV_LIBS}
+${CERES_LIBRARIES}
 #${G2O_LIBS}
 #${CHOLMOD_LIBRARIES}
 
