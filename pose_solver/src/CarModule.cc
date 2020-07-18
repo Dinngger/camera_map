@@ -111,7 +111,7 @@ int CarModule::add_car(const Armor3d& _armor)
     c.confidence[0] = 1;
     c.t = _armor.t + Eigen::Vector3d(0, 0, 0.25);
     c.armor[0].t = Eigen::Vector3d(0, 0, -0.25);
-    c.armor[0].r = _armor.r; // Eigen::Quaterniond::Identity();
+    c.armor[0].r = Eigen::Quaterniond(Eigen::AngleAxisd(M_PI / 12, Eigen::Vector3d(-1, 0, 0)));
     Eigen::Quaterniond _r(Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d(0, -1, 0)));
     Eigen::Matrix3d _R = _r.matrix();
     for (int i=1; i<4; i++) {
@@ -119,7 +119,6 @@ int CarModule::add_car(const Armor3d& _armor)
         c.armor[i].r = _r * c.armor[i-1].r;
     }
     c.r.setIdentity();
-    c.regularzation();
     c.update_state();
     cars.push_back(c);
     std::cout << "successfully add a car! ";

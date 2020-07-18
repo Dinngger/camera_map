@@ -24,10 +24,10 @@ T& interpolate(T& a, const T& b, double t) {
 }
 
 const Eigen::Vector3d armor_module[4] = {
-    Eigen::Vector3d(-0.065,  0.0285, 0),
     Eigen::Vector3d(-0.065, -0.0285, 0),
-    Eigen::Vector3d( 0.065,  0.0285, 0),
-    Eigen::Vector3d( 0.065, -0.0285, 0)
+    Eigen::Vector3d(-0.065,  0.0285, 0),
+    Eigen::Vector3d( 0.065, -0.0285, 0),
+    Eigen::Vector3d( 0.065,  0.0285, 0)
 };
 
 // p[0] is the upper point.
@@ -147,7 +147,6 @@ public:
         for (int i=0; i<4; i++)
             confidence[i] = 0;
     }
-    int regularzation();
     int bundleAdjustment(const std::vector<LightBarP> &light_bars,
                          const Eigen::Matrix3d &K,
                          double delta_time);
