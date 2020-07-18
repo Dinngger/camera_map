@@ -80,6 +80,12 @@ int Car::regularzation()
     return 0;
 }
 
+template<typename T>
+void printVector(const T& vec, int n) {
+    for (int i=0; i<n; i++)
+        std::cout << vec(i) << ", ";
+}
+
 struct Edge2EdgeError {
     const Eigen::Matrix3d K;
     const Eigen::Vector3d pt3d;
@@ -92,35 +98,52 @@ struct Edge2EdgeError {
     template <typename T>
     bool operator()(const T* const _q1, const T* const _t1, const T* const _q2, const T* const _t2, T* residuals) const {
         Eigen::Matrix<T, 3, 1> p{T(pt3d[0]), T(pt3d[1]), T(pt3d[2])};
-        Eigen::Matrix<T, 3, 1> t1{_t1[0], _t1[1], _t1[2]};
+        ceres::AngleAxisRotatePoint(_q2, p.data(), p.data());
         Eigen::Matrix<T, 3, 1> t2{_t2[0], _t2[1], _t2[2]};
-        Eigen::Quaternion<T> q1{_q1[3], _q1[0], _q1[1], _q1[2]};
-        Eigen::Quaternion<T> q2{_q2[3], _q2[0], _q2[1], _q2[2]};
-        p = q1 * (q2 * p + t2) + t1;
+        p += t2;
+        ceres::AngleAxisRotatePoint(_q1, p.data(), p.data());
+        Eigen::Matrix<T, 3, 1> t1{_t1[0], _t1[1], _t1[2]};
+        p += t1;
         p = K * p;
         p /= p(2);
         residuals[0] = p(0) - pt2d(0);
         residuals[1] = p(1) - pt2d(1);
         return true;
     }
+    static ceres::CostFunction *Create(
+        const Eigen::Matrix3d K_,
+        const Eigen::Vector3d pt3d_,
+        const Eigen::Vector2d pt2d_) {
+        return new ceres::AutoDiffCostFunction<Edge2EdgeError, 2, 3, 3, 3, 3>(
+            new Edge2EdgeError(K_, pt3d_, pt2d_)
+        );
+    }
 };
 
 struct HistoryError {
-    const Eigen::Quaterniond q;
+    const Eigen::Vector3d q;
     const Eigen::Vector3d t;
     const double alpha;
     HistoryError(
-        const Eigen::Quaterniond q,
+        const Eigen::Vector3d q,
         const Eigen::Vector3d t,
         const double alpha) :
         q(q), t(t), alpha(alpha) {}
     template <typename T>
     bool operator()(const T* const _q, const T* const _t, T* residuals) const {
-        for (int i=0; i<4; i++)
-            residuals[i] = (_q[(i+1)%4] - (T)q.coeffs()(i)) * alpha;
         for (int i=0; i<3; i++)
-            residuals[4+i] = (_t[i] - (T)t(i)) * alpha;
+            residuals[i] = (_q[i] - (T)q(i)) * alpha;
+        for (int i=0; i<3; i++)
+            residuals[3+i] = (_t[i] - (T)t(i)) * alpha;
         return true;
+    }
+    static ceres::CostFunction *Create(
+        const Eigen::Vector3d q_,
+        const Eigen::Vector3d t_,
+        const double alpha_) {
+        return new ceres::AutoDiffCostFunction<HistoryError, 6, 3, 3>(
+            new HistoryError(q_, t_, alpha_)
+        );
     }
 };
 
@@ -130,34 +153,33 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
 {
     predict(delta_time, r, t);
     ceres::Problem problem;
-    ceres::LossFunction* loss_function (new ceres::SoftLOneLoss(1));
-    ceres::LocalParameterization* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
-    problem.AddParameterBlock(r.coeffs().data(), 4, quaternion_local_parameterization);
+    ceres::LossFunction* loss_function = new ceres::HuberLoss(0.1);
     bool isValid[8] = {false, };
     bool isValidAll[8] = {false, };
+    Eigen::Vector3d armor_aa[4];
+    for (int i=0; i<4; i++)
+        armor_aa[i] = Eigen::AngleAxisd(armor[i].r).axis() * Eigen::AngleAxisd(armor[i].r).angle();
+    Eigen::Vector3d r_aa = Eigen::AngleAxisd(r).axis() * Eigen::AngleAxisd(r).angle();
     for (const LightBarP &lbp : light_bars) {
         for (size_t i=0; i<2; i++) {
             Eigen::Vector3d p = armor_module[lbp.lb_id*2+i];
-            ceres::CostFunction* cost = new ceres::AutoDiffCostFunction<Edge2EdgeError, 2, 4, 3, 4, 3>(
-                new Edge2EdgeError(K, p, lbp[i])
-            );
-            problem.AddResidualBlock(cost, loss_function, r.coeffs().data(), t.data(),
-                armor[lbp.armor_id].r.coeffs().data(), armor[lbp.armor_id].t.data());
+            ceres::CostFunction* cost = Edge2EdgeError::Create(K, p, lbp[i]);
+            problem.AddResidualBlock(cost, loss_function, r_aa.data(), t.data(),
+                armor_aa[lbp.armor_id].data(), armor[lbp.armor_id].t.data());
         }
         isValid[lbp.armor_id * 2 + lbp.lb_id] = true;
         isValidAll[lbp.armor_id * 2 + lbp.lb_id] = true;
     }
+    Eigen::Vector3d kfs_r_aa[4];
     for (int i=0; i<4; i++) {
         if (kfs[i].valid) {
-            problem.AddParameterBlock(kfs[i].kf_r.coeffs().data(), 4, quaternion_local_parameterization);
+            kfs_r_aa[i] = Eigen::AngleAxisd(kfs[i].kf_r).axis() * Eigen::AngleAxisd(kfs[i].kf_r).angle();
             for (const LightBarP &lbp : kfs[i].lbps) {
                 for (size_t j=0; j<2; j++) {
                     Eigen::Vector3d p = armor_module[lbp.lb_id*2+j];
-                    ceres::CostFunction* cost = new ceres::AutoDiffCostFunction<Edge2EdgeError, 2, 4, 3, 4, 3>(
-                        new Edge2EdgeError(K, p, lbp[j])
-                    );
-                    problem.AddResidualBlock(cost, loss_function, kfs[i].kf_r.coeffs().data(), kfs[i].kf_t.data(),
-                        armor[lbp.armor_id].r.coeffs().data(), armor[lbp.armor_id].t.data());
+                    ceres::CostFunction* cost = Edge2EdgeError::Create(K, p, lbp[j]);
+                    problem.AddResidualBlock(cost, loss_function, kfs_r_aa[i].data(), kfs[i].kf_t.data(),
+                        armor_aa[lbp.armor_id].data(), armor[lbp.armor_id].t.data());
                 }
                 isValidAll[lbp.armor_id * 2 + lbp.lb_id] = true;
             }
@@ -173,26 +195,32 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             r0 = r_90 * r0;
         }
         if (isValidAll[i*2] || isValidAll[i*2+1]) {
-            ceres::CostFunction* cost = new ceres::AutoDiffCostFunction<HistoryError, 7, 4, 3>(
-                new HistoryError(r0, t0, 200)
-            );
-            problem.AddResidualBlock(cost, loss_function, armor[i].r.coeffs().data(), armor[i].t.data());
-            ceres::CostFunction* cost2 = new ceres::AutoDiffCostFunction<HistoryError, 7, 4, 3>(
-                new HistoryError(armor[i].r, armor[i].t, 200)
-            );
-            problem.AddResidualBlock(cost2, loss_function, armor[i].r.coeffs().data(), armor[i].t.data());
-            problem.SetParameterization(armor[i].r.coeffs().data(), quaternion_local_parameterization);
+            ceres::CostFunction* cost = HistoryError::Create(Eigen::AngleAxisd(r0).axis() * Eigen::AngleAxisd(r0).angle(), t0, 1);
+            problem.AddResidualBlock(cost, loss_function, armor_aa[i].data(), armor[i].t.data());
+        } else {
+            ceres::CostFunction* cost = HistoryError::Create(Eigen::AngleAxisd(r0).axis() * Eigen::AngleAxisd(r0).angle(), t0, 1);
+            problem.AddResidualBlock(cost, loss_function, armor_aa[i].data(), armor[i].t.data());
         }
     }
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::DENSE_QR;
-    options.function_tolerance = 1e-3;
-    options.max_num_iterations = 50;
+    options.function_tolerance = 1e-2;
+    options.max_num_iterations = 10;
     options.num_threads = 1;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
     std::cout << summary.BriefReport() << std::endl;
 
+    r = Eigen::Quaterniond(Eigen::AngleAxisd(r_aa.norm(), r_aa.normalized()));
+    for (int i=0; i<4; i++) {
+        armor[i].r = Eigen::Quaterniond(Eigen::AngleAxisd(armor_aa[i].norm(), armor_aa[i].normalized()));
+        if (kfs[i].valid)
+            kfs[i].kf_r = Eigen::Quaterniond(Eigen::AngleAxisd(kfs_r_aa[i].norm(), kfs_r_aa[i].normalized()));
+    }
+
+    std::cout << "r=";
+    printVector(r.coeffs(), 4);
+    std::cout << "\n";
     regularzation();
     update_state(delta_time);
     Eigen::Vector3d angle = r.toRotationMatrix().eulerAngles(2, 1, 0);
@@ -213,9 +241,16 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                 kfs[i].lbps.assign(light_bars.begin(), light_bars.end());
             }
         }
-        if (kfs[i].valid)
+        if (kfs[i].valid) {
             kfs_cnt++;
+            std::cout << "kf" << i << ": r=";
+            printVector(kfs[i].kf_r.coeffs(), 4);
+            std::cout << "\n";
+        }
     }
     std::cout << "kfs cnt: " << kfs_cnt << "\n";
+    std::cout << "r=";
+    printVector(r.coeffs(), 4);
+    std::cout << "\n";
     return 0;
 }
