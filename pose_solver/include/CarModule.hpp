@@ -153,7 +153,7 @@ public:
     int update_state();
     int update_state(double delta_time);    // time from last update;
     int predict(double delta_time, Eigen::Quaterniond &pre_r,
-                Eigen::Vector3d &pre_t, bool linear=false) const;     // time to the future
+                Eigen::Vector3d &pre_t, bool linear=true) const;     // time to the future
     friend class CarModule;
 };
 

@@ -47,7 +47,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     module.create_predict(time, search_module.getTargetLBPs(), search_last_frame.getResultLBPs());
 
     search_module.finishSetTarget();
-    search_module.runSearch(match.possibles, 80, id_set1);
+    search_module.runSearch(match.possibles, 30, id_set1);
 
     match_result.clear();
     std::cout << "find in last frame:\n";
@@ -58,6 +58,17 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     std::cout << "\n";
     for (const LightBarP& lbp : search_module.getResultLBPs()) {
         match_result.push_back(lbp);
+    }
+    for (size_t i=0; i<match_result.size(); i++) {
+        for (size_t j=i+1; j<match_result.size(); j++) {
+            if (match_result[i].car_id == match_result[j].car_id && match_result[i].armor_id == match_result[j].armor_id &&
+                match_result[i].lb_id != match_result[j].lb_id) {
+                if ((match_result[i].lb_id < match_result[j].lb_id && match_result[i].center(0) > match_result[j].center(0)) ||
+                    (match_result[i].lb_id > match_result[j].lb_id && match_result[i].center(0) < match_result[j].center(0))) {
+                    std::swap(match_result[i].lb_id, match_result[j].lb_id);
+                }
+            }
+        }
     }
 
     module.bundleAdjustment(match_result, time);

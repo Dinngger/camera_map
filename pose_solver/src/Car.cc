@@ -29,7 +29,7 @@ int Car::update_state(double delta_time)
 
 int Car::predict(double delta_time, Eigen::Quaterniond &pre_r, Eigen::Vector3d &pre_t, bool linear) const
 {
-// #define PREDICT
+#define PREDICT
 #ifdef PREDICT
     pre_t = t + dt * delta_time;
     if (!linear)
@@ -169,10 +169,6 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
     for (const LightBarP &lbp : light_bars) {
         for (size_t i=0; i<2; i++) {
             Eigen::Vector3d p = armor_module[lbp.lb_id*2 + i];
-            std::cout << "p: ";
-            printVector(p, 3);
-            std::cout << "; i: " << i;
-            std::cout << "\n";
             if (lbp.armor_id % 2 == 1) {
                 ceres::CostFunction* cost = Edge2EdgeErrorX::Create(K, p, lbp[i],
                     armor[lbp.armor_id].r, lbp.armor_id > 2 ? -1 : 1);
