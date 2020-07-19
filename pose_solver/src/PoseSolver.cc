@@ -33,21 +33,37 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
+    for (const aim_deps::Armor& armor : tar_list) {
+        if (armor.valid) {
+            match.possibles[armor.left_light.index].isLeft = 0;
+            match.possibles[armor.right_light.index].isLeft = 1;
+        }
+    }
+
     // 在上一帧中寻找匹配 
     NNSearch search_last_frame;
     for (const LightBarP& lbp : match_result)
         search_last_frame.getTargetLBPs().push_back(lbp);
     search_last_frame.finishSetTarget();
-    search_last_frame.runSearch(match.possibles, 30);
+    search_last_frame.runSearch(match.possibles, 80);
 
     std::set<int> id_set1;
     search_last_frame.getHeapIdSet(id_set1);
+    for (size_t i=0; i<match.possibles.size(); i++) {
+        if (match.possibles[i].isLeft < 0)
+            id_set1.insert(i);
+    }
 
     NNSearch search_module;
     module.create_predict(time, search_module.getTargetLBPs(), search_last_frame.getResultLBPs());
 
+    std::cout << "predict result: ";
+    for (const LightBarP& temp_lbp : search_module.getTargetLBPs())
+        std::cout << temp_lbp.car_id << temp_lbp.armor_id << temp_lbp.lb_id << ", ";
+    std::cout << "\n";
+
     search_module.finishSetTarget();
-    search_module.runSearch(match.possibles, 30, id_set1);
+    search_module.runSearch(match.possibles, 100, id_set1);
 
     match_result.clear();
     std::cout << "find in last frame:\n";
@@ -56,9 +72,12 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         std::cout << lbp.car_id << lbp.armor_id << lbp.lb_id << ": " << lbp.center(0) << ", " << lbp.center(1) << "; ";
     }
     std::cout << "\n";
+    std::cout << "find in module:\n";
     for (const LightBarP& lbp : search_module.getResultLBPs()) {
         match_result.push_back(lbp);
+        std::cout << lbp.car_id << lbp.armor_id << lbp.lb_id << ": " << lbp.center(0) << ", " << lbp.center(1) << "; ";
     }
+    std::cout << "\n";
     for (size_t i=0; i<match_result.size(); i++) {
         for (size_t j=i+1; j<match_result.size(); j++) {
             if (match_result[i].car_id == match_result[j].car_id && match_result[i].armor_id == match_result[j].armor_id &&

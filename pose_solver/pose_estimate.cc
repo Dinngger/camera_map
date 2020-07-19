@@ -23,7 +23,8 @@ int main(int argc, char* argv[])
 #define path0 "/home/dinger/mine/Dataset/videos/cv_output1.avi"
 #define path1 "/mine/cv_output1.avi"
 #define path2 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
-    cv::VideoCapture cap(path0);
+#define path3 "/home/sentinel/videos/cv_output3.avi"
+    cv::VideoCapture cap(path3);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
@@ -37,6 +38,7 @@ int main(int argc, char* argv[])
     int count = 0;
     for (int w = 0; w < totalFrameNumber; w++)
     {
+        std::cout << "frame: " << w << "\n";
         cap.read(frame);
 		if(frame.empty())
             break;

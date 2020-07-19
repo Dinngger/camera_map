@@ -206,6 +206,7 @@ struct Light
     bool valid;                 //是否是有效灯条(反光灯条过滤无法完全精准判定，需要依靠装甲板匹配)
     int index;       
     LightBox box;
+    int isLeft = -1;
     Light(){
         valid = true;
     }
