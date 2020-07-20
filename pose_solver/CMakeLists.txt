@@ -88,3 +88,11 @@ ${CERES_LIBRARIES}
 #this is only for hqy's computer with stupid anaconda.
 #/usr/lib/x86_64-linux-gnu/libtiff.so.5.2.4
 )
+
+add_executable(data_process
+data_process.cpp
+)
+
+target_link_libraries(data_process
+${OpenCV_LIBS}
+)
