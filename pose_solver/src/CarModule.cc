@@ -30,7 +30,7 @@ int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars,
         if (size > 0) {
             cars[i].bundleAdjustment(light_bars_car[i], K, delta_time);
         } else {
-            std::cout << "erase car " << i << "\n";
+            std::cout << "\033[41m" << "erase car " << i << "\033[0m\n";
             cars[i].car_valid = false;
         }
     }
@@ -121,8 +121,8 @@ int CarModule::add_car(const Armor3d& _armor)
     c.r.setIdentity();
     c.update_state();
     cars.push_back(c);
-    std::cout << "successfully add a car! ";
-    std::cout << "now car number: " << cars.size() << std::endl;
+    std::cout << "\033[42m"<< "successfully add a car! ";
+    std::cout << "now car number: " << cars.size() << "\033[0m\n";
     return cars.size() - 1;
 }
 

@@ -21,7 +21,7 @@ void ArmorPlate::matchAll(
 )
 {
     tar_list.clear();
-    for(size_t i = 0 ; i<matches.size() ; ++i){
+    for(size_t i = 0 ; i < matches.size() ; ++i){
         if(isMatch(lights[matches[i].x],lights[matches[i].y])){
             if(lights[matches[i].x].box.center.x < lights[matches[i].y].box.center.x)
             {
@@ -50,6 +50,8 @@ bool ArmorPlate::isMatch(const aim_deps::Light &l1, const aim_deps::Light &l2)
         amp_debug(rmlog::F_RED, "Angle mismatch:(", l1.index, ", ", l2.index, ")");
         return false;
     }
+    // printf("Arm(%d, %d): length_ratio: ", l1.index, l2.index);
+
     if(isRatioValid(l1.box.length, l2.box.length) && isEdgesValid() && isAreaGood()){
         amp_debug(rmlog::F_BLUE, "Push in:(", l1.index, ", ", l2.index, ")");
         return true;
@@ -176,7 +178,7 @@ bool ArmorPlate::getArmorPlate(const aim_deps::LightBox &b1, const aim_deps::Lig
     points[1] = b1.vex[1];
     points[2] = b2.vex[1];
     points[3] = b2.vex[0];
-    cv::Point2f diff = points[0]-points[1];
+    cv::Point2f diff = points[0] - points[1];
     /// 这个地方的意思是：需要灯条有合适的角度（cot值必须小于1.5）
     return diff.x/diff.y < 1.5;                 
 }
@@ -185,8 +187,10 @@ bool ArmorPlate::isRatioValid(float l1, float l2) const{                    //�
     float len1 = aim_deps::getPointDist((points[0]+points[1])/2, (points[2]+points[3])/2),
          len2 = (l1 + l2) / 2,
          ratio = len1/(len2 * len2), 
-         thresh = getRatio(len2);
-    if(len2 * len2 < 25.0){                                //灯条高度平方小于25时，过小的两灯条需要进行一个判断
+         thresh = lengthThreshold(ratio);
+    // DEBUG
+    // printf("%f and sqrt(ratio): %f, with threshold: %f\n", ratio, sqrt(ratio), thresh);
+    if(len2 < 5.0){                                 //灯条高度平方小于25时，过小的两灯条需要进行一个判断
         if (ratio < thresh && ratio > thresh / 4){  //如果过小的两个灯条过于接近（ratio<= thresh/4）,就是错的
             return true;
         }
@@ -207,6 +211,7 @@ bool ArmorPlate::isEdgesValid() const{  //对边长度平方比值是否合适
     for(int i = 0; i<4; ++i){
         edges[i] = aim_deps::getPointDist(points[i], points[(i+1)%4]);
     }
+
     bool judge1 = (edges[0]/edges[2] < params.OPS_RATIO_HEIGHT &&
         edges[0]/edges[2] > 1.0 / params.OPS_RATIO_HEIGHT),     //宽对边比值范围大
         judge2 = (edges[1]/edges[3] < params.OPS_RATIO_WIDTH &&
@@ -232,12 +237,10 @@ bool ArmorPlate::isAreaGood() const{
     return cv::contourArea(tmp) >= aim_deps::MIN_ARMOR_AREA;
 }
 
-float ArmorPlate::getRatio(const float l){                 
-    // 默认输入的len2是灯条长度平方的平均值
-    if(l > 7.5) return aim_deps::distance_params.NEAR_RATIO_MIN;            //12.5   (56.25是7.5的平方)
-    else if(l <= 4) return aim_deps::distance_params.NEAR_RATIO_MAX;      //17.64是3.8（像素）的平方，30.0
-    return aim_deps::coeffs[0] * powf(l, 3) + aim_deps::coeffs[1] * pow(l, 2) +
-            aim_deps::coeffs[2] * l + aim_deps::coeffs[3];
+float ArmorPlate::lengthThreshold(const float ratio){                 
+    if(ratio >= 19.36) return 20.0;
+    else if(ratio >= 14.44) return 1.13971147 * ratio - 2.10587699;
+    else return 16.0;
 }
 
 int ArmorPlate::lightCompensate(

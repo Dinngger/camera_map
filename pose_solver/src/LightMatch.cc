@@ -39,13 +39,13 @@ void LightMatch::reset(){
 	trapezoids.clear();
 }														
 
-void LightMatch::findPossible(){								//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
+void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
 	#ifdef LIGHT_CNT_TIME
 		double start_t = cv::getTickCount();
 	#endif	//LIGHT_CNT_TIME
 	reset();
 	cv::Mat binary(1080, 1440, CV_8UC1);
-	threshold(binary, thresh_low);			//(95)		120
+	threshold(binary, thresh_low);
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
 	#ifdef MULTI_THREAD
@@ -79,7 +79,7 @@ void LightMatch::findPossible(){								//找出所有可能灯条，使用梯�
 }
 
 void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, int start, int step){
-	double min_pos = 0.0, max_pos = 0.0;
+	double min_pos = 0.0, max_pos = 0.0; 
 	for (size_t i = start; i < ct.size(); i += step) {	
 		float area = cv::contourArea(ct[i]);
 		cv::Rect bbox = cv::boundingRect(ct[i]);
@@ -94,10 +94,14 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, 
 					cv::threshold(proced[2](bbox), cnt_mat, 210, 255, cv::THRESH_BINARY);
 					cv::minMaxLoc(proced[0](bbox), &min_pos, &max_pos);
 				}
+				/// TODO: 酌情调大
 				if(max_pos <= 180) continue;						// 排除地面全反射灯条
 				int num = cv::countNonZero(cnt_mat);				// 排除车体反光灯条的影响
 				// 反光灯条的特征是：灯条内亮度过小，灰度值基本不大于210，大于的也绝大多数只有一点
-				bool valid = (num >= 2);
+				// 血量显示条上匹配的错误灯条特征：灯条长宽比例不对
+				double ratio = (double)bbox.width / (double)bbox.height;
+
+				bool valid = (ratio > 1.67 || ratio < 0.6) && (num >= 2);
 				doubleThresh(ct[i], bbox, valid);
 			}	
 			else{		// 选框够大，说明灯条无需二次阈值，亚像素检测以及角度修正
@@ -117,7 +121,7 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, 
 				if( std::abs(_l.box.angle) < 40.0){
 					mtx.lock();
 					_l.index = (int)possibles.size();
-					possibles.emplace_back(_l);
+					possibles.emplace_back(_l);			
 					mtx.unlock();
 				}
 			}
@@ -152,10 +156,13 @@ void LightMatch::doubleThresh(const std::vector<cv::Point>& ct, cv::Rect& bbox, 
 	cv::RotatedRect tmp_rec = cv::minAreaRect(ct);
 	cv::Size subpix_sz = decideSize(tmp_rec);
 	bool do_subpixel = extendRect(bbox, subpix_sz + cv::Size(2, 2));
-	cv::Mat tmp;
-	if(enemy_blue) tmp = proced[0](bbox);					// 敌方为蓝色，取蓝色通道
-	else tmp = proced[2](bbox);
-	cv::Mat _bin;
+	cv::Mat tmp, _bin;
+	if(enemy_blue){
+		tmp = proced[0](bbox);					// 敌方为蓝色，取蓝色通道
+	}
+	else{
+		tmp = proced[2](bbox);
+	}
 	float _a = tmp_rec.size.area();
 	if(_a < 6.0){
 		return;							///面积过小舍去
@@ -188,7 +195,7 @@ void LightMatch::doubleThresh(const std::vector<cv::Point>& ct, cv::Rect& bbox, 
 			do_subpixel = false;
 		}
 		cv::RotatedRect light = cv::minAreaRect(contour);
-		if(!do_subpixel){
+		if(!do_subpixel){														// 没有进行亚像素的灯条会偏短
 			light.size.height *= 1.1;
 		}
 		light.center.x += bbox.x;												// 局部ROI加偏置	
@@ -228,7 +235,9 @@ void LightMatch::doubleThresh(const std::vector<cv::Point>& ct, cv::Rect& bbox, 
 	aim_deps::Light _l(tmp_rec, tmp_rec.center,
 					cv::max(tmp_rec.size.height, tmp_rec.size.width), valid);
 
-	if( !isAngleValid(_l.box) ) return;		//灯条角度不符合要求
+	if(!isAngleValid(_l.box)){								//灯条角度不符合要求
+		return;		
+	}
 	if( _l.box.length > 8){									//长度过小时(<=8)，不必修正角度
 		readjustAngle(ct, _l, cv::Point(0, 0), 0.5);		//一次阈值化的外包络轮廓点不够准，削弱角度调整
 	}

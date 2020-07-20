@@ -13,8 +13,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
-#include "LOG.hpp"
-#include "AimDeps.hpp"
+#include "../include/LOG.hpp"
+#include "../include/AimDeps.hpp"
 //#define ARMORPLATE_DEBUG                      //无需灯条配对信息输出时注释此行
 #ifdef ARMORPLATE_DEBUG
     #define amp_debug rmlog::LOG::printc        //彩色输出
@@ -70,10 +70,19 @@ private:
      */             
     inline static float cornerAngle(const cv::Point2f *pts,
                     const int start);
-    inline static float getRatio(const float l);                        //计算自适应装甲板长宽比
+                    
+    inline static float lengthThreshold(const float l);                 //计算自适应装甲板长宽比
     inline static float compensation(const float mean);                 //根据平均灯条长度计算灯条长度补偿值
+
+    /** @brief 对于两个已知的配对灯条进行相互补偿
+     * @param l1 灯条1
+     * @param l2 灯条2
+     * @param _a 输入装甲板相关信息
+     * @return 返回0:左灯条被补偿, 1:右灯条被补偿, -1:无补偿
+     */
     static int lightCompensate(aim_deps::LightBox &l1, 
             aim_deps::LightBox &l2, aim_deps::Armor *_a = nullptr);     //灯条补偿
+
     inline static float rebuildRatio(const cv::Point2f *pts);           //灯条重建系数
 private:
     bool _is_enemy_blue;                                                //敌人颜色

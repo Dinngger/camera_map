@@ -20,27 +20,26 @@ namespace aim_deps{
 //==========================通用的预设===========================//
 ///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
 //=================最小装甲板面积==============
-const uint8_t NO_SHOOTING = 64;
+const double _HALF_LENGTH_SMALL     = 65.00;	
+const double _HALF_LENGTH_BIG 	    = 105.00;
+const double _HALF_HEIGHT           = 28.50;	
 
-const float MIN_ARMOR_AREA = 40.0;
-const cv::Point2f NULLPOINT2f = cv::Point2f(0.0, 0.0);
-const cv::Point3f NULLPOINT3f = cv::Point3f(0.0, 0.0, 0.0);
-const float RAD2DEG = 57.2958;     //(constant)(180/pi)
-const float DEG2RAD = 0.017453;     //(constant)(pi/180)
+const uint8_t NO_SHOOTING           = 64;
+
+const float MIN_ARMOR_AREA          = 40.0;
+const cv::Point2f NULLPOINT2f       = cv::Point2f(0.0, 0.0);
+const cv::Point3f NULLPOINT3f       = cv::Point3f(0.0, 0.0, 0.0);
+const float RAD2DEG                 = 57.2958;     //(constant)(180/pi)
+const float DEG2RAD                 = 0.017453;     //(constant)(pi/180)
 
 //LightMatch.hpp 的依赖参数
-const float LIGHT_PARAM1 = 10.0;
-const float LIGHT_PARAM2 = 7.0;
-const float LIGHT_mean = 40.0;
-const float FAILED_SCORE = INFINITY;
+const float LIGHT_PARAM1            = 10.0;
+const float LIGHT_PARAM2            = 7.0;
+const float LIGHT_mean              = 40.0;
+const float FAILED_SCORE            = INFINITY;
 
 //自适应装甲板宽高比(四次多项式，降幂排列)
 const float coeffs[4] = {
-    //0.09331009,  
-    //-1.60621302, 
-    //9.1013089,   
-    //-22.80810291,
-    //360.15463
     0.07035755,
     -1.72565497,
     10.9065332 ,
@@ -206,7 +205,7 @@ struct Light
     bool valid;                 //是否是有效灯条(反光灯条过滤无法完全精准判定，需要依靠装甲板匹配)
     int index;       
     LightBox box;
-    int isLeft = -1;
+    int isLeft = -1;           // 用于camera_map优化中，是否为左灯条 0 为左，1为右，否则为未知
     Light(){
         valid = true;
     }
@@ -275,14 +274,14 @@ struct Light_Params{
     //============敌方红色=====================================//
     const int red_thresh_low    = 92;           //二值图threshold下阈值
     const int red_thresh_high   = 250;          //二值图threshold上阈值 
-    const int red_exp_short     = 70;           //曝光时间(短曝光)
+    const int red_exp_short     = 140;           //曝光时间(短曝光)
     const int red_exp_long      = 7000;         //曝光时间(长曝光)
     const int red_r_balance     = 0;            //白平衡（红色通道）
     const int red_b_balance     = 3600;         //白平衡（蓝色通道）
     //============敌方蓝色=====================================//
     const int blue_thresh_low   = 92;           //二值图threshold下阈值
     const int blue_thresh_high  = 250;          //二值图threshold上阈值
-    const int blue_exp_short    = 70;           //曝光时间(短曝光)
+    const int blue_exp_short    = 140;           //曝光时间(短曝光)
     const int blue_exp_long     = 7000;         //曝光时间(长曝光) // 暂时修改
     const int blue_r_balance     = 3600;        //白平衡（红色通道）
     const int blue_b_balance     = 0;           //白平衡（蓝色通道）

@@ -57,27 +57,27 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     NNSearch search_module;
     module.create_predict(time, search_module.getTargetLBPs(), search_last_frame.getResultLBPs());
 
-    std::cout << "predict result: ";
+    std::cout << "\033[33m" << "predict result: ";
     for (const LightBarP& temp_lbp : search_module.getTargetLBPs())
         std::cout << temp_lbp.car_id << temp_lbp.armor_id << temp_lbp.lb_id << ", ";
-    std::cout << "\n";
+    std::cout << "\033[0m\n";
 
     search_module.finishSetTarget();
     search_module.runSearch(match.possibles, 100, id_set1);
 
     match_result.clear();
-    std::cout << "find in last frame:\n";
+    std::cout << "\033[34m" << "find in last frame:\n";
     for (const LightBarP& lbp : search_last_frame.getResultLBPs()) {
         match_result.push_back(lbp);
         std::cout << lbp.car_id << lbp.armor_id << lbp.lb_id << ": " << lbp.center(0) << ", " << lbp.center(1) << "; ";
     }
-    std::cout << "\n";
-    std::cout << "find in module:\n";
+    std::cout << "\033[0m\n";
+    std::cout << "\033[32m" << "find in module:\n";
     for (const LightBarP& lbp : search_module.getResultLBPs()) {
         match_result.push_back(lbp);
         std::cout << lbp.car_id << lbp.armor_id << lbp.lb_id << ": " << lbp.center(0) << ", " << lbp.center(1) << "; ";
     }
-    std::cout << "\n";
+    std::cout << "\033[0m\n";
     for (size_t i=0; i<match_result.size(); i++) {
         for (size_t j=i+1; j<match_result.size(); j++) {
             if (match_result[i].car_id == match_result[j].car_id && match_result[i].armor_id == match_result[j].armor_id &&
