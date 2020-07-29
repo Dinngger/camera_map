@@ -3,7 +3,7 @@
  * @date 2020.2.5
  * @brief 自瞄多个模块所依赖的结构
  * 最近修改：将会修改Target
- * 
+ *
 */
 
 
@@ -20,9 +20,9 @@ namespace aim_deps{
 //==========================通用的预设===========================//
 ///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
 //=================最小装甲板面积==============
-const double _HALF_LENGTH_SMALL     = 65.00;	
+const double _HALF_LENGTH_SMALL     = 65.00;
 const double _HALF_LENGTH_BIG 	    = 105.00;
-const double _HALF_HEIGHT           = 28.50;	
+const double _HALF_HEIGHT           = 28.50;
 
 const uint8_t NO_SHOOTING           = 64;
 
@@ -76,8 +76,8 @@ struct Sentry_decision
 //装甲板类别
 enum Armor_type
 {
-    Sentry,                         //哨兵   
-    Hero,                           //英雄             
+    Sentry,                         //哨兵
+    Hero,                           //英雄
     Infantry,                       //步兵
     Dad,                            //奶3.5爸
     Base,                           //基地
@@ -101,7 +101,7 @@ inline void getMidPoints(const cv::RotatedRect &rect, cv::Point2f &p1, cv::Point
     tmp_p1 = (corners[i0] + corners[i0 + 1]) / 2;			    //获得旋转矩形两条短边上的中点
 	tmp_p2 = (corners[i0 + 2] + corners[(i0 + 3) % 4]) / 2;
     if(tmp_p1.y > tmp_p2.y){                                    //保证输出点的顺序
-        p2 = tmp_p1;    
+        p2 = tmp_p1;
         p1 = tmp_p2;
     }
     else{                                                       //必须是p1是处于上方的点，p2处于下方（y轴更大）
@@ -121,7 +121,7 @@ inline float getLineAngle(const cv::Point2f &p1, const cv::Point2f &p2){
 inline cv::Point2f Rotate(const cv::Point2f &_vec, float _a){
 	cv::Point2f res;
 	res.x = _vec.x * cos(_a) - _vec.y * sin(_a);
-	res.y = _vec.x * sin(_a) + _vec.y * cos(_a); 
+	res.y = _vec.x * sin(_a) + _vec.y * cos(_a);
 	return res;
 }
 
@@ -139,7 +139,7 @@ struct LightBox{
         vex[0] += (k - 1.0) * (vex[0] - center);
         vex[1] += (k - 1.0) * (vex[1] - center);
         length *= k;
-    }             
+    }
 
     inline void copy(LightBox &lb){
         cv::Point2f direction = lb.vex[1] - lb.center;
@@ -147,7 +147,7 @@ struct LightBox{
         vex[0] = center - direction;
         length = lb.length;
         angle = lb.angle;
-    }    
+    }
 
     inline void even(LightBox &lb){
         float mean_len = (lb.length + length) / 2,
@@ -163,7 +163,7 @@ struct LightBox{
     }
 
     //依据另一个灯条来重新构建灯条
-    inline void rebuild(const cv::Point2f vexes[2], float ratio){        
+    inline void rebuild(const cv::Point2f vexes[2], float ratio){
         float r = ref.z / length;
         cv::Point2f direction = vexes[1] - vexes[0];
         if(r >= 1.2){                   //外矩形与内矩形长度相差太大，认为是中心位置有误（以外矩形为准）
@@ -184,7 +184,7 @@ struct LightBox{
 
     inline void rotate(const float ang){              // 旋转灯条(依照坐标系逆时针)
         cv::Point2f tmp = vex[1] - center;
-        tmp = Rotate(tmp, ang);           
+        tmp = Rotate(tmp, ang);
         vex[1] = center + tmp;
         vex[0] = center - tmp;
         //printf("Original: %f, rotation: %f\n", angle, RAD2DEG * ang);
@@ -203,9 +203,10 @@ struct LightBox{
 struct Light
 {
     bool valid;                 //是否是有效灯条(反光灯条过滤无法完全精准判定，需要依靠装甲板匹配)
-    int index;       
+    int index;
     LightBox box;
     int isLeft = -1;           // 用于camera_map优化中，是否为左灯条 0 为左，1为右，否则为未知
+    int carNum;
     Light(){
         valid = true;
     }
@@ -230,7 +231,7 @@ struct Armor
     bool valid;
     bool Isbigarmor;
     cv::Mat r_vec;                                  //向量
-    int armor_number;                              
+    int armor_number;
     cv::Point3f t_vec;
     cv::Point2f vertex[4];
     Light left_light;
@@ -258,7 +259,7 @@ struct Armor
 //决策之后的装甲板
 struct Evaluated_armor
 {
-    Armor _armor;                   
+    Armor _armor;
     Armor_type _type;
     float Distance_score;
     float Size_score;
@@ -273,7 +274,7 @@ struct Evaluated_armor
 struct Light_Params{
     //============敌方红色=====================================//
     const int red_thresh_low    = 92;           //二值图threshold下阈值
-    const int red_thresh_high   = 250;          //二值图threshold上阈值 
+    const int red_thresh_high   = 250;          //二值图threshold上阈值
     const int red_exp_short     = 140;           //曝光时间(短曝光)
     const int red_exp_long      = 7000;         //曝光时间(长曝光)
     const int red_r_balance     = 0;            //白平衡（红色通道）
@@ -292,7 +293,7 @@ struct Distance_Params{
     const float OPS_RATIO_HEIGHT    = 16.0;         //对边宽比例        (16.0)
     const float OPS_RATIO_WIDTH     = 1.44;         //对边长比例        (1.44)
     const float NEAR_RATIO_MIN      = 20.0;         //邻边装甲板比例     (12.5)(开放大装甲板)
-    const float NEAR_RATIO_MAX      = 26.0;         //中点长宽比        (30.0)            
+    const float NEAR_RATIO_MAX      = 26.0;         //中点长宽比        (30.0)
     const float ANGLE_THRESH        = 14.0;         //角度差阈值        (13.5)
 };
 extern Distance_Params distance_params;
@@ -301,7 +302,7 @@ extern Distance_Params distance_params;
 struct Vicinity_param
 {
 	//预处理信息
-	int brightness_threshold;    
+	int brightness_threshold;
 	int color_threshold;
 	float light_color_detect_extend_ratio;
 

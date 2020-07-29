@@ -33,6 +33,9 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
+    carMatch.runMatch(match.possibles);
+    // carMatch.printDivision();
+
     for (const aim_deps::Armor& armor : tar_list) {
         if (armor.valid) {
             match.possibles[armor.left_light.index].isLeft = 0;
@@ -40,7 +43,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         }
     }
 
-    // 在上一帧中寻找匹配 
+    // 在上一帧中寻找匹配
     NNSearch search_last_frame;
     for (const LightBarP& lbp : match_result)
         search_last_frame.getTargetLBPs().push_back(lbp);

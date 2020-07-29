@@ -12,6 +12,7 @@
 #include "GetPos.hpp"
 #include "CarModule.hpp"
 #include "NNSearch.hpp"
+#include "CarMatch.hpp"
 
 Armor3d toArmor3d(const aim_deps::Armor& armor);
 bool isLowExposure(cv::Mat &src);
@@ -25,6 +26,7 @@ private:
     ArmorPlate amp;
     LightMatch match;
     GetPos pos_getter;                     /// PNP解算模块
+    CarMatch carMatch;
     std::vector<LightBarP> match_result;
 public:
     PoseSolver(cv::Matx<double, 3, 3> &K);

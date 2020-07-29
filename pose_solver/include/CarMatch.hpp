@@ -2,6 +2,8 @@
 #define _CAR_MATCH_HPP
 
 #include <vector>
+#include <stack>
+#include <algorithm>
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -10,16 +12,26 @@
 
 struct CarPossible {
     bool first;
+    float chance;
     std::vector<aim_deps::Light> lightPossibles;
 };
 
 class CarMatch{
     private:
-        CarPossible emptyCar;
-        bool constraint(std::vector<CarPossible> lightPossibles);
+        int nCar=0;
+        std::vector<aim_deps::Light> lightStack;
+        std::vector<std::vector<aim_deps::Light>> divideClass;
+        void clear();
+        bool constraint(int i);
+        void backTrack(int t, std::vector<aim_deps::Light>& Lights);
+        int findMaxCar();
+        void sortLight();
+        void divisionLoad();
     public:
-        std::vector<CarPossible> tempCars, carsPossible;
-        void runMatch(const std::vector<aim_deps::Light>& Lights);
+        std::vector<std::vector<CarPossible>> division;
+        void runMatch(std::vector<aim_deps::Light>& Lights);
+        void printCars();
+        void printDivision();
 };
 
 #endif     //_CAR_MATCH_HPP
