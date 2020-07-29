@@ -1,9 +1,15 @@
 #include "../include/CarMatch.hpp"
 #include "PoseSolver.hpp"
 
+float getPointDist(const cv::Point2f &p1, const cv::Point2f &p2){
+    return ((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
+}
+
 void CarMatch::clear(){
     lightStack.clear();
     divideClass.clear();
+    division.clear();
+    errors.clear();
 }
 
 void CarMatch::runMatch(std::vector<aim_deps::Light>& Lights){
@@ -12,6 +18,111 @@ void CarMatch::runMatch(std::vector<aim_deps::Light>& Lights){
     backTrack(0, Lights);
     sortLight();
     divisionLoad();
+    calError();
+    printError();
+}
+
+void CarMatch::calError(){
+    for (size_t i=0;i<division.size();i++){
+        float ierror = 0.0;
+        for (size_t j=0;j<division[i].size();j++){
+            switch(division[i][j].lightPossibles.size()){
+                case 1:
+                    ierror += oneLight();
+                    break;
+                case 2:
+                    ierror += twoLight(division[i][j].lightPossibles);
+                    break;
+                case 3:
+                    ierror += threeLight(division[i][j].lightPossibles);
+                    break;
+                case 4:
+                    ierror += fourLight(division[i][j].lightPossibles);
+                    break;
+                default :
+                    std::cout<<"======================================\n";
+            }
+        }
+        errors.push_back(ierror);
+    }
+}
+
+void CarMatch::printError(){
+    for (size_t i=0;i<errors.size();i++){
+        std::cout<<"i="<<i<<", errors="<<errors[i]<<std::endl;
+    }
+}
+
+float CarMatch::getRatio(float l1, float l2) {                    //对边中点连线的长度平方比值是否合适
+    float len1 = aim_deps::getPointDist((points[0]+points[1])/2, (points[2]+points[3])/2),
+         len2 = (l1 + l2) / 2,
+         ratio = len1/(len2 * len2);
+    return ratio;
+}
+
+float CarMatch::getArmorPlate(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2){
+    //lightCompensate(b1, b2);
+    points[0] = b1.vex[0];
+    points[1] = b1.vex[1];
+    points[2] = b2.vex[1];
+    points[3] = b2.vex[0];
+    cv::Point2f diff = points[0] - points[1];
+    /// 这个地方的意思是：需要灯条有合适的角度（cot值必须小于1.5）
+    return diff.x/diff.y;
+}
+
+float CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2){
+    float diffAngleError = fabs(b1.angle - b2.angle);
+    getArmorPlate(b1, b2);
+    float ratio = getRatio(b1.length, b2.length);
+    float ratioError;
+    if (ratio < 19.36 && ratio > 14.44)
+        ratioError = fabs(ratio - 16.9);
+    else
+        ratioError = (ratio - 16.9)*(ratio - 16.9);
+    return diffAngleError + ratioError;
+}
+
+float CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2){
+    getArmorPlate(b1, b2);
+    float ratio = getRatio(b1.length, b2.length);
+    float ratioError;
+    if (ratio < 19.36 && ratio > 14.44)
+        ratioError = fabs(ratio - 16.9);
+    else
+        ratioError = (ratio - 16.9)*(ratio - 16.9);
+    return ratioError;
+}
+
+float CarMatch::oneLight(){
+    return 100.0;
+}
+
+float CarMatch::twoLight(std::vector<aim_deps::Light> lightPossibles){
+    float e1, e2;
+    e1 = armorError(lightPossibles[0].box, lightPossibles[1].box);
+    e2 = noArmorError(lightPossibles[0].box, lightPossibles[1].box);
+    return e1 < e2 ? e1 : e2;
+}
+
+float CarMatch::threeLight(std::vector<aim_deps::Light> lightPossibles){
+    float e1, e2;
+    e1 = armorError(lightPossibles[0].box, lightPossibles[1].box);
+    e1 += noArmorError(lightPossibles[1].box, lightPossibles[2].box);
+    e2 = armorError(lightPossibles[1].box, lightPossibles[2].box);
+    e2 += noArmorError(lightPossibles[0].box, lightPossibles[1].box);
+    return e1 < e2 ? e1 : e2;
+}
+
+float CarMatch::fourLight(std::vector<aim_deps::Light> lightPossibles){
+    float e1, e2;
+    e1 = armorError(lightPossibles[0].box, lightPossibles[1].box);
+    e1 += noArmorError(lightPossibles[1].box, lightPossibles[2].box);
+    e1 += armorError(lightPossibles[2].box, lightPossibles[3].box);
+    e2 = armorError(lightPossibles[0].box, lightPossibles[1].box);
+    e2 += noArmorError(lightPossibles[1].box, lightPossibles[2].box);
+    e2 += armorError(lightPossibles[2].box, lightPossibles[3].box);
+    return e1 < e2 ? e1 : e2;
 }
 
 bool CarMatch::constraint(int i){
