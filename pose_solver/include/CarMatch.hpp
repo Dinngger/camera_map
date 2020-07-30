@@ -14,12 +14,8 @@
 struct CarPossible
 {
     bool first;
-    float error;
     std::vector<aim_deps::Light> lightPossibles;
-};
 
-struct CarError
-{
     bool isOneLight = false;
     int nLight;
     float sumError;
@@ -30,10 +26,10 @@ struct CarError
     float solidError = 0.0;
 };
 
-struct CarsError
+struct CarsPossible
 {
     float carsErrorValue = 0.0;
-    std::vector<CarError> carsError;
+    std::vector<CarPossible> carsPossible;
 };
 
 class CarMatch
@@ -44,9 +40,9 @@ private:
     std::vector<std::vector<aim_deps::Light>> divideClass;
     std::vector<cv::Point> matches;
     cv::Point2f points[4];
-    std::vector<CarsError> divisionError;
     cv::Mat src;
 
+private:
     void clear();
     bool constraint(int i);
     void backTrack(int t, std::vector<aim_deps::Light> &Lights);
@@ -56,22 +52,24 @@ private:
 
     float getRatio(float l1, float l2);
     float getArmorPlate(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2);
-
-    void armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2, CarError &carError, bool firstArmor);
-    void noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2, CarError &carError, bool firstNoArmor, int lefthigh);
-    CarError oneLight(std::vector<aim_deps::Light> lightPossibles);
-    CarError twoLight(std::vector<aim_deps::Light> lightPossibles);
-    CarError threeLight(std::vector<aim_deps::Light> lightPossibles);
-    CarError fourLight(std::vector<aim_deps::Light> lightPossibles);
+    void armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2, CarPossible &carError, bool firstArmor);
+    void noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2, CarPossible &carError, bool firstNoArmor, int lefthigh);
+    float oneLight(CarPossible &carPossible);
+    float twoLight(CarPossible &carPossible);
+    float threeLight(CarPossible &carPossible);
+    float fourLight(CarPossible &carPossible);
     void calError();
     void printError();
     void drawCar(const std::vector<aim_deps::Light> &lightPossibles);
     void sortErrors();
-    bool isE1more(CarError &e1, CarError &e2);
-    float sumError(CarError &error);
+    bool isE1more(CarPossible &e1, CarPossible &e2);
+    float sumError(CarPossible &error);
+    void setError(CarPossible &carPossible, const CarPossible &e, bool first);
 
 public:
-    std::vector<std::vector<CarPossible>> division;
+    std::vector<CarsPossible> division;
+
+public:
     void runMatch(std::vector<aim_deps::Light> &Lights);
     void getImage(cv::Mat img);
     void printCars();
