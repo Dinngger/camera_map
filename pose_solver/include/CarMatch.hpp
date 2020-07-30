@@ -24,6 +24,8 @@ class CarMatch{
         std::vector<cv::Point> matches;
         cv::Point2f points[4];
         std::vector<float> errors;
+        std::vector<float> carErrors;
+        cv::Mat src;
         void clear();
         bool constraint(int i);
         void backTrack(int t, std::vector<aim_deps::Light>& Lights);
@@ -41,9 +43,11 @@ class CarMatch{
         float fourLight(std::vector<aim_deps::Light> lightPossibles);
         void calError();
         void printError();
+        void drawCar(const std::vector<aim_deps::Light> &lightPossibles);
     public:
         std::vector<std::vector<CarPossible>> division;
         void runMatch(std::vector<aim_deps::Light>& Lights);
+        void getImage(cv::Mat img);
         void printCars();
         void printDivision();
 };

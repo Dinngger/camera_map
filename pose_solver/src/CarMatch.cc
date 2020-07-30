@@ -22,26 +22,45 @@ void CarMatch::runMatch(std::vector<aim_deps::Light>& Lights){
     printError();
 }
 
+void CarMatch::getImage(cv::Mat img){
+    src = img;
+}
+
+void CarMatch::drawCar(const std::vector<aim_deps::Light> &lightPossibles){
+    cv::Mat src2 = src.clone();
+    for (size_t k = 0; k < lightPossibles.size(); ++k){
+        cv::line(src2, lightPossibles[k].box.vex[0], lightPossibles[k].box.vex[1], cv::Scalar(0, 255, 0), 3);
+    }
+    cv::imshow("carError", src2);
+    char key = cv::waitKey(0);
+}
+
 void CarMatch::calError(){
+    float ierror, carError;
     for (size_t i=0;i<division.size();i++){
-        float ierror = 0.0;
+        ierror = 0.0;
         for (size_t j=0;j<division[i].size();j++){
+            carError = 0.0;
             switch(division[i][j].lightPossibles.size()){
                 case 1:
-                    ierror += oneLight();
+                    carError = oneLight();
                     break;
                 case 2:
-                    ierror += twoLight(division[i][j].lightPossibles);
+                    carError = twoLight(division[i][j].lightPossibles);
                     break;
                 case 3:
-                    ierror += threeLight(division[i][j].lightPossibles);
+                    carError = threeLight(division[i][j].lightPossibles);
                     break;
                 case 4:
-                    ierror += fourLight(division[i][j].lightPossibles);
+                    carError = fourLight(division[i][j].lightPossibles);
                     break;
                 default :
                     std::cout<<"======================================\n";
             }
+            drawCar(division[i][j].lightPossibles);
+            std::cout<<"carError: "<<carError<<std::endl;
+            carErrors.push_back(carError);
+            ierror += carError;
         }
         errors.push_back(ierror);
     }
@@ -111,6 +130,7 @@ float CarMatch::threeLight(std::vector<aim_deps::Light> lightPossibles){
     e1 += noArmorError(lightPossibles[1].box, lightPossibles[2].box);
     e2 = armorError(lightPossibles[1].box, lightPossibles[2].box);
     e2 += noArmorError(lightPossibles[0].box, lightPossibles[1].box);
+
     return e1 < e2 ? e1 : e2;
 }
 

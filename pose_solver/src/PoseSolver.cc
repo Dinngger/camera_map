@@ -33,6 +33,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
+    carMatch.getImage(frame.clone());
     carMatch.runMatch(match.possibles);
     // carMatch.printDivision();
 
