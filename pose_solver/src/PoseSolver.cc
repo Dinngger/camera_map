@@ -37,6 +37,10 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     carMatch.runMatch(match.possibles);
     // carMatch.printDivision();
 
+    // for (const aim_deps::Light& light : match.possibles){
+    //     std::cout<<"index="<<light.index<<", angle="<<light.box.angle<<std::endl;
+    // }
+
     for (const aim_deps::Armor& armor : tar_list) {
         if (armor.valid) {
             match.possibles[armor.left_light.index].isLeft = 0;
