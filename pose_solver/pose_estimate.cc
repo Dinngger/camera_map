@@ -1,5 +1,5 @@
-// #define SHOW_FRAME
-// #define SHOW_MODULE
+#define SHOW_FRAME
+#define SHOW_MODULE
 
 #include "PoseSolver.hpp"
 
@@ -15,6 +15,7 @@ int main(int argc, char* argv[])
                                 0, 1778.59375346543, 540,
                                 0, 0, 1);
     PoseSolver ps(K);
+    CarMatch carMatch;
 
 #ifdef SHOW_MODULE
     Viewer *viewer = new Viewer("main", K(0, 0), K(1, 1));
@@ -60,9 +61,10 @@ int main(int argc, char* argv[])
 #ifdef SHOW_FRAME
         ps.draw(frame);
         cv::imshow("disp", frame);
-        char key = cv::waitKey(0);
-        if(key==27)
-            break;
+        carMatch.runMatch(ps.match.possibles, frame);
+        // char key = cv::waitKey(0);
+        // if(key==27)
+        //     break;
 #endif
 	}
 #ifdef SHOW_FRAME

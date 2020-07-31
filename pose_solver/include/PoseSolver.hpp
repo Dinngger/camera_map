@@ -24,11 +24,10 @@ private:
     cv::Matx<double, 3, 3> K;
     CarModule module;
     ArmorPlate amp;
-    LightMatch match;
     GetPos pos_getter;                     /// PNP解算模块
-    CarMatch carMatch;
     std::vector<LightBarP> match_result;
 public:
+    LightMatch match;
     PoseSolver(cv::Matx<double, 3, 3> &K);
     int run(const cv::Mat &frame, double time);
     int getTwcs(std::vector<cv::Mat> &Twcs);

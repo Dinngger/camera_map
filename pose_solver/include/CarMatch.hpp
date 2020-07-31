@@ -18,18 +18,18 @@ struct CarPossible
 
     bool isOneLight = false;
     int nLight;
-    float sumError=0.0;
-    float armor1RatioError = 0.0, armor1DiffAngleError = 0.0, armor1HeightError = 0.0, armor1CenterAngleError=0.0, armor1LenRatioError = 0.0; // 第一个装甲板的数据
-    float armor2RatioError = 0.0, armor2DiffAngleError = 0.0, armor2HeightError = 0.0, armor2CenterAngleError=0.0, armor2LenRatioError = 0.0;
-    float noArmor1RatioError = 0.0, noArmor1HeightError = 0.0, noArmor1CenterAngleError=0.0, noArmor1LenRatioError = 0.0;
-    float noArmor2RatioError = 0.0, noArmor2HeightError = 0.0, noArmor2CenterAngleError=0.0, noArmor2LenRatioError = 0.0;
+    float sumError = 0.0;
+    float armor1RatioError = 0.0, armor1DiffAngleError = 0.0, armor1HeightError = 0.0, armor1CenterAngleError = 0.0, armor1LenRatioError = 0.0; // 第一个装甲板的数据
+    float armor2RatioError = 0.0, armor2DiffAngleError = 0.0, armor2HeightError = 0.0, armor2CenterAngleError = 0.0, armor2LenRatioError = 0.0;
+    float noArmor1RatioError = 0.0, noArmor1HeightError = 0.0, noArmor1CenterAngleError = 0.0, noArmor1LenRatioError = 0.0;
+    float noArmor2RatioError = 0.0, noArmor2HeightError = 0.0, noArmor2CenterAngleError = 0.0, noArmor2LenRatioError = 0.0;
     float solidError = 0.0;
 };
 
 struct CarsPossible
 {
     float carsErrorValue = 0.0;
-    float betweenError=0.0;
+    float betweenError = 0.0;
     std::vector<CarPossible> carsPossible;
 };
 
@@ -42,6 +42,7 @@ private:
     std::vector<cv::Point> matches;
     cv::Point2f points[4];
     cv::Mat src;
+
 private:
     void clear();
     bool constraint(int i);
@@ -70,12 +71,12 @@ private:
     bool isInTrapezoid(cv::Point2f corners[2], const std::vector<cv::Point2f> &trapezoid);
     bool isArmor(aim_deps::Light &l1, aim_deps::Light &l2);
     void getTrapezoids(const cv::Point2f corners[2], std::vector<std::vector<cv::Point2f>> &trapezoid);
+
 public:
     std::vector<CarsPossible> division;
 
 public:
-    void runMatch(std::vector<aim_deps::Light> &Lights);
-    void getImage(cv::Mat img);
+    void runMatch(std::vector<aim_deps::Light> &Lights, cv::Mat img);
     void printCars();
     void printDivision();
 };

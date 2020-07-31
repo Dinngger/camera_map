@@ -13,9 +13,10 @@ void CarMatch::clear()
     division.clear();
 }
 
-void CarMatch::runMatch(std::vector<aim_deps::Light> &Lights)
+void CarMatch::runMatch(std::vector<aim_deps::Light> &Lights, cv::Mat img)
 {
     std::cout << "match.possibles.size: " << Lights.size() << std::endl;
+    src = img;
     clear();
     backTrack(0, Lights);
     sortLight();
@@ -45,7 +46,7 @@ void CarMatch::sortErrors()
     int cnt = 0;
     for (auto i : sort_indexes(division))
     {
-        if (cnt > 5)
+        if (cnt > 0)
             break;
         std::cout << "division[i].carsErrorValue=" << division[i].carsErrorValue << std::endl;
         std::cout << "division[i].betweenError=" << division[i].betweenError << std::endl;
@@ -95,22 +96,20 @@ void CarMatch::sortErrors()
     }
 }
 
-void CarMatch::getImage(cv::Mat img)
-{
-    src = img;
-}
-
 void CarMatch::drawCar(const std::vector<aim_deps::Light> &lightPossibles)
 {
-    cv::Mat src2 = src.clone();
-    // for (size_t k = 0; k < lightPossibles.size(); ++k)
-    // {
-    //     cv::line(src2, lightPossibles[k].box.vex[0], lightPossibles[k].box.vex[1], cv::Scalar(0, 255, 0), 3);
-    // }
-    cv::imshow("carPossible", src2);
-    cv::waitKey(0);
-    // if (carPossibles.back()<500 && lightPossibles.size() == 4) cv::waitKey(0);
-    // else cv::waitKey(1);
+    if (lightPossibles.size() > 1)
+    {
+        cv::Mat src2 = src.clone();
+        for (size_t k = 0; k < lightPossibles.size(); ++k)
+        {
+            cv::line(src2, lightPossibles[k].box.vex[0], lightPossibles[k].box.vex[1], cv::Scalar(0, 0, 255), 3);
+        }
+        cv::imshow("carPossible", src2);
+        cv::waitKey(0);
+        // if (carPossibles.back()<500 && lightPossibles.size() == 4) cv::waitKey(0);
+        // else cv::waitKey(1);
+    }
 }
 
 void CarMatch::calError()
@@ -288,10 +287,11 @@ void CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox
 
     cv::Point2f vertical = (b1.center - b2.center);
     float centerAngleError;
-    float angle = fabs(atan(vertical.y / vertical.x))/3.1415926*180;
+    float angle = fabs(atan(vertical.y / vertical.x)) / 3.1415926 * 180;
     if (angle > 70)
         centerAngleError = 1000000;
-    else centerAngleError = 0;
+    else
+        centerAngleError = 0;
     float heightError = fabs(b1.center.y - b2.center.y);
     heightError = heightError * heightError * 10;
     if (heightError > 10000)
@@ -348,10 +348,11 @@ void CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightB
     // }
     cv::Point2f vertical = (b1.center - b2.center);
     float centerAngleError;
-    float angle = fabs(atan(vertical.y / vertical.x))/3.1415926*180;
+    float angle = fabs(atan(vertical.y / vertical.x)) / 3.1415926 * 180;
     if (angle > 70)
         centerAngleError = 1000000;
-    else centerAngleError = 0;
+    else
+        centerAngleError = 0;
 
     float heightError = 0.0;
     switch (lefthigh)
