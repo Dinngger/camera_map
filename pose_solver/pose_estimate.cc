@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 #define path0 "/home/dinger/mine/Dataset/videos/cv_output1.avi"
 #define path1 "/mine/cv_output1.avi"
 #define path2 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
-#define path3 "/home/sentinel/videos/cv_output3.avi"
+#define path3 "/home/allegray/videos/multi_test1.avi"
     cv::VideoCapture cap(path3);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
         if(!isLowExposure(frame))
             continue;
         count++;
-        // if(w<105) continue;
+        // if(w<164) continue;
         ps.run(frame, count);
 
 #ifdef SHOW_MODULE
@@ -62,9 +62,9 @@ int main(int argc, char* argv[])
         ps.draw(frame);
         cv::imshow("disp", frame);
         carMatch.runMatch(ps.match.possibles, frame);
-        // char key = cv::waitKey(0);
-        // if(key==27)
-        //     break;
+        char key = cv::waitKey(0);
+        if(key==27)
+            break;
 #endif
 	}
 #ifdef SHOW_FRAME

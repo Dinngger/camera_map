@@ -161,11 +161,29 @@ bool CarMatch::overlap(const CarPossible &carPossible1, const CarPossible &carPo
     }
     car2MeanHeight /= carPossible2.lightPossibles.size();
     car2MeanLen /= carPossible2.lightPossibles.size();
+    float car1Left, car1Right, car2Left, car2Right;
+    if (carPossible1.lightPossibles.size() == 1)
+    {
+        car1Left = std::min(carPossible1.lightPossibles[0].box.vex[0].x, carPossible1.lightPossibles[0].box.vex[1].x);
+        car1Right = std::max(carPossible1.lightPossibles.back().box.vex[0].x, carPossible1.lightPossibles.back().box.vex[1].x);
+        car2Left = carPossible2.lightPossibles[1].box.center.x;
+        car2Right = carPossible2.lightPossibles.end()[-2].box.center.x;
+    }
+    else if (carPossible2.lightPossibles.size() == 1)
+    {
+        car1Left = carPossible1.lightPossibles[1].box.center.x;
+        car1Right = carPossible1.lightPossibles.end()[-2].box.center.x;
+        car2Left = std::min(carPossible2.lightPossibles[0].box.vex[0].x, carPossible2.lightPossibles[0].box.vex[1].x);
+        car2Right = std::max(carPossible2.lightPossibles.back().box.vex[0].x, carPossible2.lightPossibles.back().box.vex[1].x);
+    }
+    else
+    {
+        car1Left = carPossible1.lightPossibles[0].box.center.x;
+        car1Right = carPossible1.lightPossibles.back().box.center.x;
+        car2Left = carPossible2.lightPossibles[0].box.center.x;
+        car2Right = carPossible2.lightPossibles.back().box.center.x;
+    }
 
-    float car1Left = carPossible1.lightPossibles[0].box.center.x,
-          car1Right = carPossible1.lightPossibles.back().box.center.x,
-          car2Left = carPossible2.lightPossibles[0].box.center.x,
-          car2Right = carPossible2.lightPossibles.back().box.center.x;
     // std::cout<<"car1Left="<<car1Left<<", car1Right="<<car1Right<<", car2Left="<<car2Left<<", car2Right="<<car2Right<<std::endl;
 
     float diffH = fabs(car1MeanHeight - car2MeanHeight) / ((car1MeanLen < car2MeanLen) ? car1MeanLen : car2MeanLen);
