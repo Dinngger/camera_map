@@ -30,6 +30,7 @@ struct CarsPossible
 {
     float carsErrorValue = 0.0;
     float betweenError = 0.0;
+    int nCar = 0;
     std::vector<CarPossible> carsPossible;
 };
 

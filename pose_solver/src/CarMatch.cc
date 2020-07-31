@@ -137,10 +137,11 @@ void CarMatch::calError()
             default:
                 std::cout << "======================================\n";
             }
-            division[i].betweenError = betweenError(division[i]);
-            carError += division[i].betweenError;
             division[i].carsErrorValue += carError;
         }
+        division[i].betweenError = betweenError(division[i]);
+        division[i].carsErrorValue += division[i].betweenError;
+        division[i].nCar = division[i].carsPossible.size();
     }
 }
 
