@@ -186,9 +186,22 @@ bool CarMatch::overlap(const CarPossible &carPossible1, const CarPossible &carPo
     }
 
     // std::cout<<"car1Left="<<car1Left<<", car1Right="<<car1Right<<", car2Left="<<car2Left<<", car2Right="<<car2Right<<std::endl;
-
-    float diffH = fabs(car1MeanHeight - car2MeanHeight) / ((car1MeanLen < car2MeanLen) ? car1MeanLen : car2MeanLen);
-    if (diffH * diffH * 10 < 5)
+    if (carPossible1.lightPossibles.size() == 1 || carPossible2.lightPossibles.size() == 1)
+    {
+        float diffH = fabs(car1MeanHeight - car2MeanHeight) / ((car1MeanLen < car2MeanLen) ? car1MeanLen : car2MeanLen);
+        if (diffH * diffH * 10 < 5)
+        {
+            if ((car1Left < car2Right && car1Left > car2Left && car1Right > car2Right) || (car1Right > car2Left && car1Left < car2Left && car1Right < car2Right))
+            {
+                return true;
+            }
+            if ((car1Left < car2Left && car1Right > car2Right) || (car2Left < car1Left && car2Right > car1Right))
+            {
+                return true;
+            }
+        }
+    }
+    else if (fabs(car1MeanHeight - car2MeanHeight) < 50)
     {
         if ((car1Left < car2Right && car1Left > car2Left && car1Right > car2Right) || (car1Right > car2Left && car1Left < car2Left && car1Right < car2Right))
         {
