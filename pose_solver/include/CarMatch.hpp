@@ -24,6 +24,9 @@ struct CarPossible
     float noArmor1RatioError = 0.0, noArmor1HeightError = 0.0, noArmor1CenterAngleError = 0.0, noArmor1LenRatioError = 0.0;
     float noArmor2RatioError = 0.0, noArmor2HeightError = 0.0, noArmor2CenterAngleError = 0.0, noArmor2LenRatioError = 0.0;
     float solidError = 0.0;
+    float betweenFourError = 0.0;
+    float threeLightAngleRatio = 0.0, fourLightAngleRatio = 0.0;
+    float biasError = 1000.0;
 };
 
 struct CarsPossible
@@ -52,14 +55,15 @@ private:
     void sortLight();
     void divisionLoad();
 
-    float getRatio(float l1, float l2);
-    float getArmorPlate(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2);
-    void armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2, CarPossible &carError, bool firstArmor);
-    void noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2, CarPossible &carError, bool firstNoArmor, int lefthigh);
+    float getRatio(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2);
+    void armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2, CarPossible &carError, bool firstArmor, int nlgt);
+    void noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2, CarPossible &carError, bool firstNoArmor, int leftSingle, int nlgt);
     float oneLight(CarPossible &carPossible);
     float twoLight(CarPossible &carPossible);
     float threeLight(CarPossible &carPossible);
     float fourLight(CarPossible &carPossible);
+    void betweenFourLightError(const CarPossible &carPossible, CarPossible &e);
+    void fourLightAngleRatio(const CarPossible &carPossible, CarPossible &e, int ne);
     void calError();
     void printError();
     void drawCar(const std::vector<aim_deps::Light> &lightPossibles);

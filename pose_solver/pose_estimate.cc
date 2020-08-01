@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
         if(!isLowExposure(frame))
             continue;
         count++;
-        if(w<335) continue;
+        // if(w<325) continue;
         ps.run(frame, count);
 
 #ifdef SHOW_MODULE
