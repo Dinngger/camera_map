@@ -275,11 +275,11 @@ float CarMatch::betweenError(CarsPossible &carsPossible)
             if (carsPossible.carsPossible[i].lightPossibles.size() == 1 && carsPossible.carsPossible[j].lightPossibles.size() == 1)
             {
                 if (isArmor(carsPossible.carsPossible[i].lightPossibles[0], carsPossible.carsPossible[j].lightPossibles[0]))
-                    return 1500000;
+                    return 150000000;
             }
             if (overlap(carsPossible.carsPossible[i], carsPossible.carsPossible[j]))
             {
-                return 1400000;
+                return 140000000;
             }
         }
     }
@@ -303,13 +303,13 @@ void CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox
     float centerAngleError;
     float angle = fabs(atan(vertical.y / vertical.x)) / 3.1415926 * 180;
     if (angle > 40)
-        centerAngleError = 1200000;
+        centerAngleError = 120000000;
     else
         centerAngleError = 0;
     float heightError = fabs(b1.center.y - b2.center.y);
     heightError = heightError * heightError * 10;
     if (heightError > 9000)
-        heightError = 1100000;
+        heightError = 110000000;
 
     float lenRatioError = (b1.length < b2.length ? b2.length / b1.length : b1.length / b2.length);
     lenRatioError = lenRatioError * lenRatioError * 10;
@@ -325,7 +325,7 @@ void CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox
     float ratio = getRatio(b1, b2);
     float ratioError = 0.0;
     if (ratio > 20)
-        ratioError = 18000000;
+        ratioError = 180000000;
     // if (ratio < 19.36 && ratio > 14.44)
     //     ratioError = fabs(ratio - 0.0);
     // else
@@ -366,7 +366,7 @@ void CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightB
     float centerAngleError;
     float angle = fabs(atan(vertical.y / vertical.x)) / 3.1415926 * 180;
     if (angle > 40)
-        centerAngleError = 1300000;
+        centerAngleError = 130000000;
     else
         centerAngleError = 0;
     float heightError = 0.0;
@@ -404,12 +404,12 @@ void CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightB
     }
     heightError = heightError * heightError;
     if (heightError > 1500)
-        heightError = 1700000;
+        heightError = 170000000;
 
     float ratio = getRatio(b1, b2);
     float ratioError = 0.0;
-    if (ratio > 35)
-        ratioError = 18000000;
+    if (ratio > 45)
+        ratioError = 180000;
     if (firstNoArmor)
     {
         carPossible.noArmor1HeightError = heightError;
@@ -650,7 +650,7 @@ void CarMatch::betweenFourLightError(const CarPossible &carPossible, CarPossible
     float diffH2 = carPossible.lightPossibles[3].box.center.y - carPossible.lightPossibles[2].box.center.y;
     if (fabs(diffH1) > 15 || fabs(diffH2) > 15)
         if (diffH1 * diffH2 < 0)
-            e.betweenFourError = 1600000;
+            e.betweenFourError = 160000000;
 }
 
 bool CarMatch::constraint(int i)
