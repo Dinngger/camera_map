@@ -33,9 +33,11 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
+    carMatch.runMatch(match.possibles);
     for (const aim_deps::Light& light : match.possibles){
         std::cout<<"index="<<light.index<<", angle="<<light.box.angle<<", len="<<light.box.length<<", center="<<light.box.center<<", upvex="<<light.box.vex[0]<<", downvex="<<light.box.vex[1]<<std::endl;
     }
+
     for (size_t i=0;i<match.possibles.size();i++){
         for (size_t j=i+1;j<match.possibles.size();j++){
             float dist = aim_deps::getPointDist(match.possibles[i].box.center, match.possibles[j].box.center);

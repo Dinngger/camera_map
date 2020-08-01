@@ -25,6 +25,7 @@ private:
     CarModule module;
     ArmorPlate amp;
     GetPos pos_getter;                     /// PNP解算模块
+    CarMatch carMatch;
     std::vector<LightBarP> match_result;
 public:
     LightMatch match;

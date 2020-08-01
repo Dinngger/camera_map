@@ -45,7 +45,6 @@ private:
     std::vector<std::vector<aim_deps::Light>> divideClass;
     std::vector<cv::Point> matches;
     cv::Point2f points[4];
-    cv::Mat src;
 
 private:
     void clear();
@@ -66,7 +65,6 @@ private:
     void fourLightAngleRatio(const CarPossible &carPossible, CarPossible &e, int ne);
     void calError();
     void printError();
-    void drawCar(const std::vector<aim_deps::Light> &lightPossibles);
     void sortErrors();
     bool isE1more(CarPossible &e1, CarPossible &e2);
     float sumError(CarPossible &error);
@@ -81,7 +79,7 @@ public:
     std::vector<CarsPossible> division;
 
 public:
-    void runMatch(std::vector<aim_deps::Light> &Lights, cv::Mat img);
+    void runMatch(std::vector<aim_deps::Light> &Lights);
     void printCars();
     void printDivision();
 };

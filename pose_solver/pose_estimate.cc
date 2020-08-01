@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
                                 0, 1778.59375346543, 540,
                                 0, 0, 1);
     PoseSolver ps(K);
-    CarMatch carMatch;
+
 
 #ifdef SHOW_MODULE
     Viewer *viewer = new Viewer("main", K(0, 0), K(1, 1));
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
         if(!isLowExposure(frame))
             continue;
         count++;
-        // if(w<105) continue;
+        // if(w<775) continue;
         ps.run(frame, count);
 
 #ifdef SHOW_MODULE
@@ -62,10 +62,9 @@ int main(int argc, char* argv[])
 #ifdef SHOW_FRAME
         ps.draw(frame);
         cv::imshow("disp", frame);
-        carMatch.runMatch(ps.match.possibles, frame);
-        // char key = cv::waitKey(0);
-        // if(key==27)
-        //     break;
+        char key = cv::waitKey(0);
+        if(key==27)
+            break;
 #endif
 	}
 #ifdef SHOW_FRAME

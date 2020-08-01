@@ -13,10 +13,9 @@ void CarMatch::clear()
     division.clear();
 }
 
-void CarMatch::runMatch(std::vector<aim_deps::Light> &Lights, cv::Mat img)
+void CarMatch::runMatch(std::vector<aim_deps::Light> &Lights)
 {
     std::cout << "match.possibles.size: " << Lights.size() << std::endl;
-    src = img;
     clear();
     backTrack(0, Lights);
     sortLight();
@@ -92,25 +91,8 @@ void CarMatch::sortErrors()
             car1MeanHeight /= division[i].carsPossible[j].lightPossibles.size();
             std::cout << "carMeanHeight=" << car1MeanHeight << std::endl;
             std::cout << "carMeanLen=" << car1MeanLen << std::endl;
-            drawCar(division[i].carsPossible[j].lightPossibles);
         }
         cnt++;
-    }
-}
-
-void CarMatch::drawCar(const std::vector<aim_deps::Light> &lightPossibles)
-{
-    if (lightPossibles.size() > 1)
-    {
-        cv::Mat src2 = src.clone();
-        for (size_t k = 0; k < lightPossibles.size(); ++k)
-        {
-            cv::line(src2, lightPossibles[k].box.vex[0], lightPossibles[k].box.vex[1], cv::Scalar(0, 0, 255), 3);
-        }
-        cv::imshow("carPossible", src2);
-        cv::waitKey(0);
-        // if (carPossibles.back()<500 && lightPossibles.size() == 4) cv::waitKey(0);
-        // else cv::waitKey(1);
     }
 }
 
@@ -272,11 +254,11 @@ float CarMatch::betweenError(CarsPossible &carsPossible)
     {
         for (size_t j = i + 1; j < carsPossible.carsPossible.size(); j++)
         {
-            if (carsPossible.carsPossible[i].lightPossibles.size() == 1 && carsPossible.carsPossible[j].lightPossibles.size() == 1)
-            {
-                if (isArmor(carsPossible.carsPossible[i].lightPossibles[0], carsPossible.carsPossible[j].lightPossibles[0]))
-                    return 150000000;
-            }
+            // if (carsPossible.carsPossible[i].lightPossibles.size() == 1 && carsPossible.carsPossible[j].lightPossibles.size() == 1)
+            // {
+            //     if (isArmor(carsPossible.carsPossible[i].lightPossibles[0], carsPossible.carsPossible[j].lightPossibles[0]))
+            //         return 150000000;
+            // }
             if (overlap(carsPossible.carsPossible[i], carsPossible.carsPossible[j]))
             {
                 return 140000000;
@@ -409,7 +391,7 @@ void CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightB
     float ratio = getRatio(b1, b2);
     float ratioError = 0.0;
     if (ratio > 45)
-        ratioError = 180000;
+        ratioError = 190000000;
     if (firstNoArmor)
     {
         carPossible.noArmor1HeightError = heightError;
@@ -460,7 +442,7 @@ float CarMatch::sumError(CarPossible &error)
     if (error.nLight == 3)
         errorValue = errorValue / 20;
     if (error.nLight == 4)
-        errorValue = errorValue / 100;
+        errorValue = errorValue / 25;
     error.sumError = errorValue;
     return errorValue;
 }
