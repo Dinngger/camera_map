@@ -4,6 +4,7 @@
 */
 
 #include <set>
+#include <queue>
 #include "CarModule.hpp"
 
 Eigen::Vector2d CarModule::projectPoint(Eigen::Vector3d p3) const
@@ -103,6 +104,50 @@ int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d,
         }
     }
     return num;
+}
+
+// Predict 2d light bar with time, @return number of 2d light bar.
+int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d) const {
+    struct LbpComp {
+        LightBarP lbp;
+        double dist;
+        LbpComp(const LightBarP& _lbp, double _dist) {
+            lbp = _lbp;
+            dist = _dist;
+        }
+        bool operator<(const LbpComp& lbpc) const {
+            return dist > lbpc.dist;
+        }
+    };
+    for (size_t c=0; c < cars.size(); c++) {
+        if (!cars[c].car_valid)
+            continue;
+        std::priority_queue<LbpComp> heap;
+        Eigen::Quaterniond car_r;
+        Eigen::Vector3d car_t;
+        cars[c].predict(time - module_time, car_r, car_t);
+        Eigen::Matrix3d car_R = car_r.matrix();
+        for (size_t i=0; i<4; i++) {
+            Eigen::Matrix3d armor_R = cars[c].armor[i].r.matrix();
+            const Eigen::Vector3d& armor_t = cars[c].armor[i].t;
+            Eigen::Vector3d rotated_armor_point[4];
+            for (size_t j=0; j<4; j++) {
+                rotated_armor_point[j] = car_R * (armor_R * armor_module[j] + armor_t) + car_t;
+            }
+            for (int j=0; j<2; j++) {
+                Eigen::Vector2d point2d[2];
+                point2d[0] = projectPoint(rotated_armor_point[2*j]);
+                point2d[1] = projectPoint(rotated_armor_point[2*j+1]);
+                heap.push(LbpComp(LightBarP(c, i, j, (point2d[0] + point2d[1])/2, (point2d[0] - point2d[1])/2),
+                    (rotated_armor_point[2*j](2) + rotated_armor_point[2*j+1](2))/2));
+            }
+        }
+        for (int i=0; i<6; i++) {
+            predict2d.emplace_back(heap.top().lbp);
+            heap.pop();
+        }
+    }
+    return 0;
 }
 
 int CarModule::add_car(const Armor3d& _armor)

@@ -173,6 +173,7 @@ public:
     int add_car(const Armor3d& _armor);
     int create_predict(double time, std::vector<LightBarP>& predict2d,
                        const std::vector<LightBarP>& found_set) const;
+    int create_predict(double time, std::vector<LightBarP>& predict2d) const;
     int bundleAdjustment(const std::vector<LightBarP> &light_bars,
                          double time);
     void get_lbs(std::vector<cv::Point3d> &lbs) const;
