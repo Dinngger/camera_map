@@ -1,5 +1,5 @@
-#define SHOW_FRAME
-#define SHOW_MODULE
+// #define SHOW_FRAME
+// #define SHOW_MODULE
 
 #include "PoseSolver.hpp"
 
@@ -40,14 +40,15 @@ int main(int argc, char* argv[])
     int count = 0;
     for (int w = 0; w < totalFrameNumber; w++)
     {
-        std::cout << "frame: " << w << "\n";
+        std::cout << "\033[32m" << "frame: " << w << "\n";
+        std::cout << "\033[0m";
         cap.read(frame);
 		if(frame.empty())
             break;
         if(!isLowExposure(frame))
             continue;
         count++;
-        // if(w<775) continue;
+        if(w<3) continue;
         ps.run(frame, count);
 
 #ifdef SHOW_MODULE

@@ -25,7 +25,7 @@ PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K) :
     tar_list.clear();
 }
 
-int PoseSolver::run(const cv::Mat &frame, double time)
+int PoseSolver::run(cv::Mat &frame, double time)
 {
     match.saveImg(frame);
     match.findPossible();
@@ -33,20 +33,24 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
-    carMatch.runMatch(match.possibles);
     for (const aim_deps::Light& light : match.possibles){
         std::cout<<"index="<<light.index<<", angle="<<light.box.angle<<", len="<<light.box.length<<", center="<<light.box.center<<", upvex="<<light.box.vex[0]<<", downvex="<<light.box.vex[1]<<std::endl;
     }
-
     for (size_t i=0;i<match.possibles.size();i++){
         for (size_t j=i+1;j<match.possibles.size();j++){
             float dist = aim_deps::getPointDist(match.possibles[i].box.center, match.possibles[j].box.center);
             // float len = std::max(match.possibles[i].box.length, match.possibles[j].box.length);
             float len = (match.possibles[i].box.length + match.possibles[j].box.length)/2;
+            float diffH = fabs(match.possibles[i].box.center.y - match.possibles[j].box.center.y);
+            cv::Point2f vertical = (match.possibles[i].box.center - match.possibles[j].box.center);
+            float angle = fabs(atan(vertical.y / vertical.x)) / 3.1415926 * 180;
             float ratio = dist/len/len;
-            std::cout<<"i="<<match.possibles[i].index<<", j="<<match.possibles[j].index<<", ratio="<<ratio<<std::endl;
+            float ratioH = diffH/len;
+            std::cout<<"i="<<match.possibles[i].index<<", j="<<match.possibles[j].index<<", ratio="<<ratio<<", ratioH="<<ratioH<<", angle="<<angle<<std::endl;
         }
     }
+    draw(frame);
+    carMatch.runMatch(match.possibles, frame);
 
     for (const aim_deps::Armor& armor : tar_list) {
         if (armor.valid) {
