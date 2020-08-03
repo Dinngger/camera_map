@@ -25,7 +25,7 @@ PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K) :
     tar_list.clear();
 }
 
-int PoseSolver::run(const cv::Mat &frame, double time)
+int PoseSolver::run(cv::Mat &frame, double time)
 {
     match.saveImg(frame);
     match.findPossible();
@@ -33,7 +33,8 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
-    carMatch.runMatch(match.possibles);
+    draw(frame);
+    carMatch.runMatch(match.possibles, frame);
     std::vector<std::vector<LightBarP>> division;
     for (int i=0; i<carMatch.division[0].nCar; i++) {
         division.push_back(std::vector<LightBarP>());

@@ -219,7 +219,8 @@ struct Light
     int index;
     LightBox box;
     int isLeft = -1;           // 用于camera_map优化中，是否为左灯条 0 为左，1为右，否则为未知
-    int carNum;
+    int carNum = -1;
+    int carMatchIndex;
     Light(){
         valid = true;
     }
