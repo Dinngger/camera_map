@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 #define path1 "/mine/cv_output1.avi"
 #define path2 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
 #define path3 "/home/sentinel/videos/cv_output3.avi"
-#define path4 "/home/allegray/videos/multi_test1.avi"
+#define path4 "/home/allegray/videos/disp_low1.avi"
     cv::VideoCapture cap(path4);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
         if(!isLowExposure(frame))
             continue;
         count++;
-        if(w<3) continue;
+        // if(w<57) continue;
         ps.run(frame, count);
 
 #ifdef SHOW_MODULE

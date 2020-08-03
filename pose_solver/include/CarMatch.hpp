@@ -54,8 +54,14 @@ private:
 
 private:
     void clear();
+    void printLightInfo(const std::vector<aim_deps::Light> &Lights);
+    void drawLights(const std::vector<aim_deps::Light> &Lights, cv::Mat &src);
+    void sortLights(std::vector<aim_deps::Light> &Lights);
     void backTrack(int t, std::vector<aim_deps::Light> &Lights);
-    void divisionPush(const std::map<int, CarPossible> &mapCarLights);
+    bool checkTwoLightError(int i);
+    bool checkThreeLightError(int i);
+    bool checkFourLightError(int i);
+    void divisionPush(std::map<int, CarPossible> &mapCarLights);
     int findMaxCarNum();
 
     float getRatio(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2);
