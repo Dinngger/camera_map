@@ -22,6 +22,15 @@ void CarMatch::runMatch(std::vector<aim_deps::Light> &Lights)
     divisionLoad();
     calError();
     sortErrors();
+    int cnt = 0;
+    for (const CarsPossible &cars : division)
+    {
+        if (cnt > 0)
+            break;
+        std::cout << "cnt=" << cnt << std::endl;
+    printCarsError(cars);
+    cnt++;
+    }
     // printError();
 }
 
@@ -33,60 +42,64 @@ void CarMatch::sortError(){
     std::sort(division.begin(), division.end(),compareCarsErrorValue);
 }
 
+void CarMatch::printCarsError(const CarsPossible &cars)
+{
+    std::cout << "cars.nCar=" << cars.nCar << std::endl;
+    std::cout << "cars.carsErrorValue=" << cars.carsErrorValue << std::endl;
+    std::cout << "cars.betweenError=" << cars.betweenError << std::endl;
+    for (size_t j = 0; j < cars.carsPossible.size(); j++)
+    {
+        std::cout << "========================car " << j << "===========================" << std::endl;
+        printCarError(cars.carsPossible[j]);
+    }
+}
+
+void CarMatch::printCarError(const CarPossible &car)
+{
+    std::cout << "sumError=" << car.sumError << std::endl;
+    std::cout << "nLight=" << car.nLight << std::endl;
+    std::cout << "first=" << car.first << std::endl;
+    std::cout << "isOneLight=" << car.isOneLight << std::endl;
+    std::cout << "armor1DiffAngleError=" << car.armor1DiffAngleError << std::endl;
+    std::cout << "armor1CenterAngleError=" << car.armor1CenterAngleError << std::endl;
+    std::cout << "armor1HeightError=" << car.armor1HeightError << std::endl;
+    std::cout << "armor1LenRatioError=" << car.armor1LenRatioError << std::endl;
+    std::cout << "armor1RatioError=" << car.armor1RatioError << std::endl;
+    std::cout << "armor2DiffAngleError=" << car.armor2DiffAngleError << std::endl;
+    std::cout << "armor2CenterAngleError=" << car.armor2CenterAngleError << std::endl;
+    std::cout << "armor2HeightError=" << car.armor2HeightError << std::endl;
+    std::cout << "armor2LenRatioError=" << car.armor2LenRatioError << std::endl;
+    std::cout << "armor2RatioError=" << car.armor2RatioError << std::endl;
+    std::cout << "noArmor1CenterAngleError=" << car.noArmor1CenterAngleError << std::endl;
+    std::cout << "noArmor1HeightError=" << car.noArmor1HeightError << std::endl;
+    std::cout << "noArmor1LenRatioError=" << car.noArmor1LenRatioError << std::endl;
+    std::cout << "noArmor1RatioError=" << car.noArmor1RatioError << std::endl;
+    std::cout << "noArmor2CenterAngleError=" << car.noArmor2CenterAngleError << std::endl;
+    std::cout << "noArmor2HeightError=" << car.noArmor2HeightError << std::endl;
+    std::cout << "noArmor2LenRatioError=" << car.noArmor2LenRatioError << std::endl;
+    std::cout << "noArmor2RatioError=" << car.noArmor2RatioError << std::endl;
+    std::cout << "solidError=" << car.solidError << std::endl;
+    std::cout << "biasError=" << car.biasError << std::endl;
+    std::cout << "threeLightAngleRatio=" << car.threeLightAngleRatio << std::endl;
+    std::cout << "fourLightAngleRatio=" << car.fourLightAngleRatio << std::endl;
+    float car1Left = car.lightPossibles[0].box.center.x,
+          car1Right = car.lightPossibles.back().box.center.x;
+    std::cout << "carLeft=" << car1Left << ", carRight=" << car1Right << std::endl;
+    float car1MeanHeight = 0.0, car1MeanLen = 0.0;
+    for (const aim_deps::Light &light : car.lightPossibles)
+    {
+        car1MeanHeight += light.box.center.y;
+        car1MeanLen += light.box.length;
+    }
+    car1MeanLen /= car.lightPossibles.size();
+    car1MeanHeight /= car.lightPossibles.size();
+    std::cout << "carMeanHeight=" << car1MeanHeight << std::endl;
+    std::cout << "carMeanLen=" << car1MeanLen << std::endl;
+}
+
 void CarMatch::sortErrors()
 {
-    int cnt = 0;
-    for (auto i : sort_indexes(division))
-    {
-        if (cnt > 0)
-            break;
-        std::cout << "division[i].carsErrorValue=" << division[i].carsErrorValue << std::endl;
-        std::cout << "division[i].betweenError=" << division[i].betweenError << std::endl;
-        for (size_t j = 0; j < division[i].carsPossible.size(); j++)
-        {
-            std::cout << "===============division[i][j]=================="
-                      << "cnt=" << cnt << ", i=" << i << ", j=" << j << std::endl;
-            std::cout << "sumError=" << division[i].carsPossible[j].sumError << std::endl;
-            std::cout << "nLight=" << division[i].carsPossible[j].nLight << std::endl;
-            std::cout << "first=" << division[i].carsPossible[j].first << std::endl;
-            std::cout << "isOneLight=" << division[i].carsPossible[j].isOneLight << std::endl;
-            std::cout << "armor1DiffAngleError=" << division[i].carsPossible[j].armor1DiffAngleError << std::endl;
-            std::cout << "armor1CenterAngleError=" << division[i].carsPossible[j].armor1CenterAngleError << std::endl;
-            std::cout << "armor1HeightError=" << division[i].carsPossible[j].armor1HeightError << std::endl;
-            std::cout << "armor1LenRatioError=" << division[i].carsPossible[j].armor1LenRatioError << std::endl;
-            std::cout << "armor1RatioError=" << division[i].carsPossible[j].armor1RatioError << std::endl;
-            std::cout << "armor2DiffAngleError=" << division[i].carsPossible[j].armor2DiffAngleError << std::endl;
-            std::cout << "armor2CenterAngleError=" << division[i].carsPossible[j].armor2CenterAngleError << std::endl;
-            std::cout << "armor2HeightError=" << division[i].carsPossible[j].armor2HeightError << std::endl;
-            std::cout << "armor2LenRatioError=" << division[i].carsPossible[j].armor2LenRatioError << std::endl;
-            std::cout << "armor2RatioError=" << division[i].carsPossible[j].armor2RatioError << std::endl;
-            std::cout << "noArmor1CenterAngleError=" << division[i].carsPossible[j].noArmor1CenterAngleError << std::endl;
-            std::cout << "noArmor1HeightError=" << division[i].carsPossible[j].noArmor1HeightError << std::endl;
-            std::cout << "noArmor1LenRatioError=" << division[i].carsPossible[j].noArmor1LenRatioError << std::endl;
-            std::cout << "noArmor1RatioError=" << division[i].carsPossible[j].noArmor1RatioError << std::endl;
-            std::cout << "noArmor2CenterAngleError=" << division[i].carsPossible[j].noArmor2CenterAngleError << std::endl;
-            std::cout << "noArmor2HeightError=" << division[i].carsPossible[j].noArmor2HeightError << std::endl;
-            std::cout << "noArmor2LenRatioError=" << division[i].carsPossible[j].noArmor2LenRatioError << std::endl;
-            std::cout << "noArmor2RatioError=" << division[i].carsPossible[j].noArmor2RatioError << std::endl;
-            std::cout << "solidError=" << division[i].carsPossible[j].solidError << std::endl;
-            std::cout << "threeLightAngleRatio=" << division[i].carsPossible[j].threeLightAngleRatio << std::endl;
-            std::cout << "fourLightAngleRatio=" << division[i].carsPossible[j].fourLightAngleRatio << std::endl;
-            float car1Left = division[i].carsPossible[j].lightPossibles[0].box.center.x,
-                  car1Right = division[i].carsPossible[j].lightPossibles.back().box.center.x;
-            std::cout << "carLeft=" << car1Left << ", carRight=" << car1Right << std::endl;
-            float car1MeanHeight = 0.0, car1MeanLen = 0.0;
-            for (const aim_deps::Light &light : division[i].carsPossible[j].lightPossibles)
-            {
-                car1MeanHeight += light.box.center.y;
-                car1MeanLen += light.box.length;
-            }
-            car1MeanLen /= division[i].carsPossible[j].lightPossibles.size();
-            car1MeanHeight /= division[i].carsPossible[j].lightPossibles.size();
-            std::cout << "carMeanHeight=" << car1MeanHeight << std::endl;
-            std::cout << "carMeanLen=" << car1MeanLen << std::endl;
-        }
-        cnt++;
-    }
+    std::sort(division.begin(), division.end(), compareCarsErrorValue);
 }
 
 void CarMatch::calError()

@@ -65,7 +65,8 @@ private:
     void betweenFourLightError(const CarPossible &carPossible, CarPossible &e);
     void fourLightAngleRatio(const CarPossible &carPossible, CarPossible &e, int ne);
     void calError();
-    void printError();
+    void printCarError(const CarPossible &car);
+    void printCarsError(const CarsPossible &cars);
     void sortErrors();
     bool isE1more(CarPossible &e1, CarPossible &e2);
     float sumError(CarPossible &error);
