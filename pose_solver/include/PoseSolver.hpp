@@ -30,7 +30,7 @@ private:
 public:
     LightMatch match;
     PoseSolver(cv::Matx<double, 3, 3> &K);
-    int run(cv::Mat &frame, double time);
+    int run(const cv::Mat &frame, double time);
     int getTwcs(std::vector<cv::Mat> &Twcs);
     int draw(cv::Mat &frame);
     int get_lbs(std::vector<cv::Point3d> &lbs);

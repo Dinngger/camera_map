@@ -91,7 +91,7 @@ public:
     std::vector<CarsPossible> division;
 
 public:
-    void runMatch(std::vector<aim_deps::Light> &Lights, cv::Mat &src);
+    void runMatch(std::vector<aim_deps::Light> &Lights);
     void printDivision();
 };
 

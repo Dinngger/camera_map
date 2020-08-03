@@ -1,3 +1,4 @@
+#define DEBUG0
 // #define DEBUG1
 // #define DEBUG2
 
@@ -15,13 +16,13 @@ void CarMatch::clear()
     division.clear();
 }
 
-void CarMatch::runMatch(std::vector<aim_deps::Light> &Lights, cv::Mat &src)
+void CarMatch::runMatch(std::vector<aim_deps::Light> &Lights)
 {
     std::cout << "Lights.size: " << Lights.size() << std::endl;
     clear();
     sortLights(Lights);
     printLightInfo(Lights);
-    drawLights(Lights, src);
+    // drawLights(Lights, src);
     backTrack(0, Lights);
     calError();
     sortErrors();
@@ -29,15 +30,13 @@ void CarMatch::runMatch(std::vector<aim_deps::Light> &Lights, cv::Mat &src)
     int cnt = 0;
     for (const CarsPossible &cars : division)
     {
-#ifndef DEBUG1
-#ifndef DEBUG2
+#ifdef DEBUG0
         if (cnt > 0)
             break;
         std::cout << "cnt=" << cnt << std::endl;
         printCarsError(cars);
-        drawCars(cars, src);
+        // drawCars(cars, src);
         cnt++;
-#endif
 #endif
 #ifdef DEBUG1
         std::cout << "cnt=" << cnt << std::endl;
@@ -127,7 +126,7 @@ bool compareCarsErrorValue(CarsPossible e1, CarsPossible e2)
     return e1.carsErrorValue < e2.carsErrorValue;
 }
 
-void CarMatch::printCarError(const CarPossible &car)
+void CarMatch::sortErrors()
 {
     std::sort(division.begin(), division.end(), compareCarsErrorValue);
 }

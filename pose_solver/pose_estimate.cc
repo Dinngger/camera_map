@@ -1,5 +1,5 @@
-// #define SHOW_FRAME
-// #define SHOW_MODULE
+#define SHOW_FRAME
+#define SHOW_MODULE
 
 #include "PoseSolver.hpp"
 
@@ -16,17 +16,15 @@ int main(int argc, char* argv[])
                                 0, 0, 1);
     PoseSolver ps(K);
 
-
 #ifdef SHOW_MODULE
     Viewer *viewer = new Viewer("main", K(0, 0), K(1, 1));
     std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
 #endif
-#define path0 "/home/dinger/mine/Dataset/videos/cv_output3.avi"
-#define path1 "/mine/cv_output1.avi"
-#define path2 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
-#define path3 "/home/sentinel/videos/cv_output3.avi"
-#define path4 "/home/allegray/videos/disp_low1.avi"
-    cv::VideoCapture cap(path4);
+#define path0 "/home/dinger/mine/Dataset/videos/disp_low1.avi"
+#define path1 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
+#define path2 "/home/sentinel/videos/multi_test1.avi"
+#define path3 "/home/allegray/videos/disp_low1.avi"
+    cv::VideoCapture cap(path0);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;

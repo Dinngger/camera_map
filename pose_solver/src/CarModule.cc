@@ -18,6 +18,8 @@ int CarModule::bundleAdjustment(const std::vector<std::vector<LightBarP>> &divis
 {
     double delta_time = time - module_time;
     for (const std::vector<LightBarP>& car : division) {
+        if (car.size() <= 1)
+            continue;
         int i = car[0].car_id;
         while (i >= (int)cars.size())
             add_car();
