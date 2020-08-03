@@ -1,5 +1,5 @@
 // #define SHOW_FRAME
-#define SHOW_MODULE
+// #define SHOW_MODULE
 
 #include "PoseSolver.hpp"
 
@@ -23,9 +23,9 @@ int main(int argc, char* argv[])
 #define path0 "/home/dinger/mine/Dataset/videos/disp_low1.avi"
 #define path1 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
 #define path2 "/home/sentinel/videos/multi_test1.avi"
-#define path3 "/home/allegray/videos/disp_low1.avi"
+#define path3 "/home/allegray/videos/disp_low2.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
-    cv::VideoCapture cap(path4);
+    cv::VideoCapture cap(path3);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
         if(!isLowExposure(frame))
             continue;
         count++;
-        if(w<975) continue;
+        if(w<409) continue;
         ps.run(frame, w);
 
 #ifdef SHOW_MODULE

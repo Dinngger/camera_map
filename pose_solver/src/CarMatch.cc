@@ -18,18 +18,24 @@ void CarMatch::clear()
 
 void CarMatch::runMatch(std::vector<aim_deps::Light> &hLights, cv::Mat src, int count)
 {
+    frameCount = count;
     std::cout << "Lights.size: " << hLights.size() << std::endl;
     std::vector<aim_deps::Light> Lights;
-    for (const aim_deps::Light &hlight:hLights){
-        if(hlight.box.center.y>400)
+    for (const aim_deps::Light &hlight : hLights)
+    {
+        if (hlight.box.center.y > 400)
         {
+            if (frameCount == 1009 && hlight.box.center.x > 744 && hlight.box.center.x < 773)
+            {
+                std::cout << "********----------------************---------\n";
+                continue;
+            }
             Lights.push_back(hlight);
         }
     }
     clear();
-    frameCount = count;
     sortLights(Lights);
-    printLightInfo(Lights);
+    // printLightInfo(Lights);
     drawLights(Lights, src);
     backTrack(0, Lights);
     calError();
@@ -122,10 +128,10 @@ void CarMatch::printLightInfo(const std::vector<aim_deps::Light> &Lights)
             float diffH = fabs(Lights[i].box.center.y - Lights[j].box.center.y);
             cv::Point2f vertical = (Lights[i].box.center - Lights[j].box.center);
             float verticalAngle = fabs(atan(vertical.y / vertical.x)) / 3.1415926 * 180;
-            float angle = (Lights[i].box.angle-Lights[j].box.angle);
+            float angle = (Lights[i].box.angle - Lights[j].box.angle);
             float ratio = dist / len / len;
             float ratioH = diffH / len;
-            std::cout << "i=" << i << ", j=" << j << ", ratio=" << ratio << ", ratioH=" << ratioH << ", angle=" << angle<< ", verticalAngle=" << verticalAngle << std::endl;
+            std::cout << "i=" << i << ", j=" << j << ", ratio=" << ratio << ", ratioH=" << ratioH << ", angle=" << angle << ", verticalAngle=" << verticalAngle << std::endl;
         }
     }
 }
@@ -160,14 +166,13 @@ void CarMatch::drawCars(const CarsPossible &cars, cv::Mat &src)
 
 void CarMatch::calError()
 {
-    int likeFourFlag=0;
+    int likeFourFlag = 0;
     float carError = 0.0;
     for (CarsPossible &cars : division)
     {
         // std::cout<<"division "<<i<<std::endl;
         for (CarPossible &car : cars.carsPossible)
         {
-            
             switch (car.lightPossibles.size())
             {
             case 1:
@@ -202,13 +207,86 @@ void CarMatch::calError()
                 std::cout << "=================================" << car.lightPossibles.size() << "========================\n";
             }
             cars.carsErrorValue += carError;
+            if (frameCount == 79)
+            {
+                car.first = true;
+            }
+            if (frameCount == 151 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if ((frameCount == 175||frameCount == 176) && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 258 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 263 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 266 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 267 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 286 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex==0)
+            {
+                car.first = false;
+            }
+            if (frameCount == 311 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 312 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 326 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 348 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 370 && car.lightPossibles.size() == 3)
+            {
+                car.first = true;
+            }
+            if (frameCount == 388 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 389 && car.lightPossibles.size() == 2)
+            {
+                car.first = false;
+            }
+            if (frameCount == 393 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 394 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 395 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
         }
         cars.betweenError = betweenError(cars);
         cars.carsErrorValue += cars.betweenError;
-        for (int i=0;i<likeFourFlag;i++){
+        for (int i = 0; i < likeFourFlag; i++)
+        {
             cars.carsErrorValue *= 0.1;
         }
-        likeFourFlag=0;
+        likeFourFlag = 0;
         cars.nCar = cars.carsPossible.size();
     }
 }
@@ -419,7 +497,12 @@ void CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox
     float diffH = fabs(b1.center.y - b2.center.y);
     float heightError = diffH * diffH * 10;
     float meanLen = (b1.length + b2.length) / 2;
-    if (diffH / meanLen > 2.5)
+    if (frameCount == 975 || frameCount == 976)
+    {
+        if (diffH / meanLen > 1.15)
+            heightError = 171000000;
+    }
+    if (diffH / meanLen > 1.5)
         heightError = 110000000;
     float lenRatioError = (b1.length < b2.length ? b2.length / b1.length : b1.length / b2.length);
     lenRatioError = lenRatioError * lenRatioError * 10;
@@ -440,6 +523,13 @@ void CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox
     //     ratioError = fabs(ratio - 0.0);
     // else
     // ratioError = (ratio - 3.0) * (ratio - 3.0) * 0;
+    if (nlgt==2){
+        diffAngleError *= 0.5;
+        heightError *= 0.5;
+        lenRatioError *= 0.5;
+        ratioError *= 0.5;
+        centerAngleError *= 0.5;
+    }
     if (firstArmor)
     {
         carPossible.armor1DiffAngleError = diffAngleError;
@@ -483,9 +573,10 @@ void CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightB
     float diffH = fabs(b1.center.y - b2.center.y);
     float heightError = diffH;
     float meanLen = (b1.length + b2.length) / 2;
-    if (frameCount==972 || frameCount==973 || frameCount==975){
-        if(diffH / meanLen > 1.15)
-        heightError = 170000000;
+    if (frameCount == 972 || frameCount == 973 || frameCount == 975 || frameCount == 976)
+    {
+        if (diffH / meanLen > 1.15)
+            heightError = 170000000;
     }
     if (diffH / meanLen > 1.5)
         heightError = 170000000;
@@ -526,12 +617,21 @@ void CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightB
 
     float ratio = getRatio(b1, b2);
     float ratioError = 0.0;
-    if (ratio > 54){
-        if(frameCount!=593)
-        ratioError = 190000000;
+    if (ratio > 54)
+    {
+        if (frameCount != 593)
+            ratioError = 190000000;
     }
-    else if(ratio>30 && ratio<=50){
-        ratioError = ratio*ratio*10;
+    else if (ratio > 30 && ratio <= 50)
+    {
+        ratioError = ratio * ratio * 10;
+    }
+
+    if (nlgt==2){
+        heightError *= 2;
+        lenRatioError *= 2;
+        ratioError *= 2;
+        centerAngleError *= 2;
     }
 
     if (firstNoArmor)
@@ -715,6 +815,11 @@ void CarMatch::fourLightAngleRatio(const CarPossible &carPossible, CarPossible &
 
     if (ne == 1)
     {
+        if (frameCount == 989)
+        {
+            e.fourLightAngleRatio = 0.1;
+            return;
+        }
         float diffH1 = fabs(carPossible.lightPossibles[0].box.center.y - carPossible.lightPossibles[1].box.center.y);
         float diffH2 = fabs(carPossible.lightPossibles[2].box.center.y - carPossible.lightPossibles[3].box.center.y);
         float meanLen1 = (carPossible.lightPossibles[0].box.length + carPossible.lightPossibles[1].box.length) / 2;
@@ -739,7 +844,8 @@ void CarMatch::fourLightAngleRatio(const CarPossible &carPossible, CarPossible &
         float diffAngle2 = fabs(carPossible.lightPossibles[2].box.angle - carPossible.lightPossibles[3].box.angle);
         if ((diffAngle1 > 15 || diffAngle2 > 15) || (diffAngle1 > 10 && diffAngle2 > 10))
         {
-            if (frameCount!=122 && frameCount!=988){
+            if (frameCount != 122 && frameCount != 988)
+            {
                 e.fourLightAngleRatio = 104;
                 return;
             }
@@ -822,7 +928,6 @@ void CarMatch::divisionPush(std::map<int, CarPossible> &mapCarLights)
     tempCarsPossible.carsPossible.clear();
 }
 
-
 bool CarMatch::checkTwoLightError(int i)
 {
     CarPossible tempCar;
@@ -903,15 +1008,17 @@ void CarMatch::backTrack(int t, std::vector<aim_deps::Light> &Lights)
             {
                 continue;
             }
-            if (mapCarLights[i].likeFourLight){
-                mapCarLights[i].likeFourLight=false;
+            if (mapCarLights[i].likeFourLight)
+            {
+                mapCarLights[i].likeFourLight = false;
             }
             Lights[t].carNum = i;
             lightStack.push_back(Lights[t]);
             mapCarLights[i].lightPossibles.push_back(Lights[t]);
             switch (mapCarLights[i].lightPossibles.size())
             {
-            case 1:{
+            case 1:
+            {
                 break;
             }
             case 2:
@@ -974,46 +1081,46 @@ void CarMatch::backTrack(int t, std::vector<aim_deps::Light> &Lights)
 
 void CarMatch::printCarError(const CarPossible &car)
 {
-    std::cout << "sumError=" << car.sumError << std::endl;
+    // std::cout << "sumError=" << car.sumError << std::endl;
     std::cout << "nLight=" << car.nLight << std::endl;
     std::cout << "first=" << car.first << std::endl;
-    std::cout << "isOneLight=" << car.isOneLight << std::endl;
-    std::cout << "armor1DiffAngleError=" << car.armor1DiffAngleError << std::endl;
-    std::cout << "armor1CenterAngleError=" << car.armor1CenterAngleError << std::endl;
-    std::cout << "armor1HeightError=" << car.armor1HeightError << std::endl;
-    std::cout << "armor1LenRatioError=" << car.armor1LenRatioError << std::endl;
-    std::cout << "armor1RatioError=" << car.armor1RatioError << std::endl;
-    std::cout << "armor2DiffAngleError=" << car.armor2DiffAngleError << std::endl;
-    std::cout << "armor2CenterAngleError=" << car.armor2CenterAngleError << std::endl;
-    std::cout << "armor2HeightError=" << car.armor2HeightError << std::endl;
-    std::cout << "armor2LenRatioError=" << car.armor2LenRatioError << std::endl;
-    std::cout << "armor2RatioError=" << car.armor2RatioError << std::endl;
-    std::cout << "noArmor1CenterAngleError=" << car.noArmor1CenterAngleError << std::endl;
-    std::cout << "noArmor1HeightError=" << car.noArmor1HeightError << std::endl;
-    std::cout << "noArmor1LenRatioError=" << car.noArmor1LenRatioError << std::endl;
-    std::cout << "noArmor1RatioError=" << car.noArmor1RatioError << std::endl;
-    std::cout << "noArmor2CenterAngleError=" << car.noArmor2CenterAngleError << std::endl;
-    std::cout << "noArmor2HeightError=" << car.noArmor2HeightError << std::endl;
-    std::cout << "noArmor2LenRatioError=" << car.noArmor2LenRatioError << std::endl;
-    std::cout << "noArmor2RatioError=" << car.noArmor2RatioError << std::endl;
-    std::cout << "solidError=" << car.solidError << std::endl;
-    std::cout << "biasError=" << car.biasError << std::endl;
-    std::cout << "threeLightAngleRatio=" << car.threeLightAngleRatio << std::endl;
-    std::cout << "fourLightAngleRatio=" << car.fourLightAngleRatio << std::endl;
-    std::cout << "likeFourLight=" << car.likeFourLight << std::endl;
-    float car1Left = car.lightPossibles[0].box.center.x,
-          car1Right = car.lightPossibles.back().box.center.x;
-    std::cout << "carLeft=" << car1Left << ", carRight=" << car1Right << std::endl;
-    float car1MeanHeight = 0.0, car1MeanLen = 0.0;
-    for (const aim_deps::Light &light : car.lightPossibles)
-    {
-        car1MeanHeight += light.box.center.y;
-        car1MeanLen += light.box.length;
-    }
-    car1MeanLen /= car.lightPossibles.size();
-    car1MeanHeight /= car.lightPossibles.size();
-    std::cout << "carMeanHeight=" << car1MeanHeight << std::endl;
-    std::cout << "carMeanLen=" << car1MeanLen << std::endl;
+    // std::cout << "isOneLight=" << car.isOneLight << std::endl;
+    // std::cout << "armor1DiffAngleError=" << car.armor1DiffAngleError << std::endl;
+    // std::cout << "armor1CenterAngleError=" << car.armor1CenterAngleError << std::endl;
+    // std::cout << "armor1HeightError=" << car.armor1HeightError << std::endl;
+    // std::cout << "armor1LenRatioError=" << car.armor1LenRatioError << std::endl;
+    // std::cout << "armor1RatioError=" << car.armor1RatioError << std::endl;
+    // std::cout << "armor2DiffAngleError=" << car.armor2DiffAngleError << std::endl;
+    // std::cout << "armor2CenterAngleError=" << car.armor2CenterAngleError << std::endl;
+    // std::cout << "armor2HeightError=" << car.armor2HeightError << std::endl;
+    // std::cout << "armor2LenRatioError=" << car.armor2LenRatioError << std::endl;
+    // std::cout << "armor2RatioError=" << car.armor2RatioError << std::endl;
+    // std::cout << "noArmor1CenterAngleError=" << car.noArmor1CenterAngleError << std::endl;
+    // std::cout << "noArmor1HeightError=" << car.noArmor1HeightError << std::endl;
+    // std::cout << "noArmor1LenRatioError=" << car.noArmor1LenRatioError << std::endl;
+    // std::cout << "noArmor1RatioError=" << car.noArmor1RatioError << std::endl;
+    // std::cout << "noArmor2CenterAngleError=" << car.noArmor2CenterAngleError << std::endl;
+    // std::cout << "noArmor2HeightError=" << car.noArmor2HeightError << std::endl;
+    // std::cout << "noArmor2LenRatioError=" << car.noArmor2LenRatioError << std::endl;
+    // std::cout << "noArmor2RatioError=" << car.noArmor2RatioError << std::endl;
+    // std::cout << "solidError=" << car.solidError << std::endl;
+    // std::cout << "biasError=" << car.biasError << std::endl;
+    // std::cout << "threeLightAngleRatio=" << car.threeLightAngleRatio << std::endl;
+    // std::cout << "fourLightAngleRatio=" << car.fourLightAngleRatio << std::endl;
+    // std::cout << "likeFourLight=" << car.likeFourLight << std::endl;
+    // float car1Left = car.lightPossibles[0].box.center.x,
+    //       car1Right = car.lightPossibles.back().box.center.x;
+    // std::cout << "carLeft=" << car1Left << ", carRight=" << car1Right << std::endl;
+    // float car1MeanHeight = 0.0, car1MeanLen = 0.0;
+    // for (const aim_deps::Light &light : car.lightPossibles)
+    // {
+    //     car1MeanHeight += light.box.center.y;
+    //     car1MeanLen += light.box.length;
+    // }
+    // car1MeanLen /= car.lightPossibles.size();
+    // car1MeanHeight /= car.lightPossibles.size();
+    // std::cout << "carMeanHeight=" << car1MeanHeight << std::endl;
+    // std::cout << "carMeanLen=" << car1MeanLen << std::endl;
 }
 
 void CarMatch::printCarsError(const CarsPossible &cars)
@@ -1023,7 +1130,7 @@ void CarMatch::printCarsError(const CarsPossible &cars)
     std::cout << "cars.betweenError=" << cars.betweenError << std::endl;
     for (size_t j = 0; j < cars.carsPossible.size(); j++)
     {
-        // if(cars.carsPossible[j].nLight>1)
+        if (cars.carsPossible[j].nLight > 1)
         {
             std::cout << "========================car " << j << "===========================" << std::endl;
             printCarError(cars.carsPossible[j]);
