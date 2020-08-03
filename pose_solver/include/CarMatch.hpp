@@ -35,7 +35,6 @@ struct CarsPossible
 {
     float carsErrorValue = 0.0;
     float betweenError = 0.0;
-    float likeFourRatio = 1.0;
     int nCar = 0;
     std::vector<CarPossible> carsPossible;
 };
@@ -44,6 +43,7 @@ class CarMatch
 {
 private:
     int nCar = 0;
+    int frameCount=0;
     std::map<int, CarPossible> mapCarLights;
     std::vector<aim_deps::Light> lightStack;
     CarPossible tempCarPossible;
@@ -91,7 +91,7 @@ public:
     std::vector<CarsPossible> division;
 
 public:
-    void runMatch(std::vector<aim_deps::Light> &Lights);
+    void runMatch(std::vector<aim_deps::Light> &hLights, cv::Mat src, int count);
     void printDivision();
 };
 
