@@ -34,19 +34,47 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
     carMatch.runMatch(match.possibles);
+    std::vector<std::vector<LightBarP>> division;
     for (int i=0; i<carMatch.division[0].nCar; i++) {
+        division.push_back(std::vector<LightBarP>());
         for (int j=0; j<carMatch.division[0].carsPossible[i].lightPossibles.size(); j++) {
-            carMatch.division[0].carsPossible[i].lightPossibles[j].isLeft = carMatch.division[0].carsPossible[i].first ^ (j % 2);
+            const aim_deps::LightBox &lb = carMatch.division[0].carsPossible[i].lightPossibles[j].box;
+            LightBarP lbp(lb.center, lb.vex[0] - lb.center);
+            lbp.lb_id = carMatch.division[0].carsPossible[i].first ^ (j % 2);
+            division[i].emplace_back(lbp);
         }
     }
 
-    NNSearch search_module;
-    module.create_predict(time, search_module.getTargetLBPs());
+    std::vector<LightBarP> predict2d;
+    module.create_predict(time, predict2d);
 
     std::cout << "\033[33m" << "predict result: ";
-    for (const LightBarP& temp_lbp : search_module.getTargetLBPs())
+    for (const LightBarP& temp_lbp : predict2d)
         std::cout << temp_lbp.car_id << temp_lbp.armor_id << temp_lbp.lb_id << ", ";
     std::cout << "\033[0m\n";
+
+    for (std::vector<LightBarP>& car : division) {
+        for (LightBarP& lbp : car) {
+            double min_dist = 1e5;
+            int min_id = -1;
+            for (size_t j=0; j<predict2d.size(); j++) {
+                if (predict2d[j].lb_id >= 0 && lbp.lb_id >= 0) {
+                    if (lbp.lb_id != predict2d[j].lb_id)
+                        continue;
+                }
+                double dist = (lbp.center - predict2d[j].center).norm();
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    min_id = j;
+                }
+            }
+            if (min_id >= 0) {
+                lbp.car_id = predict2d[min_id].car_id;
+                lbp.armor_id = predict2d[min_id].armor_id;
+                lbp.lb_id = predict2d[min_id].lb_id;
+            }
+        }
+    }
 
     search_module.finishSetTarget();
     search_module.runSearch(match.possibles, 100);
