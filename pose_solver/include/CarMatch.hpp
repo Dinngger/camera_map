@@ -49,6 +49,7 @@ private:
 private:
     void clear();
     bool constraint(int i);
+    void sortError();
     void backTrack(int t, std::vector<aim_deps::Light> &Lights);
     int findMaxCar();
     void sortLight();
