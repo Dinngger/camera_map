@@ -44,6 +44,7 @@ struct LightBarP
     int car_id, armor_id, lb_id;
     Eigen::Vector2d center;
     Eigen::Vector2d p;  // the vector from center to the upper point.
+    LightBarP() {}
     LightBarP(cv::Point2f _center, cv::Point2f _p) :
         car_id(-1),
         armor_id(-1),
@@ -170,11 +171,11 @@ public:
         this->K.transposeInPlace();
         std::cout << "K: \n" << this->K << std::endl;
     }
-    int add_car(const Armor3d& _armor);
+    int add_car();
     int create_predict(double time, std::vector<LightBarP>& predict2d,
                        const std::vector<LightBarP>& found_set) const;
     int create_predict(double time, std::vector<LightBarP>& predict2d) const;
-    int bundleAdjustment(const std::vector<LightBarP> &light_bars,
+    int bundleAdjustment(const std::vector<std::vector<LightBarP>> &division,
                          double time);
     void get_lbs(std::vector<cv::Point3d> &lbs) const;
 };

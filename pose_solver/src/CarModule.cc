@@ -13,27 +13,17 @@ Eigen::Vector2d CarModule::projectPoint(Eigen::Vector3d p3) const
     return Eigen::Vector2d(p3(0), p3(1));
 }
 
-int CarModule::bundleAdjustment(const std::vector<LightBarP> &light_bars,
+int CarModule::bundleAdjustment(const std::vector<std::vector<LightBarP>> &division,
                                 double time)
 {
     double delta_time = time - module_time;
-    if (cars.size() < 1)
-        return 0;
-    std::vector<LightBarP> light_bars_car[cars.size()];
-    for (const LightBarP& point2d : light_bars) {
-        light_bars_car[point2d.car_id].push_back(point2d);
-    }
-    for (size_t i=0; i < cars.size(); i++) {
-        int size = light_bars_car[i].size();
-        // cars[i].car_info = (cars[i].car_info + size) / 2;
+    for (const std::vector<LightBarP>& car : division) {
+        int i = car[0].car_id;
+        while (i >= (int)cars.size())
+            add_car();
         if (!cars[i].car_valid)
             continue;
-        if (size > 0) {
-            cars[i].bundleAdjustment(light_bars_car[i], K, delta_time);
-        } else {
-            std::cout << "\033[41m" << "erase car " << i << "\033[0m\n";
-            cars[i].car_valid = false;
-        }
+        cars[i].bundleAdjustment(car, K, delta_time);
     }
     module_time = time;
     return 0;
@@ -150,11 +140,11 @@ int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d) co
     return 0;
 }
 
-int CarModule::add_car(const Armor3d& _armor)
+int CarModule::add_car()
 {
     Car c;
     c.confidence[0] = 1;
-    c.t = _armor.t + Eigen::Vector3d(0, 0, 0.25);
+    c.t = Eigen::Vector3d(0, 0, 5);
     c.armor[0].t = Eigen::Vector3d(0, 0, -0.25);
     c.armor[0].r = Eigen::Quaterniond(Eigen::AngleAxisd(M_PI / 12, Eigen::Vector3d(-1, 0, 0)));
     Eigen::Quaterniond _r(Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d(0, -1, 0)));
