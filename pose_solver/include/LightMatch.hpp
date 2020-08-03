@@ -10,20 +10,21 @@ last date of modification:2020.4.7
 #ifndef _LIGHT_MATCH_HPP
 #define _LIGHT_MATCH_HPP
 
-#include <opencv2/opencv.hpp>
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <thread>
 #include <mutex>
 #include <algorithm>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 #include "AimDeps.hpp"
 #include "LOG.hpp"
-
-//#define DRAW_CONTOUR					//无需绘制灯条角度优化使用的轮廓点时注释此行
-#define MULTI_THREAD					//非异步调试时请注释此行
-//#define LIGHT_CNT_TIME				//不需要计算灯条处理时间，则注释此行
-//#define LIGHT_MATCH_DEBUG			//无需输出调试信息则注释此行
+//#define DRAW_CONTOUR			// LightMatch   灯条提取模块         绘制灯条角度优化使用的轮廓点
+#define LIGHT_CNT_TIME			// LightMatch   灯条提取模块         计算灯条处理时间
+//#define LIGHT_MATCH_DEBUG		// LightMatch   灯条提取模块         灯条调试信息输出
+//#define MULTI_THREAD			// LightMatch   灯条提取模块    	 灯条提取三线程加速(debug注释)
 #ifdef LIGHT_MATCH_DEBUG
 	#define match_debug rmlog::LOG::printc
 #else
@@ -35,6 +36,7 @@ public:
     LightMatch();
     ~LightMatch();
 	void setEnemyColor(const bool _enemy_blue = false);					//重新设置敌人的颜色
+
 	void findPossible();												//找到图上所有可能的灯条						
 	void drawLights(cv::Mat &src) const;								//绘制灯条
 	void saveImg(const cv::Mat& src){									//图像预处理
@@ -50,8 +52,14 @@ public:
 																
 	//灯条匹配装甲板函数将会使用此配对信息，以及灯条来匹配装甲板							
 	std::vector<cv::Point> matches;										//会配对的数组
-private:							
-	///线程函数	
+private:	
+	/**
+	 * @brief 线程函数，多线程对找到的粗灯条轮廓进行细化处理(3线程并行) 
+	 * @param ct 粗轮廓点集合
+	 * @param start 从下标start开始
+	 * @param step 间隔step个轮廓处理一次
+	 * @param ptr 假设不为空指针 就计算环境亮度的表达式(灯条匹配框面积)
+	 */
 	void contourProcess(const std::vector<std::vector<cv::Point> >& ct, int start, int step);
 
 	void reset();														//重置
@@ -61,8 +69,9 @@ private:
 	 * @param ct 一次阈值化时对应的轮廓
 	 * @param bbox 一次阈值化的bounding box
 	 * @param valid 灯条是否有效
+	 * @return 是否使用二次阈值的方式查找到灯条
 	 */
-	void doubleThresh(const std::vector<cv::Point>& ct, cv::Rect& bbox, bool valid);	//局部阈值化
+	bool doubleThresh(const std::vector<cv::Point>& ct, cv::Rect& bbox, bool valid);	//局部阈值化
 
 	/**
 	 * @brief 灯条预匹配
@@ -73,11 +82,9 @@ private:
 	/**
 	 * @brief 阈值化
 	 * @param dst 输出单通道阈值化后的二值图,尚不明确src = dst会发生什么，尽量避免
-	 * @param thresh 最低阈值
-	 * @param diff_thresh b-r或者r-b的最小阈值
 	 * @note 此阈值化结合了颜色过滤以及阈值化
 	 */
-	void threshold(cv::Mat &dst, int thresh, int diff_thresh = 20) const;
+	void threshold(cv::Mat &dst, int diff_thresh = 20) const;
 
 	void getTrapezoids(const cv::Point2f corners[2]);					//取出灯条拓展梯形
 
@@ -85,10 +92,10 @@ private:
 	 * @brief 角度优化另取一个contour
 	 * @param rec 选区boundingBox
 	 * @param ct 输入/输出 找到的方向轮廓点，用于优化角度
-	 * @param is_small 是否是很小的灯条(默认是正常大小)
 	 * @return 是否有符合要求的方向轮廓集合(yes > true)
 	 */
-	bool getDirection(const cv::Rect &rec, std::vector<cv::Point> &ct, bool is_small = false);
+	bool getDirection(const cv::Rect &rec, std::vector<cv::Point> &ct,
+			const cv::Point2f &center, bool is_small = false);
 
 	/**
 	 * @brief 给面积较大灯条使用的角度优化边缘提取 
@@ -98,12 +105,23 @@ private:
 	 */
 	bool getBigDirection(const cv::Mat &src, std::vector<cv::Point> &ct) const;
 
+	/**
+	 * @brief 当 cts的size大于等于2时，可能出现错误contour错误选取的情况，使用PolygenTest判断中心是否在contour内
+	 * @param cts 轮廓集合
+	 * @param center 灯条中心点
+	 * @return return值为需要选取的轮廓在cts中的下标
+	 */
+	int getTrueContour(const std::vector<std::vector<cv::Point> > &cts,
+			const cv::Point2f &center, const cv::Point &offset);
+
 	static bool isInTrapezoid(cv::Point2f corners[2], 			
 			const std::vector<cv::Point2f> &trapezoid);					//点集是否能被梯形包围
 
+	static void drawRotatedRect(cv::Mat &src, const cv::RotatedRect &rect);
+
 	inline static bool isAngleValid(const aim_deps::LightBox &lb);		//角度是否合适(过滤杂灯条)
 			
-	inline static int getDoubleThresh(const float _a);					//局部阈值化的阈值函数		
+	inline static int getDoubleThresh(float _a);	//局部阈值化的阈值函数		
 
 	/**
 	 * @brief 扩大一个ROI
@@ -118,11 +136,19 @@ private:
 	 * @param contour 灯条轮廓点(根据轮廓点进行优化)
 	 * @param l 灯条
 	 * @param offset 因为轮廓提取根据ROI，丢失了在原图中的位置信息，需要外加位置信息
-	 * @param contain 包络矩形的点集(轮廓点落在包络内才会被计算误差)
 	 * @param weaken_coeff 对角度优化结果进行削弱(angle * weaken_coeff) 默认为1.0
 	 */
 	void readjustAngle(const std::vector<cv::Point>& contour, aim_deps::Light &l,
 			cv::Point offset, double weaken_coeff = 1.0) const;
+
+	/**
+	 * @brief 对于小灯条基于图像灰度的角度优化算法
+	 * @param src 输入灰度图
+	 * @param l 待优化灯条
+	 * @param ofx bbox偏置x
+	 * @param ofy bbox偏置y
+	 */
+	void readjustAngleGray(cv::Mat &src, aim_deps::Light &l, float ofx, float ofy);
 
 	/** 
 	 * @brief 计算误差函数对修正角度的导数
@@ -134,13 +160,14 @@ private:
 	inline static double calcDiff(
 		const cv::Point2f &_vec,
 		const cv::Point2f &ctr,
-		const cv::Point &p);
+		const cv::Point2f &p);
 
 	/** @brief 计算二阶导数  */
+
 	inline static double calcDiff2(
 		const cv::Point2f &_vec,
 		const cv::Point2f &ctr,
-		const cv::Point &p);
+		const cv::Point2f &p);
 
 	inline static double safeCast(double angle){
 		while(angle < -2 * CV_PI){
@@ -164,14 +191,23 @@ private:
 		return c1.size() > c2.size();
 	}
 
+	/// 判断bbox 是否合格：高 - 宽是否异常
+	/// 当bbox越小时 高 - 宽的差阈值越小（噪声很容易对小bbox造成影响）
+	inline static bool isGoodBoundingBox(const cv::Rect &rect);
 private:
 	#ifdef LIGHT_CNT_TIME														
 		double time_sum;
 		int cnt;
 	#endif // LIGHT_CNT_TIME
 	std::mutex mtx;														// 锁
-	cv::Mat proced[3];												
+	cv::Mat proced[3];								
 	std::vector<std::vector<cv::Point2f> > trapezoids;					//灯条梯形集合
+
+	//=================与颜色有关的阈值设置量========================//
+	int reflect_thresh;					// 反光灯条检测阈值
+	int filter_thresh;					// 过滤阈值
+	int chan_diff;						// 主通道与绿色通道的差异最小允许值
+	int channel_min;					// 主通道最大值的最小允许值
 public:
 #ifdef DRAW_CONTOUR
 	std::vector<std::vector<cv::Point> > cts_todraw;

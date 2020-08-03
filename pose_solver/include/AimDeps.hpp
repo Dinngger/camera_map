@@ -16,6 +16,19 @@
 
 namespace aim_deps{
 
+//========================COLOR===============================//
+const cv::Scalar RED        = cv::Scalar(0, 0, 255);
+const cv::Scalar ORANGE     = cv::Scalar(0, 127, 255);
+const cv::Scalar YELLOW     = cv::Scalar(0, 255, 255);
+const cv::Scalar GREEN      = cv::Scalar(0, 255, 0);
+const cv::Scalar CYAN       = cv::Scalar(255, 255, 0);
+const cv::Scalar BLUE       = cv::Scalar(255, 0, 0);
+const cv::Scalar PINK       = cv::Scalar(255, 0, 255);
+const cv::Scalar WHITE      = cv::Scalar(255, 255, 255);
+const cv::Scalar GREY       = cv::Scalar(127, 127, 127);
+const cv::Scalar BLACK      = cv::Scalar(0, 0, 0);
+const cv::Scalar PURPLE     = cv::Scalar(255, 10, 100);
+
 ///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
 //==========================通用的预设===========================//
 ///+++++++++++++++++++++++++++++++++++++++++++++++++++++++++=///
@@ -273,19 +286,27 @@ struct Evaluated_armor
 ////////////////////////////////////////////////////////////////////////////////
 struct Light_Params{
     //============敌方红色=====================================//
-    const int red_thresh_low    = 92;           //二值图threshold下阈值
-    const int red_thresh_high   = 250;          //二值图threshold上阈值
-    const int red_exp_short     = 140;           //曝光时间(短曝光)
-    const int red_exp_long      = 7000;         //曝光时间(长曝光)
-    const int red_r_balance     = 0;            //白平衡（红色通道）
-    const int red_b_balance     = 3600;         //白平衡（蓝色通道）
+    const int red_thresh_low   = 84;           //二值图threshold下阈值
+    const int red_thresh_high  = 250;          //二值图threshold上阈值 
+    const int red_exp_short    = 140;          //曝光时间(短曝光)
+    const int red_exp_long     = 7000;         //曝光时间(长曝光)
+    const int red_r_balance    = 1957;         //白平衡（红色通道）
+    const int red_b_balance    = 3600;         //白平衡（蓝色通道）
+    const int red_reflection   = 160;          //判断是否为反光灯条
+    const int red_filter       = 50;           //红色杂灯条过滤
+    const int red_green        = 90;           //红绿通道差异
+    const int red_reflect_min  = 170;          //红色模式下，正常灯条的内部最大红色通道值的最小允许值
     //============敌方蓝色=====================================//
-    const int blue_thresh_low   = 92;           //二值图threshold下阈值
-    const int blue_thresh_high  = 250;          //二值图threshold上阈值
-    const int blue_exp_short    = 140;           //曝光时间(短曝光)
-    const int blue_exp_long     = 7000;         //曝光时间(长曝光) // 暂时修改
-    const int blue_r_balance     = 3600;        //白平衡（红色通道）
-    const int blue_b_balance     = 0;           //白平衡（蓝色通道）
+    const int blue_thresh_low  = 92;           //二值图threshold下阈值
+    const int blue_thresh_high = 250;          //二值图threshold上阈值
+    const int blue_exp_short   = 140;          //曝光时间(短曝光)
+    const int blue_exp_long    = 7000;         //曝光时间(长曝光) // 暂时修改
+    const int blue_r_balance   = 3600;         //白平衡（红色通道）
+    const int blue_b_balance   = 1500;         //白平衡（蓝色通道）
+    const int blue_reflection  = 210;          //判断是否为反光灯条
+    const int blue_filter      = 20;           //蓝色灯更亮
+    const int blue_green       = 5;            //蓝绿通道差异
+    const int blue_reflect_min = 200;          //蓝色模式下，正常灯条的内部最大蓝色通道值的最小允许值
 };
 extern Light_Params light_params;
 

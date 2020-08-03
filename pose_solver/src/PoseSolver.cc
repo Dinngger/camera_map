@@ -49,7 +49,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     std::cout << "\033[0m\n";
 
     search_module.finishSetTarget();
-    search_module.runSearch(match.possibles, 100, id_set1);
+    search_module.runSearch(match.possibles, 100);
 
     match_result.clear();
     std::cout << "\033[34m" << "find in last frame:\n";
