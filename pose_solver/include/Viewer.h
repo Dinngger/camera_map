@@ -7,7 +7,7 @@
 class Viewer
 {
 public:
-    Viewer(std::string name, double fu, double fv, int w=1024, int h=768);
+    Viewer(std::string name, double fu, double fv, int w=1440, int h=1080);
     void Run();
     void RequestFinish();
     void RequestStop();

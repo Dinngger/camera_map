@@ -86,7 +86,7 @@ void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws, const std::v
     for(size_t i=0; i<lbs.size(); i++){
         mlbs.push_back(lbs[i]);
     }
-    high_frame=frame;
+    high_frame = frame;
 }
 
 void Drawer::GetCurrentOpenGLCameraMatrix(std::vector<pangolin::OpenGlMatrix> &Ms)

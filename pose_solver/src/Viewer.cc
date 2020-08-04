@@ -31,7 +31,7 @@ void Viewer::Run()
     mbFinished = false;
     mbStopped = false;
 
-    pangolin::CreateWindowAndBind(name ,1024*10/7, 768);
+    pangolin::CreateWindowAndBind(name ,1440, 1080);
 
     // 3D Mouse handler requires depth testing to be enabled
     glEnable(GL_DEPTH_TEST);
@@ -44,39 +44,29 @@ void Viewer::Run()
     //pangolin::CreatePanel("menu").SetBounds(0.0,1.0,0.0,pangolin::Attach::Pix(175));
     //pangolin::Var<bool> menuFollowCamera("menu.Follow Camera",true,true);
 
-
-    pangolin::OpenGlRenderState s_cam(
-                pangolin::ProjectionMatrix(w,h,fu,fv,w/2,h/2,0.1,1000),
-                pangolin::ModelViewLookAt(0,0,0, 0,0,1, 0,-1,0)
-                );
-
     pangolin::OpenGlRenderState s_cam1(
-                pangolin::ProjectionMatrix(w,h,fu,fv,w/2,h/2,0.1,1000),
+                pangolin::ProjectionMatrix(w*0.7,h*0.3,fu,fv,w*0.7/2,0,0.1,1000),
                 pangolin::ModelViewLookAt(0,0,0, 0,0,1, 0,-1,0)
                 );
-    
+
     pangolin::OpenGlRenderState s_cam2(
-                pangolin::ProjectionMatrix(w,h,fu,fv,w/2,h/2,0.1,1000),
-                pangolin::ModelViewLookAt(0,5,5, 0,0,5, 0,0,1)
+                pangolin::ProjectionMatrix(w*0.3,h,fu,fv,w*0.3/2,h/2,0.1,1000),
+                pangolin::ModelViewLookAt(0,-10,5, 0,0,5, 0,0,1)
                 );
 
-    pangolin::OpenGlRenderState s_cam3(
-                pangolin::ProjectionMatrix(w,h,fu,fv,w/2,h/2,0.1,1000),
-                pangolin::ModelViewLookAt(0,-0.3,-1,0,0,1, 0,-1,0)
-                );
     // Define Camera Render Object (for view / scene browsing)
     
     pangolin::View& d_cam1 = pangolin::Display("cam1")
-            .SetBounds(0.5, 1.0, 0.7, 1.0, 1024.0f/768.0f)
+            .SetBounds(0, 0.3, 0, 0.7)
             .SetHandler(new pangolin::Handler3D(s_cam1));
 
     pangolin::View& d_cam2 = pangolin::Display("cam2")
-            .SetBounds(0.0, 0.5, 0.7, 1.0, 1024.0f/768.0f)
+            .SetBounds(0, 1, 0.7, 1.0)
             .SetHandler(new pangolin::Handler3D(s_cam2));
 
 
     pangolin::View& d_img1 = pangolin::Display("image")
-            .SetBounds(0, 1, 0, 0.7)
+            .SetBounds(0.3, 1, 0, 0.7)
             .SetLock(pangolin::LockLeft, pangolin::LockBottom);
 
     std::vector<pangolin::OpenGlMatrix> Twcs;
@@ -100,12 +90,14 @@ void Viewer::Run()
         mDrawer.GetCurrentOpenGLCameraMatrix(Twcs);
         // mDrawer.DrawCurrentCamera(Twcs, mDrawer.mlbs);
 
-        imageTexture.Upload(mDrawer.high_frame.data,GL_BGR,GL_UNSIGNED_BYTE);
-        //display the image
-        d_img1.Activate();
+        if (!mDrawer.high_frame.empty()) {
+            imageTexture.Upload(mDrawer.high_frame.data, GL_BGR, GL_UNSIGNED_BYTE);
+            //display the image
+            d_img1.Activate();
 
-        glColor3f(1.0,1.0,1.0);
-        imageTexture.RenderToViewportFlipY();
+            glColor3f(1.0,1.0,1.0);
+            imageTexture.RenderToViewportFlipY();
+        }
 
         d_cam1.Activate(s_cam1);
         mDrawer.DrawCurrentCamera(Twcs, mDrawer.mlbs);

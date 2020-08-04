@@ -67,7 +67,7 @@ void CarMatch::runMatch(std::vector<aim_deps::Light> &hLights, cv::Mat src, int 
     clear();
     sortLights(Lights);
     // printLightInfo(Lights);
-    drawLights(Lights, src);
+    // drawLights(Lights, src);
     backTrack(0, Lights);
     calError();
     sortErrors();
@@ -80,7 +80,7 @@ void CarMatch::runMatch(std::vector<aim_deps::Light> &hLights, cv::Mat src, int 
             break;
         std::cout << "cnt=" << cnt << std::endl;
         printCarsError(cars);
-        drawCars(cars, src);
+        // drawCars(cars, src);
         cnt++;
 #endif
 #ifdef DEBUG1

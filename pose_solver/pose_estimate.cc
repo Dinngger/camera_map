@@ -22,18 +22,19 @@ int main(int argc, char* argv[])
 #endif
 #define path0 "/home/dinger/mine/Dataset/videos/disp_low2.avi"
 #define path1 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
-#define path2 "/home/sentinel/videos/multi_test1.avi"
+#define path2a "/home/sentinel/videos/disp_low2.avi"
+#define path2b "/home/sentinel/videos/output_high.avi"
 #define path3 "/home/allegray/videos/disp_low2.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
 #define path5 "../../../output_low.avi"
 #define path6 "../../../output_high.avi"
-    cv::VideoCapture cap(path5);
+    cv::VideoCapture cap(path2a);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
     }
 #ifdef SHOW_MODULE
-    cv::VideoCapture cap_high(path6);
+    cv::VideoCapture cap_high(path2b);
     if (!cap_high.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
@@ -53,12 +54,13 @@ int main(int argc, char* argv[])
         std::cout << "\033[32m" << "frame: " << w << "\n";
         std::cout << "\033[0m";
         cap.read(frame);
-        cap_high.read(high_frame);
 		if(frame.empty())
             break;
         if(!isLowExposure(frame))
             continue;
         if(w==256||w==261||w==599||w==608||w==644||w==645||w==646||w==647||w==649||w==836) continue;
+        if (w < 38)
+            continue;
         ps.run(frame, w);
 
 #ifdef SHOW_MODULE
@@ -67,7 +69,12 @@ int main(int argc, char* argv[])
         // std::cout <<"Twcs[0]: "<< Twcs[0] << std::endl;
         std::vector<cv::Point3d> lbs;
         ps.get_lbs(lbs);
-        viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs,high_frame);
+        if (w > 38) {
+            cap_high.read(high_frame);
+            if(high_frame.empty())
+                break;
+            viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs,high_frame);
+        }
 #endif
 
 #ifdef SHOW_FRAME
