@@ -161,13 +161,13 @@ public:
 class CarModule
 {
 private:
-    double module_time;
     Eigen::Matrix3d K;
+    double module_time;
     std::vector<Car> cars;
     Eigen::Vector2d projectPoint(Eigen::Vector3d p3) const;
 
 public:
-    CarModule(cv::Matx<double, 3, 3> &K) : K(K.val) {
+    CarModule(cv::Matx<double, 3, 3> &K, double module_time) : K(K.val), module_time(module_time) {
         this->K.transposeInPlace();
         std::cout << "K: \n" << this->K << std::endl;
     }

@@ -120,7 +120,7 @@ int CarModule::create_predict(double time, std::vector<LightBarP>& predict2d) co
         cars[c].predict(time - module_time, car_r, car_t);
         Eigen::Matrix3d car_R = car_r.matrix();
         for (size_t i=0; i<4; i++) {
-            Eigen::Matrix3d armor_R = cars[c].armor[i].r.matrix();
+            const Eigen::Matrix3d& armor_R = cars[c].armor[i].r.matrix();
             const Eigen::Vector3d& armor_t = cars[c].armor[i].t;
             Eigen::Vector3d rotated_armor_point[4];
             for (size_t j=0; j<4; j++) {

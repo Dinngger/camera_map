@@ -18,6 +18,8 @@ int Car::update_state()
 
 int Car::update_state(double delta_time)
 {
+    if (delta_time == 0)
+        return 0;
     dt = 0.9 * dt + 0.1 * (last_t - t) / delta_time;
     last_t = t;
     ddt = 0.9 * ddt + 0.1 * (last_dt - dt) / delta_time;
@@ -250,8 +252,5 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
         }
     }
     std::cout << "kfs cnt: " << kfs_cnt << "\n";
-    std::cout << "r=";
-    printVector(r.coeffs(), 4);
-    std::cout << "\n";
     return 0;
 }

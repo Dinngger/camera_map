@@ -29,7 +29,7 @@ private:
     std::vector<LightBarP> match_result;
 public:
     LightMatch match;
-    PoseSolver(cv::Matx<double, 3, 3> &K);
+    PoseSolver(cv::Matx<double, 3, 3> &K, double time);
     int run(const cv::Mat &frame, double time);
     int getTwcs(std::vector<cv::Mat> &Twcs);
     int draw(cv::Mat &frame);

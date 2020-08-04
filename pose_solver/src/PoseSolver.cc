@@ -17,10 +17,10 @@ Armor3d toArmor3d(const aim_deps::Armor& armor) {
     return _armor;
 }
 
-PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K) :
+PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K, double time) :
     tar_list(16),
     K (K),
-    module(K)
+    module(K, time)
 {
     tar_list.clear();
 }
@@ -46,7 +46,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         for (size_t j=0; j<carMatch.division[0].carsPossible[i].lightPossibles.size(); j++) {
             const aim_deps::LightBox &lb = carMatch.division[0].carsPossible[i].lightPossibles[j].box;
             LightBarP lbp(lb.center, lb.vex[0] - lb.center);
-            lbp.lb_id = ~(carMatch.division[0].carsPossible[i].first ^ (j % 2));
+            lbp.lb_id = !((carMatch.division[0].carsPossible[i].first & 0x1) ^ (j & 0x1));
             std::cout << lbp.lb_id << " ";
             division[i].emplace_back(lbp);
         }
