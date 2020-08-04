@@ -165,6 +165,7 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
     ceres::LossFunction* loss_function = new ceres::HuberLoss(0.1);
     bool isValid[8] = {false, };
     Eigen::Vector3d r_aa = Eigen::AngleAxisd(r).axis() * Eigen::AngleAxisd(r).angle();
+    Eigen::Vector3d t_temp = t;
     double tx = armor[1].t(0);
     double ty = armor[0].t(1);
     double tz = -armor[0].t(2);
@@ -174,17 +175,19 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
             if (lbp.armor_id % 2 == 1) {
                 ceres::CostFunction* cost = Edge2EdgeErrorX::Create(K, p, lbp[i],
                     armor[lbp.armor_id].r, lbp.armor_id > 2 ? -1 : 1);
-                problem.AddResidualBlock(cost, loss_function, r_aa.data(), t.data(), &tx);
+                problem.AddResidualBlock(cost, loss_function, r_aa.data(), t_temp.data(), &tx);
             } else {
                 ceres::CostFunction* cost = Edge2EdgeErrorZ::Create(K, p, lbp[i],
                     armor[lbp.armor_id].r, lbp.armor_id > 1 ? 1 : -1);
-                problem.AddResidualBlock(cost, loss_function, r_aa.data(), t.data(), &tz, &ty);
+                problem.AddResidualBlock(cost, loss_function, r_aa.data(), t_temp.data(), &tz, &ty);
             }
         }
         isValid[lbp.armor_id * 2 + lbp.lb_id] = true;
     }
     Eigen::Vector3d kfs_r_aa[4];
+    Eigen::Vector3d kfs_t_temp[4];
     for (int i=0; i<4; i++) {
+        kfs_t_temp[i] = kfs[i].kf_t;
         if (kfs[i].valid) {
             kfs_r_aa[i] = Eigen::AngleAxisd(kfs[i].kf_r).axis() * Eigen::AngleAxisd(kfs[i].kf_r).angle();
             for (const LightBarP &lbp : kfs[i].lbps) {
@@ -193,11 +196,11 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
                     if (lbp.armor_id % 2 == 1) {
                         ceres::CostFunction* cost = Edge2EdgeErrorX::Create(K, p, lbp[j],
                             armor[lbp.armor_id].r, lbp.armor_id > 2 ? -1 : 1);
-                        problem.AddResidualBlock(cost, loss_function, kfs_r_aa[i].data(), kfs[i].kf_t.data(), &tx);
+                        problem.AddResidualBlock(cost, loss_function, kfs_r_aa[i].data(), kfs_t_temp[i].data(), &tx);
                     } else {
                         ceres::CostFunction* cost = Edge2EdgeErrorZ::Create(K, p, lbp[j],
                             armor[lbp.armor_id].r, lbp.armor_id > 1 ? 1 : -1);
-                        problem.AddResidualBlock(cost, loss_function, kfs_r_aa[i].data(), kfs[i].kf_t.data(), &tz, &ty);
+                        problem.AddResidualBlock(cost, loss_function, kfs_r_aa[i].data(), kfs_t_temp[i].data(), &tz, &ty);
                     }
                 }
             }
@@ -211,46 +214,60 @@ int Car::bundleAdjustment ( const std::vector<LightBarP> &light_bars,
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
     std::cout << summary.BriefReport() << std::endl;
+    if (summary.final_cost >= 20) {
+        std::cout << "\033[1;31;40msolver failed!\033[0m\n";
+        clear_kfs();
+    } else {
+        r = Eigen::Quaterniond(Eigen::AngleAxisd(r_aa.norm(), r_aa.normalized()));
+        t = t_temp;
+        armor[0].t << 0, ty, -tz;
+        armor[1].t << tx, 0, 0;
+        armor[2].t << 0, ty, tz;
+        armor[3].t << -tx, 0, 0;
+        for (int i=0; i<4; i++) {
+            if (kfs[i].valid) {
+                kfs[i].kf_r = Eigen::Quaterniond(Eigen::AngleAxisd(kfs_r_aa[i].norm(), kfs_r_aa[i].normalized()));
+                kfs[i].kf_t = kfs_t_temp[i];
+            }
+        }
 
-    r = Eigen::Quaterniond(Eigen::AngleAxisd(r_aa.norm(), r_aa.normalized()));
-    armor[0].t << 0, ty, -tz;
-    armor[1].t << tx, 0, 0;
-    armor[2].t << 0, ty, tz;
-    armor[3].t << -tx, 0, 0;
-    for (int i=0; i<4; i++) {
-        if (kfs[i].valid)
-            kfs[i].kf_r = Eigen::Quaterniond(Eigen::AngleAxisd(kfs_r_aa[i].norm(), kfs_r_aa[i].normalized()));
+        Eigen::Vector3d angle = r.toRotationMatrix().eulerAngles(2, 1, 0);
+        int kfs_cnt = 0;
+        for (int i=0; i<4; i++) {
+            if (isValid[i*2] && isValid[i*2+1]) {
+                double d1 = angle(0) - i * 90;
+                double d2 = 180 - abs(d1);
+                if (d1 > 0)
+                    d2 *= -1.0;
+                d1 = d1 < d2 ? d1 : d2;
+                if ((kfs[i].valid && kfs[i].score > d1) || !kfs[i].valid) {
+                    std::cout << "update kfs: " << i << "angle: " << angle(0) << "\n";
+                    kfs[i].valid = true;
+                    kfs[i].score = d1;
+                    kfs[i].kf_r = r;
+                    kfs[i].kf_t = t;
+                    kfs[i].lbps.assign(light_bars.begin(), light_bars.end());
+                }
+            }
+            if (kfs[i].valid) {
+                kfs_cnt++;
+                std::cout << "kf" << i << ": r=";
+                printVector(kfs[i].kf_r.coeffs(), 4);
+                std::cout << "\n";
+            }
+        }
+        std::cout << "kfs cnt: " << kfs_cnt << "\n";
     }
 
     std::cout << "r=";
     printVector(r.coeffs(), 4);
     std::cout << "\n";
     update_state(delta_time);
-    Eigen::Vector3d angle = r.toRotationMatrix().eulerAngles(2, 1, 0);
-    int kfs_cnt = 0;
-    for (int i=0; i<4; i++) {
-        if (isValid[i*2] && isValid[i*2+1]) {
-            double d1 = angle(0) - i * 90;
-            double d2 = 180 - abs(d1);
-            if (d1 > 0)
-                d2 *= -1.0;
-            d1 = d1 < d2 ? d1 : d2;
-            if ((kfs[i].valid && kfs[i].score > d1) || !kfs[i].valid) {
-                std::cout << "update kfs: " << i << "angle: " << angle(0) << "\n";
-                kfs[i].valid = true;
-                kfs[i].score = d1;
-                kfs[i].kf_r = r;
-                kfs[i].kf_t = t;
-                kfs[i].lbps.assign(light_bars.begin(), light_bars.end());
-            }
-        }
-        if (kfs[i].valid) {
-            kfs_cnt++;
-            std::cout << "kf" << i << ": r=";
-            printVector(kfs[i].kf_r.coeffs(), 4);
-            std::cout << "\n";
-        }
-    }
-    std::cout << "kfs cnt: " << kfs_cnt << "\n";
+    return 0;
+}
+
+int Car::clear_kfs() {
+    for (int i=0; i<4; i++)
+        kfs[i].valid = false;
     return 0;
 }

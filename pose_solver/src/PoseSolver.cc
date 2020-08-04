@@ -86,7 +86,6 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         }
     }
 
-    std::set<int> car_ids;
     for (std::vector<LightBarP>& car : division) {
         if (car.size() <= 1)
             continue;
@@ -106,15 +105,6 @@ int PoseSolver::run(const cv::Mat &frame, double time)
                 max_car_num = pair.second;
             }
         }
-        if (max_car_id < 0 || (max_car_id >= 0 && car_ids.count(max_car_id) > 0)) {
-            for (int i=0; i<100; i++) {
-                if (car_ids.count(i) == 0) {
-                    max_car_id = i;
-                    break;
-                }
-            }
-        }
-        car_ids.insert(max_car_id);
         for (LightBarP& lbp : car) {
             lbp.car_id = max_car_id;
         }
@@ -143,11 +133,11 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         }
         if (max_armor_id < 0)
             max_armor_id += 2;
-        std::cout << "final armor: ";
+        std::cout << "final lb: ";
         for (size_t i=0; i<car.size(); i++) {
-            std::cout << max_armor_id + i << " ";
-            car[i].armor_id = (max_armor_id + i) / 2;
+            car[i].armor_id = ((max_armor_id + i) % 8) / 2;
             car[i].lb_id = (max_armor_id + i) % 2;
+            std::cout << car[i].armor_id << car[i].lb_id << " ";
         }
         std::cout << "\n";
     }

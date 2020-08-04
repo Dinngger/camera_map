@@ -17,16 +17,26 @@ int CarModule::bundleAdjustment(const std::vector<std::vector<LightBarP>> &divis
                                 double time)
 {
     double delta_time = time - module_time;
+    std::vector<bool> observed(cars.size(), false);
     for (const std::vector<LightBarP>& car : division) {
         if (car.size() <= 1)
             continue;
         int i = car[0].car_id;
-        while (i >= (int)cars.size())
-            add_car();
+        if (i >= (int)cars.size() || i < 0) {
+            if (car.size() > 2) {
+                i = add_car();
+                observed.push_back(true);
+            } else {
+                continue;
+            }
+        }
         if (!cars[i].car_valid)
             continue;
+        observed[i] = true;
         cars[i].bundleAdjustment(car, K, delta_time);
     }
+    for (size_t i=0; i<observed.size(); i++)
+        cars[i].car_valid = observed[i];
     module_time = time;
     return 0;
 }
