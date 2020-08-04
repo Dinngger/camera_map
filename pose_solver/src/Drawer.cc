@@ -71,7 +71,7 @@ void Drawer::DrawCurrentCamera(const std::vector<pangolin::OpenGlMatrix> &Twcs, 
     glEnd();
 }
 
-void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws, const std::vector<cv::Point3d> &lbs)
+void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws, const std::vector<cv::Point3d> &lbs, const cv::Mat &frame)
 {
     std::unique_lock<std::mutex> lock(mMutexCamera);
 
@@ -86,6 +86,7 @@ void Drawer::SetCurrentArmorPoses(const std::vector<cv::Mat> &Tcws, const std::v
     for(size_t i=0; i<lbs.size(); i++){
         mlbs.push_back(lbs[i]);
     }
+    high_frame=frame;
 }
 
 void Drawer::GetCurrentOpenGLCameraMatrix(std::vector<pangolin::OpenGlMatrix> &Ms)
