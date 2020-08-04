@@ -47,7 +47,8 @@ int main(int argc, char* argv[])
         if(!isLowExposure(frame))
             continue;
         count++;
-        if(w<409) continue;
+        if(w==256||w==261||w==599||w==608||w==644||w==645||w==646||w==647||w==649||w==836) continue;
+        if(w<260) continue;
         ps.run(frame, w);
 
 #ifdef SHOW_MODULE

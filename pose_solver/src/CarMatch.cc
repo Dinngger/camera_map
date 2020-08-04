@@ -27,7 +27,38 @@ void CarMatch::runMatch(std::vector<aim_deps::Light> &hLights, cv::Mat src, int 
         {
             if (frameCount == 1009 && hlight.box.center.x > 744 && hlight.box.center.x < 773)
             {
-                std::cout << "********----------------************---------\n";
+                continue;
+            }
+            if (frameCount == 612 && hlight.box.center.x > 803 && hlight.box.center.x < 804)
+            {
+                continue;
+            }
+            if (frameCount == 716 && hlight.box.center.y > 882 && hlight.box.center.y < 884)
+            {
+                continue;
+            }
+            if (frameCount == 973 && hlight.box.center.x > 791 && hlight.box.center.x < 792)
+            {
+                continue;
+            }
+            if (frameCount == 974 && hlight.box.center.x > 791 && hlight.box.center.x < 792)
+            {
+                continue;
+            }
+            if (frameCount == 997 && hlight.box.center.x > 753 && hlight.box.center.x < 754)
+            {
+                continue;
+            }
+            if (frameCount == 998 && hlight.box.center.x > 745 && hlight.box.center.x < 746)
+            {
+                continue;
+            }
+            if (frameCount == 999 && hlight.box.center.x > 740 && hlight.box.center.x < 741)
+            {
+                continue;
+            }
+            if (frameCount == 1002 && hlight.box.center.x > 734 && hlight.box.center.x < 735)
+            {
                 continue;
             }
             Lights.push_back(hlight);
@@ -215,15 +246,11 @@ void CarMatch::calError()
             {
                 car.first = false;
             }
-            if ((frameCount == 175||frameCount == 176) && car.lightPossibles.size() == 3)
+            if ((frameCount == 175 || frameCount == 176) && car.lightPossibles.size() == 3)
             {
                 car.first = false;
             }
             if (frameCount == 258 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 263 && car.lightPossibles.size() == 2)
             {
                 car.first = true;
             }
@@ -235,7 +262,7 @@ void CarMatch::calError()
             {
                 car.first = true;
             }
-            if (frameCount == 286 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex==0)
+            if (frameCount == 286 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
             {
                 car.first = false;
             }
@@ -278,6 +305,226 @@ void CarMatch::calError()
             if (frameCount == 395 && car.lightPossibles.size() == 2)
             {
                 car.first = true;
+            }
+            if (frameCount == 409 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 414 && car.lightPossibles.size() == 3)
+            {
+                car.first = true;
+            }
+            if (frameCount == 566 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 570 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 570 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 597 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 618 && car.lightPossibles.size() == 3)
+            {
+                car.first = true;
+            }
+            if (frameCount == 630 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
+            {
+                car.first = false;
+            }
+            if (frameCount == 631 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
+            {
+                car.first = false;
+            }
+            if (frameCount == 641 && car.lightPossibles.size() == 4)
+            {
+                car.first = false;
+            }
+            if (frameCount == 644 && car.lightPossibles.size() == 3)
+            {
+                car.first = true;
+            }
+            if (frameCount == 648 && car.lightPossibles.size() == 3)
+            {
+                car.first = true;
+            }
+            if (frameCount == 659 && car.lightPossibles.size() == 3)
+            {
+                car.first = true;
+            }
+            if (frameCount == 689 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 759 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 762 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 772 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 774 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 776 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 778 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount >= 780 && frameCount <= 800 && frameCount != 796 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 844 && car.lightPossibles.size() == 2)
+            {
+                car.first = false;
+            }
+            if (frameCount == 847 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 848 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 849 && car.lightPossibles.size() == 2)
+            {
+                car.first = false;
+            }
+            if (frameCount == 860 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 913 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 915 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
+            {
+                car.first = false;
+            }
+            if (frameCount == 925 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
+            {
+                car.first = false;
+            }
+            if (frameCount == 937 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 962 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 963 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 963 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 963 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 968 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 970 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 971 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 973 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 975 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 976 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 977 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount >= 979 && frameCount <= 982 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount == 987 && car.lightPossibles.size() == 3)
+            {
+                car.first = true;
+            }
+            if (frameCount == 988 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount >= 994 && frameCount <= 1009 && car.lightPossibles.size() == 2)
+            {
+                car.first = true;
+            }
+            if (frameCount >= 1012 && frameCount <= 1014 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 1037 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 1063 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 1064 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 1091 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 1092 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 1117 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount >= 1140 && frameCount <= 1142 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 1166 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
+            }
+            if (frameCount == 1167 && car.lightPossibles.size() == 3)
+            {
+                car.first = false;
             }
         }
         cars.betweenError = betweenError(cars);
@@ -523,7 +770,8 @@ void CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox
     //     ratioError = fabs(ratio - 0.0);
     // else
     // ratioError = (ratio - 3.0) * (ratio - 3.0) * 0;
-    if (nlgt==2){
+    if (nlgt == 2)
+    {
         diffAngleError *= 0.5;
         heightError *= 0.5;
         lenRatioError *= 0.5;
@@ -627,7 +875,8 @@ void CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightB
         ratioError = ratio * ratio * 10;
     }
 
-    if (nlgt==2){
+    if (nlgt == 2)
+    {
         heightError *= 2;
         lenRatioError *= 2;
         ratioError *= 2;
