@@ -1,5 +1,5 @@
 // #define SHOW_FRAME
-// #define SHOW_MODULE
+#define SHOW_MODULE
 
 #include "PoseSolver.hpp"
 
@@ -25,22 +25,35 @@ int main(int argc, char* argv[])
 #define path2 "/home/sentinel/videos/multi_test1.avi"
 #define path3 "/home/allegray/videos/disp_low2.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
-    cv::VideoCapture cap(path3);
+#define path5 "../../../output_low.avi"
+#define path6 "../../../output_high.avi"
+    cv::VideoCapture cap(path5);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
     }
+#ifdef SHOW_MODULE
+    cv::VideoCapture cap_high(path6);
+    if (!cap_high.isOpened()) {
+        printf("Unable to open video.\n");
+        return 0;
+    }
+
+#endif
+
 
     double totalFrameNumber = cap.get(cv::CAP_PROP_FRAME_COUNT);
     std::cout<<"frame: ";
     std::cout<<totalFrameNumber<<std::endl;
 
     cv::Mat frame;
+    cv::Mat high_frame;
     for (int w = 0; w < totalFrameNumber; w++)
     {
         std::cout << "\033[32m" << "frame: " << w << "\n";
         std::cout << "\033[0m";
         cap.read(frame);
+        cap_high.read(high_frame);
 		if(frame.empty())
             break;
         if(!isLowExposure(frame))
@@ -54,7 +67,7 @@ int main(int argc, char* argv[])
         // std::cout <<"Twcs[0]: "<< Twcs[0] << std::endl;
         std::vector<cv::Point3d> lbs;
         ps.get_lbs(lbs);
-        viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs);
+        viewer->mDrawer.SetCurrentArmorPoses(Twcs, lbs,high_frame);
 #endif
 
 #ifdef SHOW_FRAME
