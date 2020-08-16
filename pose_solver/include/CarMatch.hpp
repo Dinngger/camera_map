@@ -29,6 +29,7 @@ struct CarPossible
     float threeLightAngleRatio = 0.0, fourLightAngleRatio = 0.0;
     float biasError = 1000.0;
     bool likeFourLight = false;
+    bool isTarArmor1 = false, isTarArmor2 = false;
 };
 
 struct CarsPossible
@@ -43,7 +44,7 @@ class CarMatch
 {
 private:
     int nCar = 0;
-    int frameCount=0;
+    int frameCount = 0;
     std::map<int, CarPossible> mapCarLights;
     std::vector<aim_deps::Light> lightStack;
     CarPossible tempCarPossible;
@@ -51,6 +52,7 @@ private:
     std::vector<cv::Point> matches;
     cv::Point2f points[4];
     std::vector<cv::Scalar> colors = {cv::Scalar(0, 0, 255), cv::Scalar(0, 215, 255), cv::Scalar(255, 0, 255), cv::Scalar(0, 69, 255)};
+    std::vector<aim_deps::Armor> armorList;
 
 private:
     void clear();
@@ -86,12 +88,13 @@ private:
     bool isInTrapezoid(cv::Point2f corners[2], const std::vector<cv::Point2f> &trapezoid);
     bool isArmor(aim_deps::Light &l1, aim_deps::Light &l2);
     void getTrapezoids(const cv::Point2f corners[2], std::vector<std::vector<cv::Point2f>> &trapezoid);
+    bool isTarArmor(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2);
 
 public:
     std::vector<CarsPossible> division;
 
 public:
-    void runMatch(std::vector<aim_deps::Light> &hLights, cv::Mat src, int count);
+    void runMatch(std::vector<aim_deps::Light> &Lights, cv::Mat src, int count, std::vector<aim_deps::Armor> tar_list);
     void printDivision();
 };
 
