@@ -1,4 +1,4 @@
-// #define SHOW_FRAME
+#define SHOW_FRAME
 #define SHOW_MODULE
 
 #include "PoseSolver.hpp"
@@ -25,7 +25,8 @@ int main(int argc, char* argv[])
 #define path1 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
 #define path2a "/home/sentinel/videos/disp_low2.avi"
 #define path2b "/home/sentinel/videos/output_high.avi"
-#define path3 "/home/allegray/videos/disp_low2.avi"
+#define path3a "/home/allegray/videos/disp_low2.avi"
+#define path3b "/home/allegray/videos/output_high.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
 #define path5 "../../../output_low.avi"
 #define path6 "../../../output_high.avi"
@@ -59,7 +60,6 @@ int main(int argc, char* argv[])
             break;
         if(!isLowExposure(frame))
             continue;
-        if(w==256||w==261||w==599||w==608||w==644||w==645||w==646||w==647||w==649||w==836) continue;
         if (w < 38)
             continue;
         ps.run(frame, w);

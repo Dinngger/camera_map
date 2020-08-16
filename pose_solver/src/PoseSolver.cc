@@ -34,7 +34,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
     // draw(frame);
-    carMatch.runMatch(match.possibles, frame, time);
+    carMatch.runMatch(match.possibles, frame, time, tar_list);
     if (carMatch.division.size() < 1)
         return 0;
     std::vector<std::vector<LightBarP>> division;

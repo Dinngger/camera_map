@@ -16,54 +16,11 @@ void CarMatch::clear()
     division.clear();
 }
 
-void CarMatch::runMatch(std::vector<aim_deps::Light> &hLights, cv::Mat src, int count)
+void CarMatch::runMatch(std::vector<aim_deps::Light> &Lights, cv::Mat src, int count, std::vector<aim_deps::Armor> tar_list)
 {
     frameCount = count;
-    std::cout << "Lights.size: " << hLights.size() << std::endl;
-    std::vector<aim_deps::Light> Lights;
-    for (const aim_deps::Light &hlight : hLights)
-    {
-        if (hlight.box.center.y > 400)
-        {
-            if (frameCount == 1009 && hlight.box.center.x > 744 && hlight.box.center.x < 773)
-            {
-                continue;
-            }
-            if (frameCount == 612 && hlight.box.center.x > 803 && hlight.box.center.x < 804)
-            {
-                continue;
-            }
-            if (frameCount == 716 && hlight.box.center.y > 882 && hlight.box.center.y < 884)
-            {
-                continue;
-            }
-            if (frameCount == 973 && hlight.box.center.x > 791 && hlight.box.center.x < 792)
-            {
-                continue;
-            }
-            if (frameCount == 974 && hlight.box.center.x > 791 && hlight.box.center.x < 792)
-            {
-                continue;
-            }
-            if (frameCount == 997 && hlight.box.center.x > 753 && hlight.box.center.x < 754)
-            {
-                continue;
-            }
-            if (frameCount == 998 && hlight.box.center.x > 745 && hlight.box.center.x < 746)
-            {
-                continue;
-            }
-            if (frameCount == 999 && hlight.box.center.x > 740 && hlight.box.center.x < 741)
-            {
-                continue;
-            }
-            if (frameCount == 1002 && hlight.box.center.x > 734 && hlight.box.center.x < 735)
-            {
-                continue;
-            }
-            Lights.push_back(hlight);
-        }
-    }
+    armorList = tar_list;
+    std::cout << "Lights.size: " << Lights.size() << std::endl;
     clear();
     sortLights(Lights);
     // printLightInfo(Lights);
@@ -238,294 +195,6 @@ void CarMatch::calError()
                 std::cout << "=================================" << car.lightPossibles.size() << "========================\n";
             }
             cars.carsErrorValue += carError;
-            if (frameCount == 79)
-            {
-                car.first = true;
-            }
-            if (frameCount == 151 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if ((frameCount == 175 || frameCount == 176) && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 258 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 266 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 267 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 286 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
-            {
-                car.first = false;
-            }
-            if (frameCount == 311 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 312 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 326 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 348 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 370 && car.lightPossibles.size() == 3)
-            {
-                car.first = true;
-            }
-            if (frameCount == 388 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 389 && car.lightPossibles.size() == 2)
-            {
-                car.first = false;
-            }
-            if (frameCount == 393 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 394 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 395 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 409 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 414 && car.lightPossibles.size() == 3)
-            {
-                car.first = true;
-            }
-            if (frameCount == 566 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 570 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 570 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 597 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 618 && car.lightPossibles.size() == 3)
-            {
-                car.first = true;
-            }
-            if (frameCount == 630 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
-            {
-                car.first = false;
-            }
-            if (frameCount == 631 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
-            {
-                car.first = false;
-            }
-            if (frameCount == 641 && car.lightPossibles.size() == 4)
-            {
-                car.first = false;
-            }
-            if (frameCount == 644 && car.lightPossibles.size() == 3)
-            {
-                car.first = true;
-            }
-            if (frameCount == 648 && car.lightPossibles.size() == 3)
-            {
-                car.first = true;
-            }
-            if (frameCount == 659 && car.lightPossibles.size() == 3)
-            {
-                car.first = true;
-            }
-            if (frameCount == 689 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 759 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 762 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 772 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 774 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 776 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 778 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount >= 780 && frameCount <= 800 && frameCount != 796 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 844 && car.lightPossibles.size() == 2)
-            {
-                car.first = false;
-            }
-            if (frameCount == 847 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 848 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 849 && car.lightPossibles.size() == 2)
-            {
-                car.first = false;
-            }
-            if (frameCount == 860 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 913 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 915 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
-            {
-                car.first = false;
-            }
-            if (frameCount == 925 && car.lightPossibles.size() == 3 && car.lightPossibles[0].carMatchIndex == 0)
-            {
-                car.first = false;
-            }
-            if (frameCount == 937 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 962 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 963 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 963 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 963 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 968 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 970 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 971 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 973 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 975 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 976 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 977 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount >= 979 && frameCount <= 982 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount == 987 && car.lightPossibles.size() == 3)
-            {
-                car.first = true;
-            }
-            if (frameCount == 988 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount >= 994 && frameCount <= 1009 && car.lightPossibles.size() == 2)
-            {
-                car.first = true;
-            }
-            if (frameCount >= 1012 && frameCount <= 1014 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 1037 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 1063 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 1064 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 1091 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 1092 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 1117 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount >= 1140 && frameCount <= 1142 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 1166 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
-            if (frameCount == 1167 && car.lightPossibles.size() == 3)
-            {
-                car.first = false;
-            }
         }
         cars.betweenError = betweenError(cars);
         cars.carsErrorValue += cars.betweenError;
@@ -729,54 +398,80 @@ float CarMatch::getRatio(const aim_deps::LightBox &b1, const aim_deps::LightBox 
     return ratio;
 }
 
+bool CarMatch::isTarArmor(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2)
+{
+    float dist;
+    for (aim_deps::Armor armor : armorList)
+    {
+        if (armor.armor_number != -1 && armor.valid)
+        {
+            dist = 0;
+            dist += getPointDist(b1.vex[0], armor.left_light.box.vex[0]);
+            dist += getPointDist(b1.vex[1], armor.left_light.box.vex[1]);
+            dist += getPointDist(b2.vex[0], armor.right_light.box.vex[0]);
+            dist += getPointDist(b2.vex[1], armor.right_light.box.vex[1]);
+            if (dist < 1)
+                return true;
+        }
+    }
+    return false;
+}
+
 void CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2, CarPossible &carPossible, bool firstArmor, int nlgt)
 {
-
-    float diffAngleError = fabs(b1.angle - b2.angle);
-    diffAngleError = diffAngleError * diffAngleError / 5;
-    cv::Point2f vertical = (b1.center - b2.center);
-    float centerAngleError;
-    float angle = fabs(atan(vertical.y / vertical.x)) / 3.1415926 * 180;
-    if (angle > 35)
-        centerAngleError = 120000000;
-    else
+    float diffAngleError, heightError, lenRatioError, ratioError, centerAngleError;
+    bool isArmor = false;
+    if (isTarArmor(b1, b2))
+    {
+        diffAngleError = 0;
+        heightError = 0;
+        lenRatioError = 0;
+        ratioError = 0;
         centerAngleError = 0;
-    float diffH = fabs(b1.center.y - b2.center.y);
-    float heightError = diffH * diffH * 10;
-    float meanLen = (b1.length + b2.length) / 2;
-    if (frameCount == 975 || frameCount == 976)
-    {
-        if (diffH / meanLen > 1.15)
-            heightError = 171000000;
+        isArmor = true;
     }
-    if (diffH / meanLen > 1.5)
-        heightError = 110000000;
-    float lenRatioError = (b1.length < b2.length ? b2.length / b1.length : b1.length / b2.length);
-    lenRatioError = lenRatioError * lenRatioError * 10;
-    // if (lenRatioError > 2.2)
-    // {
-    //     lenRatioError = lenRatioError * lenRatioError * lenRatioError * 100;
-    // }
-    // else
-    // {
-    //     lenRatioError = lenRatioError * lenRatioError * 10;
-    // }
-    // lenRatioError *= lenRatioError;
-    float ratio = getRatio(b1, b2);
-    float ratioError = 0.0;
-    if (ratio > 30)
-        ratioError = 180000000;
-    // if (ratio < 19.36 && ratio > 14.44)
-    //     ratioError = fabs(ratio - 0.0);
-    // else
-    // ratioError = (ratio - 3.0) * (ratio - 3.0) * 0;
-    if (nlgt == 2)
+    else
     {
-        diffAngleError *= 0.5;
-        heightError *= 0.5;
-        lenRatioError *= 0.5;
-        ratioError *= 0.5;
-        centerAngleError *= 0.5;
+        diffAngleError = fabs(b1.angle - b2.angle);
+        diffAngleError = diffAngleError * diffAngleError / 5;
+        cv::Point2f vertical = (b1.center - b2.center);
+        float angle = fabs(atan(vertical.y / vertical.x)) / 3.1415926 * 180;
+        if (angle > 35)
+            centerAngleError = 120000000;
+        else
+            centerAngleError = 0;
+        float diffH = fabs(b1.center.y - b2.center.y);
+        heightError = diffH * diffH * 10;
+        float meanLen = (b1.length + b2.length) / 2;
+        if (diffH / meanLen > 1.5)
+            heightError = 110000000;
+        lenRatioError = (b1.length < b2.length ? b2.length / b1.length : b1.length / b2.length);
+        lenRatioError = lenRatioError * lenRatioError * 10;
+        // if (lenRatioError > 2.2)
+        // {
+        //     lenRatioError = lenRatioError * lenRatioError * lenRatioError * 100;
+        // }
+        // else
+        // {
+        //     lenRatioError = lenRatioError * lenRatioError * 10;
+        // }
+        // lenRatioError *= lenRatioError;
+        float ratio = getRatio(b1, b2);
+        ratioError = 0.0;
+        if (ratio > 30)
+            ratioError = 180000000;
+        // if (ratio < 19.36 && ratio > 14.44)
+        //     ratioError = fabs(ratio - 0.0);
+        // else
+        // ratioError = (ratio - 3.0) * (ratio - 3.0) * 0;
+        if (nlgt == 2)
+        {
+            diffAngleError *= 0.5;
+            heightError *= 0.5;
+            lenRatioError *= 0.5;
+            ratioError *= 0.5;
+            centerAngleError *= 0.5;
+        }
     }
     if (firstArmor)
     {
@@ -785,6 +480,7 @@ void CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox
         carPossible.armor1LenRatioError = lenRatioError;
         carPossible.armor1RatioError = ratioError;
         carPossible.armor1CenterAngleError = centerAngleError;
+        carPossible.isTarArmor1 = isArmor;
     }
     else
     {
@@ -793,7 +489,9 @@ void CarMatch::armorError(const aim_deps::LightBox &b1, const aim_deps::LightBox
         carPossible.armor2LenRatioError = lenRatioError;
         carPossible.armor2RatioError = ratioError;
         carPossible.armor2CenterAngleError = centerAngleError;
+        carPossible.isTarArmor2 = isArmor;
     }
+
     // std::cout<<"armorError: "<<"ratioError="<<ratioError<<", diffAngleError="<<diffAngleError<<", heightError="<<heightError<<", lenRatioError="<<lenRatioError<<std::endl;
 }
 
@@ -821,11 +519,6 @@ void CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightB
     float diffH = fabs(b1.center.y - b2.center.y);
     float heightError = diffH;
     float meanLen = (b1.length + b2.length) / 2;
-    if (frameCount == 972 || frameCount == 973 || frameCount == 975 || frameCount == 976)
-    {
-        if (diffH / meanLen > 1.15)
-            heightError = 170000000;
-    }
     if (diffH / meanLen > 1.5)
         heightError = 170000000;
     if (heightError != 170000000)
@@ -867,8 +560,7 @@ void CarMatch::noArmorError(const aim_deps::LightBox &b1, const aim_deps::LightB
     float ratioError = 0.0;
     if (ratio > 54)
     {
-        if (frameCount != 593)
-            ratioError = 190000000;
+        ratioError = 190000000;
     }
     else if (ratio > 30 && ratio <= 50)
     {
@@ -934,6 +626,10 @@ float CarMatch::sumError(CarPossible &error)
         errorValue = errorValue / 20;
     if (error.nLight == 4)
         errorValue = errorValue / 50;
+    if (error.isTarArmor1)
+        errorValue = errorValue / 10;
+    if (error.isTarArmor2)
+        errorValue = errorValue / 10;
     error.sumError = errorValue;
     return errorValue;
 }
@@ -971,6 +667,8 @@ void CarMatch::setError(CarPossible &carPossible, const CarPossible &e, bool fir
     carPossible.betweenFourError = e.betweenFourError;
     carPossible.biasError = e.biasError;
     carPossible.nLight = e.nLight;
+    carPossible.isTarArmor1 = e.isTarArmor1;
+    carPossible.isTarArmor2 = e.isTarArmor2;
     carPossible.sumError = e.sumError;
     carPossible.first = first;
 }
@@ -1064,11 +762,6 @@ void CarMatch::fourLightAngleRatio(const CarPossible &carPossible, CarPossible &
 
     if (ne == 1)
     {
-        if (frameCount == 989)
-        {
-            e.fourLightAngleRatio = 0.1;
-            return;
-        }
         float diffH1 = fabs(carPossible.lightPossibles[0].box.center.y - carPossible.lightPossibles[1].box.center.y);
         float diffH2 = fabs(carPossible.lightPossibles[2].box.center.y - carPossible.lightPossibles[3].box.center.y);
         float meanLen1 = (carPossible.lightPossibles[0].box.length + carPossible.lightPossibles[1].box.length) / 2;
@@ -1093,11 +786,8 @@ void CarMatch::fourLightAngleRatio(const CarPossible &carPossible, CarPossible &
         float diffAngle2 = fabs(carPossible.lightPossibles[2].box.angle - carPossible.lightPossibles[3].box.angle);
         if ((diffAngle1 > 15 || diffAngle2 > 15) || (diffAngle1 > 10 && diffAngle2 > 10))
         {
-            if (frameCount != 122 && frameCount != 988)
-            {
-                e.fourLightAngleRatio = 104;
-                return;
-            }
+            e.fourLightAngleRatio = 104;
+            return;
         }
         float diffAngle = carPossible.lightPossibles[1].box.angle - carPossible.lightPossibles[2].box.angle;
         if (diffAngle < -10)
@@ -1370,6 +1060,8 @@ void CarMatch::printCarError(const CarPossible &car)
     // car1MeanHeight /= car.lightPossibles.size();
     // std::cout << "carMeanHeight=" << car1MeanHeight << std::endl;
     // std::cout << "carMeanLen=" << car1MeanLen << std::endl;
+    std::cout << "isTarArmor1=" << car.isTarArmor1 << std::endl;
+    std::cout << "isTarArmor2=" << car.isTarArmor2 << std::endl;
 }
 
 void CarMatch::printCarsError(const CarsPossible &cars)

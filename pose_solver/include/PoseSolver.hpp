@@ -20,7 +20,6 @@ bool isLowExposure(cv::Mat &src);
 class PoseSolver
 {
 private:
-    std::vector<aim_deps::Armor> tar_list;
     cv::Matx<double, 3, 3> K;
     CarModule module;
     ArmorPlate amp;
@@ -28,6 +27,7 @@ private:
     CarMatch carMatch;
     std::vector<LightBarP> match_result;
 public:
+    std::vector<aim_deps::Armor> tar_list;
     LightMatch match;
     PoseSolver(cv::Matx<double, 3, 3> &K, double time);
     int run(const cv::Mat &frame, double time);
