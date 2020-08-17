@@ -18,25 +18,40 @@ int CarModule::bundleAdjustment(const std::vector<std::vector<LightBarP>> &divis
 {
     double delta_time = time - module_time;
     std::vector<bool> observed(cars.size(), false);
-    for (const std::vector<LightBarP>& car : division) {
-        if (car.size() <= 1)
-            continue;
-        int i = car[0].car_id;
-        if (i >= (int)cars.size() || i < 0) {
-            if (car.size() > 2) {
-                i = add_car();
-                observed.push_back(true);
-            } else {
-                continue;
-            }
+    int car_i = -1;
+    size_t car_lbp_num = 0;
+    for (size_t i=0; i<division.size(); i++) {
+        if (division[i].size() > car_lbp_num) {
+            car_lbp_num = division[i].size();
+            car_i = i;
         }
-        if (!cars[i].car_valid)
-            continue;
-        observed[i] = true;
-        cars[i].bundleAdjustment(car, K, delta_time);
     }
-    for (size_t i=0; i<observed.size(); i++)
-        cars[i].car_valid = observed[i];
+    if (car_i == -1)
+        return 0;
+    // for (const std::vector<LightBarP>& car : division) {
+    const std::vector<LightBarP>& car = division[car_i];
+    if (car.size() <= 1)
+        return 0;
+    // int i = car[0].car_id;
+    // if (i >= (int)cars.size() || i < 0) {
+    //     if (car.size() > 2) {
+    //         i = add_car();
+    //         observed.push_back(true);
+    //     } else {
+    //         continue;
+    //     }
+    // }
+    // if (!cars[i].car_valid)
+    //     continue;
+    // observed[i] = true;
+    // cars[i].bundleAdjustment(car, K, delta_time);
+    // }
+    if (cars.size() < 1 && car.size() > 2) {
+        add_car();
+    }
+    cars[0].bundleAdjustment(car, K, delta_time);
+    // for (size_t i=0; i<observed.size(); i++)
+    //     cars[i].car_valid = observed[i];
     module_time = time;
     return 0;
 }
