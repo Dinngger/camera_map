@@ -14,3 +14,4 @@
 !.gitignore
 !*.sh
 !*.py
+!*.csv
