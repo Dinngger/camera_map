@@ -24,14 +24,6 @@ from .attention import SetTransformer, MultiHeadQKVAttention
 from .general_model import Model
 
 
-def mask_reduce_mean(input_tensor, mask):
-    mask = tf.cast(mask, tf.float32)
-    mask_sum = tf.reduce_sum(mask, axis=1, keepdims=True)
-    mask_weight = tf.expand_dims(mask / mask_sum, axis=-1)
-    output = tf.reduce_sum(input_tensor * mask_weight, axis=1)
-    return output
-
-
 class CarMatch(Model):
     """Car Match Model."""
 
@@ -64,24 +56,28 @@ class CarMatch(Model):
 
         h = self._encoder(x, presence)
         x_expand = snt.BatchApply(snt.Linear(32))(x)
+        presence_f = tf.cast(presence, tf.float32)
 
         # [B, N, n_car]
         belong_pred = MultiHeadQKVAttention(2, onehot_V=True)(x_expand, h, None)
-        # b, n, n_car = belong_pred.shape.as_list()
 
-        mask0 = presence * tf.cast(tf.equal(belong, 0), tf.int32)
-        res = tf.reduce_sum(tf.expand_dims(tf.cast(mask0, tf.float32), -1) * belong_pred) / tf.cast(tf.reduce_sum(mask0), tf.float32)
-        # for i in range(self.n_outputs):
-        #     mask = tf.expand_dims(tf.cast(tf.equal(belong, i+1), tf.float32), -1)
-        #     res -= tf.reduce_sum(tf.log1p(mask * belong_pred + 1 - mask)) / (b * n * n_car)
-        # dist = (mask_reduce_mean(belong_pred, tf.equal(belong, 1)) - mask_reduce_mean(belong_pred, tf.equal(belong, 2)))
-        # res -= tf.reduce_sum(tf.sqrt(tf.reduce_sum(tf.square(dist), axis=-1))) / b
+        belong_one_hot = tf.one_hot(belong - 1, self.n_outputs, on_value=1.0, off_value=0.0, axis=-1, dtype=tf.float32)
+        presence_all = tf.reduce_sum(presence_f)
+        res = tf.reduce_sum(tf.expand_dims(presence_f, -1) * tf.square(belong_one_hot - belong_pred)) / presence_all
+
+        belong_pred_round = tf.cast(tf.greater(belong_pred, 0.5), tf.float32)
+        accelerate = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred_round - belong_one_hot), 0.5), axis=-1), tf.float32)
+        acc = tf.reduce_sum(presence_f * accelerate) / presence_all
         return AttrDict(
             res=res,
+            acc=acc
         )
 
     def _loss(self, data, res):
         return res.res
+
+    def _acc(self, data, res):
+        return res.acc
 
     def _report(self, data, res):
         reports = super(CarMatch, self)._report(data, res)

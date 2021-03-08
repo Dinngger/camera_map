@@ -4,7 +4,7 @@ from monty.collections import AttrDict
 import tensorflow as tf
 from .car_match import CarMatch
 
-flags.DEFINE_float('lr', 1e-4, 'Learning rate.')
+flags.DEFINE_float('lr', 1e-3, 'Learning rate.')
 flags.DEFINE_boolean('use_lr_schedule', True, 'Uses learning rate schedule'
                      ' if True.')
 
@@ -33,10 +33,9 @@ def get(config):
         lr = tf.train.exponential_decay(
             global_step=global_step,
             learning_rate=lr,
-            decay_steps=1e4,
+            decay_steps=5000,
             decay_rate=.96)
 
-    eps = 1e-2 / float(config.batch_size) ** 2
-    opt = tf.train.RMSPropOptimizer(config.lr, momentum=.9, epsilon=eps)
+    opt = tf.train.AdamOptimizer(lr)
 
-    return AttrDict(model=model, opt=opt, lr=config.lr)
+    return AttrDict(model=model, opt=opt, lr=lr)

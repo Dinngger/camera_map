@@ -91,7 +91,6 @@ def main(_=None):
         suppress_inf_and_nans = (config.grad_value_clip > 0
                                  or config.grad_norm_clip > 0)
         report = tools.gradient_summaries(gvs, suppress_inf_and_nans)
-        report['target'] = target
         valid_report = dict()
 
         gvs = tools.clip_gradients(gvs, value_clip=config.grad_value_clip,
