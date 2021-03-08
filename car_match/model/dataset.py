@@ -22,19 +22,42 @@ def loadData():
 def getDataset(config):
     batch_size = config.batch_size
     x, presence, belong = loadData()
-    x_train, x_test, presence_train, presence_test, belong_train, belong_test = train_test_split(x, presence, belong, test_size=0.1666)
+    x_train, x_test, presence_train, presence_test, belong_train, belong_test = train_test_split(
+        x, presence, belong, test_size=1/6)
     dataset_type = namedtuple("dataset", ["x", "presence", "belong"])
-    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, presence_train, belong_train)).repeat(config.repeat).batch(batch_size)
-    test_dataset = tf.data.Dataset.from_tensor_slices((x_test, presence_test, belong_test)).batch(batch_size)
+
+    def train_generator(n_batches=30, iter=500):
+        for k in range(iter):
+            for i in range(n_batches):
+                yield dict(x=x_train[i*batch_size:(i+1)*batch_size],
+                           presence=presence_train[i*batch_size:(i+1)*batch_size],
+                           belong=belong_train[i*batch_size:(i+1)*batch_size])
+
+    def test_generator(n_batches=6, iter=500):
+        for k in range(iter):
+            for i in range(n_batches):
+                yield dict(x=x_test[i*batch_size:(i+1)*batch_size],
+                           presence=presence_test[i*batch_size:(i+1)*batch_size],
+                           belong=belong_test[i*batch_size:(i+1)*batch_size])
+
+    minibatch = next(train_generator(1))
+    dtypes = {k: v.dtype for k, v in minibatch.items()}
+    shapes = {k: v.shape for k, v in minibatch.items()}
+
+    train_dataset = tf.data.Dataset.from_generator(
+        train_generator, dtypes, shapes).repeat(config.repeat)
+    test_dataset = tf.data.Dataset.from_generator(
+        test_generator, dtypes, shapes)
+
     train_iter_data = train_dataset.make_one_shot_iterator()
     test_iter_data = test_dataset.make_one_shot_iterator()
     train_input_batch = train_iter_data.get_next()
     test_input_batch = test_iter_data.get_next()
-    for v in train_input_batch:
+    for _, v in train_input_batch.items():
         v.set_shape([batch_size] + v.shape[1:].as_list())
-    for v in test_input_batch:
+    for _, v in test_input_batch.items():
         v.set_shape([batch_size] + v.shape[1:].as_list())
-    return dataset_type(*train_input_batch), dataset_type(*test_input_batch)
+    return dataset_type(**train_input_batch), dataset_type(**test_input_batch)
 
 
 if __name__ == "__main__":

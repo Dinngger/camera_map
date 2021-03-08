@@ -296,6 +296,14 @@ def create_hooks(parsed_flags, plot_dict=None, plot_params=None):
         ),
     )
 
+    if config.snapshot_secs or config.snapshot_steps:
+        hooks['saver'] = tf.train.CheckpointSaverHook(
+            logdir,
+            save_secs=config.snapshot_secs if config.snapshot_secs else None,
+            save_steps=config.snapshot_steps if config.snapshot_steps else None,
+            saver=tf.train.Saver(max_to_keep=config.snapshots_to_keep)
+        )
+
     if plot_dict is not None:
         hooks['plot'] = PlottingHook(
             save_steps=config.plot_steps,

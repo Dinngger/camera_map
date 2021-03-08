@@ -39,6 +39,9 @@ flags.DEFINE_integer('run_updates_every', 10, '')
 flags.DEFINE_boolean('global_ema_update', True, '')
 
 flags.DEFINE_integer('max_train_steps', int(3e5), '')
+flags.DEFINE_integer('snapshot_secs', 3600, '')
+flags.DEFINE_integer('snapshot_steps', 0, '')
+flags.DEFINE_integer('snapshots_to_keep', 5, '')
 flags.DEFINE_integer('summary_steps', 500, '')
 
 flags.DEFINE_integer('report_loss_steps', 500, '')
@@ -139,10 +142,9 @@ def main(_=None):
         sess_config = tf.ConfigProto()
         sess_config.gpu_options.allow_growth = True
 
-        with tf.train.MonitoredTrainingSession(
+        with tf.train.SingularMonitoredSession(
                 hooks=create_hooks(FLAGS),
                 checkpoint_dir=logdir, config=sess_config) as sess:
-            # sess = tf_debug.LocalCLIDebugWrapperSession(sess)
 
             train_itr, _ = sess.run([global_step, update_ops])
             train_tensors = [global_step, train_step]
