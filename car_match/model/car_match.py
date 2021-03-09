@@ -63,22 +63,21 @@ class CarMatch(Model):
 
         belong_one_hot = tf.one_hot(belong - 1, self.n_outputs, on_value=1.0, off_value=0.0, axis=-1, dtype=tf.float32)
         presence_all = tf.reduce_sum(presence_f)
-        res = tf.reduce_sum(tf.expand_dims(presence_f, -1) * tf.square(belong_one_hot - belong_pred)) / presence_all
+        loss = tf.reduce_sum(tf.expand_dims(presence_f, -1) * tf.square(belong_one_hot - belong_pred)) / presence_all
 
         belong_pred_round = tf.cast(tf.greater(belong_pred, 0.5), tf.float32)
         accelerate = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred_round - belong_one_hot), 0.5), axis=-1), tf.float32)
         acc = tf.reduce_sum(presence_f * accelerate) / presence_all
         return AttrDict(
-            res=res,
-            acc=acc
+            loss=loss,
+            acc=acc,
+            input={'x': tf.saved_model.utils.build_tensor_info(x),
+                   'presence': tf.saved_model.utils.build_tensor_info(presence)},
+            output={'belong': tf.saved_model.utils.build_tensor_info(belong_pred)}
         )
 
     def _loss(self, data, res):
-        return res.res
-
-    def _acc(self, data, res):
-        return res.acc
+        return res.loss
 
     def _report(self, data, res):
-        reports = super(CarMatch, self)._report(data, res)
-        return reports
+        return AttrDict(loss=res.loss, acc=res.acc)

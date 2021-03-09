@@ -55,6 +55,7 @@ flags.DEFINE_boolean('overwrite', False, 'Overwrites any existing run of the '
                      'model if a checkpoint exists.')
 
 flags.DEFINE_boolean('check_numerics', False, 'Adds check numerics ops.')
+flags.DEFINE_boolean('save_model', False, 'Save model as saved_model')
 
 
 def main(_=None):
@@ -84,7 +85,7 @@ def main(_=None):
 
         global_step = tf.train.get_or_create_global_step()
         train_dataset, test_dataset = getDataset(config)
-        target, _ = model.make_target(train_dataset)
+        target, res = model.make_target(train_dataset)
 
         gvs = opt.compute_gradients(target)
 
@@ -141,39 +142,48 @@ def main(_=None):
         sess_config = tf.ConfigProto()
         sess_config.gpu_options.allow_growth = True
 
-        with tf.train.SingularMonitoredSession(
-                hooks=create_hooks(FLAGS),
-                checkpoint_dir=logdir, config=sess_config) as sess:
+        if config.save_model:
+            saver = tf.train.Saver()
+            with tf.Session() as sess:
+                saver.restore(sess, tf.train.latest_checkpoint(logdir))
+                signature = tf.saved_model.signature_def_utils.build_signature_def(res.input, res.output, 'sig_inout')
+                builder = tf.saved_model.builder.SavedModelBuilder("saved_model/")
+                builder.add_meta_graph_and_variables(sess, ['car_match_model'], {'sig_inout': signature})
+                builder.save()
+        else:
+            with tf.train.SingularMonitoredSession(
+                    hooks=create_hooks(FLAGS),
+                    checkpoint_dir=logdir, config=sess_config) as sess:
 
-            train_itr, _ = sess.run([global_step, update_ops])
-            train_tensors = [global_step, train_step]
-            report_tensors = [report, valid_report]
-            all_tensors = report_tensors + train_tensors
+                train_itr, _ = sess.run([global_step, update_ops])
+                train_tensors = [global_step, train_step]
+                report_tensors = [report, valid_report]
+                all_tensors = report_tensors + train_tensors
 
-            while train_itr < config.max_train_steps:
+                while train_itr < config.max_train_steps:
 
-                if train_itr % config.report_loss_steps == 0:
-                    report_vals, valid_report_vals, train_itr, _ = sess.run(
-                        all_tensors)
+                    if train_itr % config.report_loss_steps == 0:
+                        report_vals, valid_report_vals, train_itr, _ = sess.run(
+                            all_tensors)
 
-                    logging.info('')
-                    logging.info('train:')
-                    logging.info('#%s: %s', train_itr,
-                                 report_template.format(**report_vals))
+                        logging.info('')
+                        logging.info('train:')
+                        logging.info('#%s: %s', train_itr,
+                                     report_template.format(**report_vals))
 
-                    logging.info('valid:')
-                    valid_logs = dict(report_vals)
-                    valid_logs.update(valid_report_vals)
-                    logging.info('#%s: %s', train_itr,
-                                 report_template.format(**valid_logs))
+                        logging.info('valid:')
+                        valid_logs = dict(report_vals)
+                        valid_logs.update(valid_report_vals)
+                        logging.info('#%s: %s', train_itr,
+                                     report_template.format(**valid_logs))
 
-                    vals_to_check = list(report_vals.values())
-                    if (np.isnan(vals_to_check).any()
-                            or np.isnan(vals_to_check).any()):
-                        logging.fatal('NaN in reports: %s; breaking...',
-                                      report_template.format(**report_vals))
-                else:
-                    train_itr, _ = sess.run(train_tensors)
+                        vals_to_check = list(report_vals.values())
+                        if (np.isnan(vals_to_check).any()
+                                or np.isnan(vals_to_check).any()):
+                            logging.fatal('NaN in reports: %s; breaking...',
+                                          report_template.format(**report_vals))
+                    else:
+                        train_itr, _ = sess.run(train_tensors)
 
 
 if __name__ == '__main__':

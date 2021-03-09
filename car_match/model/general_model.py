@@ -78,10 +78,11 @@ class Model(snt.AbstractModule):
     #     return NotImplemented
 
     def _report(self, data, results):
-        """Defines any values that should be logged/reported."""
-        reports = {k: v for k, v in results.items()
-                   if isinstance(v, tf.Tensor) and v.shape == tuple()}
-        return AttrDict(reports)
+        # """Defines any values that should be logged/reported."""
+        # reports = {k: v for k, v in results.items()
+        #            if isinstance(v, tf.Tensor) and v.shape == tuple()}
+        # return AttrDict(reports)
+        return NotImplemented
 
     @Memoize()
     def connect(self, data, *args, **kwargs):
@@ -105,13 +106,13 @@ class Model(snt.AbstractModule):
         res = self.connect(data)
         loss = self._loss(data, res)
 
-        return loss, None
+        return loss, res
 
     @Memoize()
     def make_report(self, data):
 
         res = self.connect(data)
-        exprs = AttrDict(loss=self._loss(data, res))
+        exprs = AttrDict()
         exprs.update(self._report(data, res))
 
         for k, v in exprs.items():
