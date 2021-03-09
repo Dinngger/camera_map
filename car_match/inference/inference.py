@@ -22,8 +22,8 @@ def main():
     except OSError as e:
         print("mkfifo error: ", e)
 
-    output_f = os.open(input_path, os.O_SYNC | os.O_CREAT | os.O_RDWR)
-    input_f = os.open(output_path, os.O_RDONLY | os.O_NONBLOCK)
+    output_f = os.open(output_path, os.O_SYNC | os.O_CREAT | os.O_RDWR)
+    input_f = os.open(input_path, os.O_RDONLY)
 
     with tf.Session() as sess:
         meta_graph_def = tf.saved_model.loader.load(sess, ['car_match_model'], model_path)
@@ -38,14 +38,15 @@ def main():
             # print('data string len: ', len(data_string))
             if (len(data_string) >= 5*13*4):
                 data = np.frombuffer(data_string[0:5*13*4], dtype=np.float32, count=5*13)
-                data_string = data_string[5*13*4-1:]
+                data_string = data_string[5*13*4:]
                 print('get data: ', data)
-                data.shape = (1, 13, 5)
-                x = data[:, :, 0:4]
-                presence = data[:, :, 4]
+                x = data[0:4*13]
+                presence = data[4*13:4*13+13].astype(np.int32)
+                x = x.reshape((1, 13, 4))
+                presence = presence.reshape((1, 13))
                 belong_pred = sess.run(belong_tensor, feed_dict={x_tensor: x, presence_tensor: presence})
                 os.write(output_f, belong_pred.tobytes())
-                print('send result!')
+                print('send result!', belong_pred)
     os.close(input_f)
     os.close(output_f)
 
