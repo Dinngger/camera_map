@@ -34,21 +34,23 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
     // draw(frame);
-    carMatch.runMatch(match.possibles, frame, time, tar_list);
-    if (carMatch.division.size() < 1)
+    carMatch.transformerMatch(match.possibles);
+    if (carMatch.carsPossible.size() < 1)
         return 0;
-    std::vector<std::vector<LightBarP>> division;
-    for (int i=0; i<carMatch.division[0].nCar; i++) {
-        division.push_back(std::vector<LightBarP>());
-        if (carMatch.division[0].carsPossible[i].lightPossibles.size() <= 1)
+    std::vector<std::vector<LightBarP>> carsPossible;
+    for (uint i=0; i<carMatch.carsPossible.size(); i++) {
+        if (carMatch.carsPossible[i].first < 0)
             continue;
-        std::cout << "car: " << carMatch.division[0].carsPossible[i].first;
-        for (size_t j=0; j<carMatch.division[0].carsPossible[i].lightPossibles.size(); j++) {
-            const aim_deps::LightBox &lb = carMatch.division[0].carsPossible[i].lightPossibles[j].box;
+        carsPossible.push_back(std::vector<LightBarP>());
+        if (carMatch.carsPossible[i].lightPossibles.size() <= 1)
+            continue;
+        std::cout << "car: " << carMatch.carsPossible[i].first;
+        for (size_t j=0; j<carMatch.carsPossible[i].lightPossibles.size(); j++) {
+            const aim_deps::LightBox &lb = carMatch.carsPossible[i].lightPossibles[j].box;
             LightBarP lbp(lb.center, lb.vex[0] - lb.center);
-            lbp.lb_id = !((carMatch.division[0].carsPossible[i].first & 0x1) ^ (j & 0x1));
+            lbp.lb_id = !((carMatch.carsPossible[i].first & 0x1) ^ (j & 0x1));
             std::cout << lbp.lb_id << " ";
-            division[i].emplace_back(lbp);
+            carsPossible[i].emplace_back(lbp);
         }
         std::cout << "\n";
     }
@@ -61,7 +63,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         std::cout << temp_lbp.car_id << temp_lbp.armor_id << temp_lbp.lb_id << ", ";
     std::cout << "\033[0m\n";
 
-    for (std::vector<LightBarP>& car : division) {
+    for (std::vector<LightBarP>& car : carsPossible) {
         if (car.size() <= 1)
             continue;
         for (LightBarP& lbp : car) {
@@ -86,7 +88,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         }
     }
 
-    for (std::vector<LightBarP>& car : division) {
+    for (std::vector<LightBarP>& car : carsPossible) {
         if (car.size() <= 1)
             continue;
         std::cout << "car: ";
@@ -142,7 +144,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         std::cout << "\n";
     }
 
-    module.bundleAdjustment(division, time);
+    module.bundleAdjustment(carsPossible, time);
     printf("finished ba\n");
     return 0;
 }

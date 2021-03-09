@@ -20,7 +20,6 @@ void ArmorPlate::matchAll(
     std::vector<aim_deps::Armor> &tar_list
 )
 {
-    tar_list.clear();
     for(size_t i = 0 ; i < matches.size() ; ++i){
         if(isMatch(lights[matches[i].x],lights[matches[i].y])){
             if(lights[matches[i].x].box.center.x < lights[matches[i].y].box.center.x)
@@ -35,6 +34,14 @@ void ArmorPlate::matchAll(
         }
     }
     filter(tar_list, lights);                   //过滤无效装甲板
+    for (size_t i = 0; i < tar_list.size(); i++) {
+        if (tar_list[i].valid) {
+            int l_index = tar_list[i].left_light.index,
+                r_index = tar_list[i].right_light.index;
+            lights[l_index].isLeft = true;
+            lights[r_index].isLeft = false;
+        }
+    }
     //amp_debug("Target list size(%d), valid size(%d).\n", tar_list.size(), _cnt);
 }
 

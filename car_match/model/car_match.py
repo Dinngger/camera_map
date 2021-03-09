@@ -65,6 +65,7 @@ class CarMatch(Model):
         presence_all = tf.reduce_sum(presence_f)
         loss = tf.reduce_sum(tf.expand_dims(presence_f, -1) * tf.square(belong_one_hot - belong_pred)) / presence_all
 
+        # TODO: permutation invariant loss
         belong_pred_round = tf.cast(tf.greater(belong_pred, 0.5), tf.float32)
         accelerate = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred_round - belong_one_hot), 0.5), axis=-1), tf.float32)
         acc = tf.reduce_sum(presence_f * accelerate) / presence_all
