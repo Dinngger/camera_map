@@ -23,6 +23,7 @@
 struct CarPossible
 {
     int first = -1;
+    int first_index = -1;
     std::vector<aim_deps::Light> lightPossibles;
 };
 
@@ -44,7 +45,7 @@ public:
     /**
      * @brief 灯条输入之后，先转化为对应的中点向量格式，与Python文件交互输出结果保存到div中
      */
-    void transformerMatch(const std::vector<aim_deps::Light> &hLights);
+    void transformerMatch(std::vector<aim_deps::Light> &lights);
 
     CarMatch();
     ~CarMatch();

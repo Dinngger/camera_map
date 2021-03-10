@@ -71,7 +71,7 @@ void GetPos::positionScore(aim_deps::Armor &tar){
 }
 
 void GetPos::packUp(std::vector<cv::Mat> &rmats, std::vector<cv::Mat> &tmats, 
-	const std::vector<aim_deps::Armor> tar_list)
+	const std::vector<aim_deps::Armor>& tar_list)
 {
 	rmats.clear();
 	tmats.clear();

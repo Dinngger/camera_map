@@ -328,7 +328,7 @@ void LightMatch::getTrapezoids(const cv::Point2f corners[2]){
 }
 
 void LightMatch::drawLights(cv::Mat &src, char belong[]) const{
-	char str[4];
+	char str[5];
 	for(size_t i = 0; i < possibles.size() ; ++i){
 		if(enemy_blue){
 			if(possibles[i].valid){				//可能是反光的灯条不绘制
@@ -348,7 +348,8 @@ void LightMatch::drawLights(cv::Mat &src, char belong[]) const{
 		}
 		//snprintf(str, 4, "%lu", j);
 		//cv::putText(src, str, pts[j]+cv::Point2f(1,1), cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
-		snprintf(str, 4, "%lu,%d", i, belong[i]);
+		int isLeft = possibles[i].isLeft < 0 ? 2 : 1 - possibles[i].isLeft;
+		snprintf(str, 5, "%lu,%d", isLeft, belong[i]);
 		cv::putText(src, str, possibles[i].box.vex[0] + cv::Point2f(1, 1),
 					cv::FONT_HERSHEY_PLAIN, 1.5, aim_deps::ORANGE);
 		cv::circle(src, possibles[i].box.vex[0], 0, aim_deps::PINK, -1);

@@ -20,6 +20,7 @@ void ArmorPlate::matchAll(
     std::vector<aim_deps::Armor> &tar_list
 )
 {
+    tar_list.clear();
     for(size_t i = 0 ; i < matches.size() ; ++i){
         if(isMatch(lights[matches[i].x],lights[matches[i].y])){
             if(lights[matches[i].x].box.center.x < lights[matches[i].y].box.center.x)

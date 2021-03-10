@@ -1,7 +1,7 @@
 #include "../include/CarMatch.hpp"
 
-// const std::string head_path = "/home/sentinel/camera_map/fifos/";
-const std::string head_path = "/home/dinger/mine/RoboMaster/camera_map/fifos/";
+const std::string head_path = "/home/sentinel/camera_map/fifos/";
+// const std::string head_path = "/home/dinger/mine/RoboMaster/camera_map/fifos/";
 
 CarMatch::~CarMatch() {;}
 
@@ -18,10 +18,8 @@ CarMatch::CarMatch() {
     out_fd = open(output.c_str(), O_RDONLY);
 }
 
-void CarMatch::transformerMatch(const std::vector<aim_deps::Light> &hLights) {
+void CarMatch::transformerMatch(std::vector<aim_deps::Light> &lights) {
     carsPossible.clear();
-    std::vector<aim_deps::Light> lights;
-    lights.assign(hLights.begin(), hLights.end());
     std::sort(lights.begin(), lights.end(), 
         [&](const aim_deps::Light& l1, const aim_deps::Light& l2) {
             return l1.box.center.x < l2.box.center.x;
@@ -37,7 +35,9 @@ void CarMatch::transformerMatch(const std::vector<aim_deps::Light> &hLights) {
         w_trans.data[4 * i + 3] = vec.y;
         w_trans.data[EXIST_INDEX + i] = 1;
     }
-    write(in_fd, (void *)w_trans.buf, 4 * BUFFER_SIZE);
+    if (write(in_fd, (void *)w_trans.buf, 4 * BUFFER_SIZE) == -1) {
+        std::cerr << "No data sent.\n";
+    }
 
     /// TODO: 超市检测
     size_t total_num = 0;
@@ -54,6 +54,7 @@ void CarMatch::transformerMatch(const std::vector<aim_deps::Light> &hLights) {
                     CarPossible cp;
                     if (lights[i].isLeft != -1) {
                         cp.first = lights[i].isLeft ? 0 : 1;
+                        cp.first_index = 0;         // 第一个的灯条对应index 0
                     }
                     cp.lightPossibles.emplace_back(lights[i]);
                     carsPossible.emplace_back(cp);
@@ -62,6 +63,7 @@ void CarMatch::transformerMatch(const std::vector<aim_deps::Light> &hLights) {
                     int index = car_map[r_trans[i]];
                     if (lights[i].isLeft != -1 && carsPossible[index].first == -1) {
                         carsPossible[index].first = lights[i].isLeft ? 0 : 1;
+                        carsPossible[index].first_index = carsPossible[index].lightPossibles.size();
                     }
                     carsPossible[index].lightPossibles.emplace_back(lights[i]);
                 }
