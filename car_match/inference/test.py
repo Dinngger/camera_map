@@ -4,7 +4,8 @@ import sys
 import traceback
 import numpy as np
 
-module_path = "/home/dinger/mine/RoboMaster/camera_map/"
+# module_path = "/home/dinger/mine/RoboMaster/camera_map/"
+module_path = "/home/sentinel/camera_map/"
 input_path = module_path + "fifos/input.pipe"
 output_path = module_path + "fifos/output.pipe"
 data_path = module_path + "car_match/data/transformer.csv"
@@ -16,17 +17,16 @@ def main():
 
     data = np.loadtxt(data_path, dtype=np.float32, delimiter=",")
     res_string = bytes()
-    for i in range(2):
+    for i in range(100):
         input_data = data[i, 0:4*13+13]  # 1 x 5*13 float32
         print("send bytes: ", os.write(input_f, input_data.tobytes()))
         print("send data: ", input_data)
 
         while True:
-            res_string += os.read(output_f, 13*2*4)
-            if (len(res_string) >= 13*2*4):
-                result = np.frombuffer(res_string[0:13*2*4], dtype=np.float32, count=13*2)
-                res_string = res_string[13*2*4:]
-                result.shape = (13, 2)
+            res_string += os.read(output_f, 13*4)
+            if (len(res_string) >= 13*4):
+                result = np.frombuffer(res_string[0:13*4], dtype=np.int32, count=13)
+                res_string = res_string[13*4:]
                 print(result)
                 break
 

@@ -2,6 +2,8 @@
 
 const std::string head_path = "/home/sentinel/camera_map/fifos/";
 
+CarMatch::~CarMatch() {;}
+
 CarMatch::CarMatch() {
     const std::string input = head_path + "input.pipe";
     const std::string output = head_path + "output.pipe";
@@ -11,7 +13,7 @@ CarMatch::CarMatch() {
     }
     mkfifo(input.c_str(), 0777);
     mkfifo(output.c_str(), 0777);
-    in_fd = open(input.c_str(), O_SYNC | O_CREAT | O_RDWR);
+    in_fd = open(input.c_str(), O_SYNC | O_RDWR);
     out_fd = open(output.c_str(), O_RDONLY);
 }
 
@@ -38,7 +40,6 @@ void CarMatch::transformerMatch(const std::vector<aim_deps::Light> &hLights) {
     /// TODO: 超市检测
     size_t total_num = 0;
     std::map<int, int> car_map;
-    int n_car = 0;
     while (true) {
         total_num += read(out_fd, (void * )(r_trans + total_num), 13 - total_num);
         if (total_num < 13) {
@@ -48,22 +49,27 @@ void CarMatch::transformerMatch(const std::vector<aim_deps::Light> &hLights) {
         for (size_t i = 0; i < lights.size(); i++) {
             if (r_trans[i] > 0) {
                 if (car_map.count(r_trans[i]) == 0) {
-                    n_car++;
                     CarPossible cp;
                     if (lights[i].isLeft != -1) {
                         cp.first = lights[i].isLeft ? 0 : 1;
                     }
-                    cp.lightPossibles.push_back(lights[i]);
-                    carsPossible.push_back(cp);
+                    cp.lightPossibles.emplace_back(lights[i]);
+                    carsPossible.emplace_back(cp);
                     car_map[r_trans[i]] = carsPossible.size() - 1;
                 } else {
-                    if (lights[i].isLeft != -1 && carsPossible[car_map[r_trans[i]]].first == -1) {
-                        carsPossible[car_map[r_trans[i]]].first = lights[i].isLeft ? 0 : 1;
+                    int index = car_map[r_trans[i]];
+                    if (lights[i].isLeft != -1 && carsPossible[index].first == -1) {
+                        carsPossible[index].first = lights[i].isLeft ? 0 : 1;
                     }
-                    carsPossible[car_map[r_trans[i]]].lightPossibles.push_back(lights[i]);
+                    carsPossible[index].lightPossibles.emplace_back(lights[i]);
                 }
             }
         }
+        printf("\033[34mResult received, light %lu: [", lights.size());
+        for (int i = 0; i < 13; i++) {
+            printf("%d, ", r_trans[i]);
+        }
+        printf("]\n\033[0m");
         break;
     }
 }

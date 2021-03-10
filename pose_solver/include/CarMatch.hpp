@@ -38,8 +38,8 @@ private:
     int out_fd;
     int nCar = 0;
     transBuffer w_trans;
-    char r_trans[13];
 public:
+    char r_trans[13];
     std::vector<CarPossible> carsPossible;
 public:
     /**

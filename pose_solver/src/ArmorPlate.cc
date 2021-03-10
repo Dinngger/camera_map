@@ -34,15 +34,15 @@ void ArmorPlate::matchAll(
         }
     }
     filter(tar_list, lights);                   //过滤无效装甲板
-    for (size_t i = 0; i < tar_list.size(); i++) {
-        if (tar_list[i].valid) {
-            int l_index = tar_list[i].left_light.index,
-                r_index = tar_list[i].right_light.index;
-            lights[l_index].isLeft = true;
-            lights[r_index].isLeft = false;
+    for (aim_deps::Armor& tar: tar_list) {
+        if (tar.valid) {
+            aim_deps::Light& l = tar.left_light, r = tar.right_light;
+            l.isLeft = 1;
+            lights[l.index].isLeft = 1;
+            r.isLeft = 0;
+            lights[r.index].isLeft = 0;
         }
     }
-    //amp_debug("Target list size(%d), valid size(%d).\n", tar_list.size(), _cnt);
 }
 
 bool ArmorPlate::isMatch(const aim_deps::Light &l1, const aim_deps::Light &l2)
