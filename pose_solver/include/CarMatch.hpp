@@ -36,7 +36,6 @@ class CarMatch
 private:    
     int in_fd;
     int out_fd;
-    int nCar = 0;
     transBuffer w_trans;
 public:
     char r_trans[13];

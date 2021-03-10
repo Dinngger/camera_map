@@ -1,6 +1,7 @@
 #include "../include/CarMatch.hpp"
 
-const std::string head_path = "/home/sentinel/camera_map/fifos/";
+// const std::string head_path = "/home/sentinel/camera_map/fifos/";
+const std::string head_path = "/home/dinger/mine/RoboMaster/camera_map/fifos/";
 
 CarMatch::~CarMatch() {;}
 
@@ -18,6 +19,7 @@ CarMatch::CarMatch() {
 }
 
 void CarMatch::transformerMatch(const std::vector<aim_deps::Light> &hLights) {
+    carsPossible.clear();
     std::vector<aim_deps::Light> lights;
     lights.assign(hLights.begin(), hLights.end());
     std::sort(lights.begin(), lights.end(), 

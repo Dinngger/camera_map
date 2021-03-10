@@ -30,8 +30,10 @@ int CarModule::bundleAdjustment(const std::vector<std::vector<LightBarP>> &divis
                 continue;
             }
         }
-        if (!cars[i].car_valid)
+        if (!cars[i].car_valid) {
+            printf("\033[1;31;40mmatched with invalid car!!\033[0m\n");
             continue;
+        }
         observed[i] = true;
         cars[i].bundleAdjustment(car, K, delta_time);
     }
@@ -168,7 +170,7 @@ int CarModule::add_car()
     c.r.setIdentity();
     c.update_state();
     cars.push_back(c);
-    std::cout << "\033[42m"<< "successfully add a car! ";
+    std::cout << "\033[42m" << "successfully add a car! ";
     std::cout << "now car number: " << cars.size() << "\033[0m\n";
     return cars.size() - 1;
 }
