@@ -21,19 +21,19 @@ import sonnet as snt
 import tensorflow as tf
 
 
-class SetTransformer(snt.AbstractModule):
+class SelfSetTransformer(snt.AbstractModule):
     """Permutation-invariant Transformer."""
 
     def __init__(self,
-                 n_layers,
-                 n_heads,
-                 n_dims,
-                 n_output_dims,
-                 n_outputs,
-                 layer_norm=False,
+                 n_layers=3,
+                 n_heads=4,
+                 n_dims=16,
+                 n_output_dims=32,
+                 n_outputs=2,
+                 layer_norm=True,
                  dropout_rate=0.,
                  n_inducing_points=0):
-        super(SetTransformer, self).__init__()
+        super(SelfSetTransformer, self).__init__()
         self._n_layers = n_layers
         self._n_heads = n_heads
         self._n_dims = n_dims
@@ -64,33 +64,69 @@ class SetTransformer(snt.AbstractModule):
             'inducing_points', shape=[1, self._n_outputs, self._n_output_dims])
         inducing_points = snt.TileByDim([0], [batch_size])(inducing_points)
 
-        return MultiHeadQKVAttention(self._n_heads)(inducing_points, z, z, presence)    # PMA
+        h_out = MultiHeadQKVAttention(self._n_heads)(inducing_points, z, z, presence)    # PMA
+        return QKAttention()(z, h_out)
+
+
+class QKAttention(snt.AbstractModule):
+    """Transformer-like attention with one-hot output"""
+
+    def __init__(self):
+        super(QKAttention, self).__init__()
+
+    def _build(self, queries, keys, presence=None):
+        """Builds the module.
+
+        Args:
+          queries: Tensor of shape [B, M, d_k].
+          keys: Tensor of shape [B, N, d_k].
+          presence: None or tensor of shape [B, N].
+
+        Returns:
+          Tensor of shape [B, M, N]
+        """
+        M = int(queries.shape[1])
+        N = int(keys.shape[1])
+
+        # [B, M, d] x [B, d, N] = [B, M, N]
+        # routing = tf.matmul(queries, keys, transpose_b=True)
+        queries_expand = tf.tile(tf.expand_dims(queries, 2), multiples=[1, 1, N, 1])
+        keys_expand = tf.tile(tf.expand_dims(keys, 1), multiples=[1, M, 1, 1])
+        routing = tf.squeeze(snt.Conv2D(1, (1, 1))(tf.nn.relu(snt.Conv2D(8, (1, 1))(queries_expand - keys_expand))), axis=-1)
+
+        # linear = snt.BatchApply(snt.Linear(routing.shape[-1]))
+        # return tf.sigmoid(linear(routing))
+        return tf.sigmoid(routing)
 
 
 class QKVAttention(snt.AbstractModule):
-    """Transformer-like self-attention."""
+    """Transformer-like attention."""
 
-    def __init__(self, onehot_V=False):
+    def __init__(self):
         super(QKVAttention, self).__init__()
-        self._onehot_V = onehot_V
 
     def _build(self, queries, keys, values, presence=None):
         """Builds the module.
 
         Args:
-          queries: Tensor of shape [B, N, d_k].
-          keys: Tensor of shape [B, M, d_k].
-          values: : Tensor of shape [B, M, d_v].
-          presence: None or tensor of shape [B, M].
+          queries: Tensor of shape [B, M, d_k].
+          keys: Tensor of shape [B, N, d_k].
+          values: : Tensor of shape [B, N, d_v].
+          presence: None or tensor of shape [B, N].
 
         Returns:
-          Tensor of shape [B, N, d_v]
+          Tensor of shape [B, M, d_v]
         """
 
         n_dim = int(queries.shape[-1])
+        M = int(queries.shape[1])
+        N = int(keys.shape[1])
 
         # [B, M, d] x [B, d, N] = [B, M, N]
-        routing = tf.matmul(queries, keys, transpose_b=True)
+        # routing = tf.matmul(queries, keys, transpose_b=True)
+        queries_expand = tf.tile(tf.expand_dims(queries, 2), multiples=[1, 1, N, 1])
+        keys_expand = tf.tile(tf.expand_dims(keys, 1), multiples=[1, M, 1, 1])
+        routing = tf.squeeze(snt.Conv2D(1, (1, 1))(tf.nn.relu(snt.Conv2D(8, (1, 1))(queries_expand - keys_expand))), axis=-1)
 
         if presence is not None:
             presence = tf.cast(tf.expand_dims(presence, -2), tf.float32)
@@ -98,8 +134,6 @@ class QKVAttention(snt.AbstractModule):
 
         routing = tf.nn.softmax(routing / np.sqrt(n_dim), -1)
 
-        if self._onehot_V:
-            return routing
         # every output is a linear combination of all inputs
         # [B, M, N] x [B, N, d_v] = [B, M, d_v]
         res = tf.matmul(routing, values)
@@ -109,10 +143,9 @@ class QKVAttention(snt.AbstractModule):
 class MultiHeadQKVAttention(snt.AbstractModule):
     """Multi-head version of Transformer-like attention."""
 
-    def __init__(self, n_heads, onehot_V=False):
+    def __init__(self, n_heads):
         super(MultiHeadQKVAttention, self).__init__()
         self._n_heads = n_heads
-        self._onehot_V = onehot_V
 
     def _build(self, queries, keys, values, presence=None):
 
@@ -127,14 +160,10 @@ class MultiHeadQKVAttention(snt.AbstractModule):
             args = [transform(i) for i in [queries, keys, values]]
             if presence is not None:
                 args.append(presence)
-            outputs.append(QKVAttention(self._onehot_V)(*args))
+            outputs.append(QKVAttention()(*args))
 
-        if self._onehot_V:
-            linear = snt.BatchApply(snt.Linear(keys.shape[1]))
-            return tf.sigmoid(linear(tf.concat(outputs, -1)))
-        else:
-            linear = snt.BatchApply(snt.Linear(values.shape[-1]))
-            return linear(tf.concat(outputs, -1))
+        linear = snt.BatchApply(snt.Linear(values.shape[-1]))
+        return linear(tf.concat(outputs, -1))
 
 
 class SelfAttention(snt.AbstractModule):

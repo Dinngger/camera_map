@@ -25,13 +25,13 @@ int main(int argc, char* argv[])
 #define path2a "/home/sentinel/videos/disp_low2.avi"
 #define path2b "/home/sentinel/videos/output_high.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
-    cv::VideoCapture cap(path2a);
+    cv::VideoCapture cap(path0a);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
     }
 #ifdef SHOW_MODULE
-    cv::VideoCapture cap_high(path2b);
+    cv::VideoCapture cap_high(path0b);
     if (!cap_high.isOpened()) {
         printf("Unable to open video.\n");
         return 0;

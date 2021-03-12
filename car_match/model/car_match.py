@@ -18,10 +18,15 @@ from __future__ import division
 from __future__ import print_function
 
 from monty.collections import AttrDict
-import sonnet as snt
 import tensorflow as tf
-from .attention import SetTransformer, MultiHeadQKVAttention
+from .attention import SelfSetTransformer
 from .general_model import Model
+
+
+def focalLoss(predict, label, valid):
+    p = tf.square(label - predict)
+    # p = p * tf.cast(tf.less(p, 0.99), tf.float32)
+    return tf.reduce_sum(tf.expand_dims(valid, -1) * p, [1, 2])
 
 
 class CarMatch(Model):
@@ -30,15 +35,8 @@ class CarMatch(Model):
     def __init__(self):
         super(CarMatch, self).__init__()
         self.n_outputs = 2
-        self._encoder = SetTransformer(
-            n_layers=3,             # SAB num
-            n_heads=1,
-            n_dims=16,              # attention dims
-            n_output_dims=32,       # car dims
+        self._encoder = SelfSetTransformer(
             n_outputs=self.n_outputs,            # car num
-            layer_norm=True,
-            dropout_rate=0.,
-            n_inducing_points=0     # use SAB
         )
 
     def _build(self, data):
@@ -53,22 +51,26 @@ class CarMatch(Model):
           Res
         """
         x, presence, belong = data['x'], data['presence'], data['belong']
-
-        h = self._encoder(x, presence)
-        x_expand = snt.BatchApply(snt.Linear(32))(x)
         presence_f = tf.cast(presence, tf.float32)
+        presence_all = tf.reduce_sum(presence_f)
 
         # [B, N, n_car]
-        belong_pred = MultiHeadQKVAttention(2, onehot_V=True)(x_expand, h, None)
+        belong_pred = self._encoder(x, presence)
+        belong_inverse = tf.floordiv(belong + tf.cast(tf.equal(belong, 1), tf.int32) * 3, 2)
+        # belong = tf.Print(belong, [belong[0], belong_inverse[0]], message='belong: ', summarize=32)
 
         belong_one_hot = tf.one_hot(belong - 1, self.n_outputs, on_value=1.0, off_value=0.0, axis=-1, dtype=tf.float32)
-        presence_all = tf.reduce_sum(presence_f)
-        loss = tf.reduce_sum(tf.expand_dims(presence_f, -1) * tf.square(belong_one_hot - belong_pred)) / presence_all
+        belong_inv_one_hot = tf.one_hot(belong_inverse - 1, self.n_outputs, on_value=1.0, off_value=0.0, axis=-1, dtype=tf.float32)
+        loss1 = focalLoss(belong_pred, belong_one_hot, presence_f)
+        loss2 = focalLoss(belong_pred, belong_inv_one_hot, presence_f)
+        loss = tf.reduce_sum(tf.minimum(loss1, loss2), 0) / presence_all
 
-        # TODO: permutation invariant loss
         belong_pred_round = tf.cast(tf.greater(belong_pred, 0.5), tf.float32)
-        accelerate = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred_round - belong_one_hot), 0.5), axis=-1), tf.float32)
-        acc = tf.reduce_sum(presence_f * accelerate) / presence_all
+        accelerate1 = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred_round - belong_one_hot), 0.5), axis=-1), tf.float32)
+        accelerate2 = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred_round - belong_inv_one_hot), 0.5), axis=-1), tf.float32)
+        accelerate1B = tf.reduce_sum(presence_f * accelerate1, 1)
+        accelerate2B = tf.reduce_sum(presence_f * accelerate2, 1)
+        acc = tf.reduce_sum(tf.maximum(accelerate1B, accelerate2B), 0) / presence_all
         return AttrDict(
             loss=loss,
             acc=acc,

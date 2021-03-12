@@ -54,6 +54,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
                 lbp.lb_id = carMatch.carsPossible[i].first;
             else                                                // 与index不同奇偶性，则标志不同
                 lbp.lb_id = 1 - carMatch.carsPossible[i].first;
+            // hqy yyds!
             std::cout << lbp.lb_id << " ";
             carsPossible[n_cars].emplace_back(lbp);
         }

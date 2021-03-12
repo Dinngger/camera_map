@@ -29,8 +29,8 @@ flags.mark_flag_as_required('name')
 flags.DEFINE_string('logdir', 'checkpoints/{name}',
                     'Log and checkpoint directory for the experiment.')
 
-flags.DEFINE_float('grad_value_clip', 0., '')
-flags.DEFINE_float('grad_norm_clip', 0., '')
+flags.DEFINE_float('grad_value_clip', 35, '')
+flags.DEFINE_float('grad_norm_clip', 2, '')
 
 flags.DEFINE_float('ema', .9, 'Exponential moving average weight for smoothing '
                    'reported results.')
@@ -68,7 +68,7 @@ def main(_=None):
     logdir = FLAGS.logdir
     logging.info('logdir: %s', logdir)
 
-    if os.path.exists(logdir) and FLAGS.overwrite:
+    if os.path.exists(logdir) and FLAGS.overwrite and not FLAGS.save_model:
         logging.info(
             '"overwrite" is set to True. Deleting logdir at "%s".', logdir)
         shutil.rmtree(logdir)

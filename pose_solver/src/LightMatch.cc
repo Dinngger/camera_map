@@ -349,7 +349,7 @@ void LightMatch::drawLights(cv::Mat &src, char belong[]) const{
 		//snprintf(str, 4, "%lu", j);
 		//cv::putText(src, str, pts[j]+cv::Point2f(1,1), cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
 		int isLeft = possibles[i].isLeft < 0 ? 2 : 1 - possibles[i].isLeft;
-		snprintf(str, 5, "%lu,%d", isLeft, belong[i]);
+		snprintf(str, 5, "%d", belong[i]);
 		cv::putText(src, str, possibles[i].box.vex[0] + cv::Point2f(1, 1),
 					cv::FONT_HERSHEY_PLAIN, 1.5, aim_deps::ORANGE);
 		cv::circle(src, possibles[i].box.vex[0], 0, aim_deps::PINK, -1);

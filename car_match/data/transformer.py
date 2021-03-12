@@ -39,7 +39,7 @@ def makeFormat(data):
             if elem == -1:
                 cnt += 1
             else:
-                belongs[i - cnt] = cnt
+                belongs[i - cnt] = cnt if cnt < 3 else 0
         new_row.extend(exists)
         new_row.extend(belongs)
         new_data.append(new_row)
