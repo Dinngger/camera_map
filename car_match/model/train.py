@@ -30,7 +30,7 @@ flags.DEFINE_string('logdir', 'checkpoints/{name}',
                     'Log and checkpoint directory for the experiment.')
 
 flags.DEFINE_float('grad_value_clip', 35, '')
-flags.DEFINE_float('grad_norm_clip', 2, '')
+flags.DEFINE_float('grad_norm_clip', 4, '')
 
 flags.DEFINE_float('ema', .9, 'Exponential moving average weight for smoothing '
                    'reported results.')

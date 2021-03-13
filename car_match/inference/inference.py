@@ -44,22 +44,21 @@ def main():
             if (len(data_string) >= 5*13*4):
                 data = np.frombuffer(data_string[0:5*13*4], dtype=np.float32, count=5*13)
                 data_string = data_string[5*13*4:]
-                print('get data: ', data.shape, data)
+                # print('get data: ', data.shape, data)
                 x = data[0:4*13]
                 presence = data[4*13:4*13+13].astype(np.int32)
                 x = x.reshape((1, 13, 4))
                 presence = presence.reshape((1, 13))
                 belong_pred = sess.run(belong_tensor, feed_dict={x_tensor: x, presence_tensor: presence})
-                print("Shape for belongs: ", belong_pred.shape)
+                # print("Shape for belongs: ", belong_pred.shape)
                 result = np.ones(13, dtype=np.int8)
                 to_zero = (np.max(belong_pred, axis=2) < 0.5).ravel()
                 result += np.argmax(belong_pred, axis=2).ravel()
                 result[to_zero] = 0
                 to_send = result.tobytes()
                 os.write(output_f, to_send)
-                # TODO
                 print('send result!', result, ", result type:", result.dtype, "length: %d" % (len(to_send)))
-                print(belong_pred)
+                print(belong_pred[:, 0:4, :])
     os.close(input_f)
     os.close(output_f)
 
