@@ -9,7 +9,6 @@
 #include "../include/AimDeps.hpp"
 
 namespace aim_deps {
-PnP_depended_param pnp_depended_param;
 Light_Params light_params;
 Distance_Params distance_params;
 }

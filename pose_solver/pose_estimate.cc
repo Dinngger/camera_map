@@ -22,16 +22,17 @@ int main(int argc, char* argv[])
 #endif
 #define path0a "/home/dinger/mine/Dataset/videos/disp_low2.avi"
 #define path0b "/home/dinger/mine/Dataset/videos/output_high.avi"
+#define path1a "/media/sentinel/ENIGMATICS/cv_output.avi"
 #define path2a "/home/sentinel/videos/disp_low2.avi"
 #define path2b "/home/sentinel/videos/output_high.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
-    cv::VideoCapture cap(path0a);
+    cv::VideoCapture cap(path1a);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
     }
 #ifdef SHOW_MODULE
-    cv::VideoCapture cap_high(path0b);
+    cv::VideoCapture cap_high(path2b);
     if (!cap_high.isOpened()) {
         printf("Unable to open video.\n");
         return 0;

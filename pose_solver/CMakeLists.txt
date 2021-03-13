@@ -35,13 +35,23 @@ find_package(Eigen3 REQUIRED)
 if(NOT Eigen3_FOUND)
    message(FATAL_ERROR "Eigen3 not found.")
 endif()
+
 find_package(Pangolin REQUIRED)
 if(NOT Pangolin_FOUND)
    message(FATAL_ERROR "Pangolin not found.")
 endif()
+
 find_package(Ceres REQUIRED)
 if(NOT Ceres_FOUND)
    message(FATAL_ERROR "Ceres not found.")
+endif()
+
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+else()
+    message(FATAL_ERROR "No suitable OpenMP found.")
 endif()
 # message(STATUS ${EIGEN3_INCLUDE_DIRS})
 

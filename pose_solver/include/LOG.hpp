@@ -15,6 +15,7 @@
 
 #ifndef _LOG_HPP
 #define _LOG_HPP
+#undef LOG
 
 #include <map>
 #include <vector>
