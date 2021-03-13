@@ -18,38 +18,47 @@ Armor3d toArmor3d(const aim_deps::Armor& armor) {
 }
 
 PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K, double time) :
-    tar_list(16),
     K (K),
     module(K, time)
 {
-    tar_list.clear();
 }
 
 int PoseSolver::run(const cv::Mat &frame, double time)
 {
     match.saveImg(frame);
     match.findPossible();
-
     amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
-    // draw(frame);
-    carMatch.runMatch(match.possibles, frame, time, tar_list);
-    if (carMatch.division.size() < 1)
+    carMatch.transformerMatch(match.possibles);
+    if (carMatch.carsPossible.size() < 1)
         return 0;
-    std::vector<std::vector<LightBarP>> division;
-    for (int i=0; i<carMatch.division[0].nCar; i++) {
-        division.push_back(std::vector<LightBarP>());
-        if (carMatch.division[0].carsPossible[i].lightPossibles.size() <= 1)
+    std::vector<std::vector<LightBarP> > carsPossible;
+    for (uint i = 0, n_cars = 0; i < carMatch.carsPossible.size(); i++) {
+        if (carMatch.carsPossible[i].first < 0)
             continue;
-        std::cout << "car: " << carMatch.division[0].carsPossible[i].first;
-        for (size_t j=0; j<carMatch.division[0].carsPossible[i].lightPossibles.size(); j++) {
-            const aim_deps::LightBox &lb = carMatch.division[0].carsPossible[i].lightPossibles[j].box;
-            LightBarP lbp(lb.center, lb.vex[0] - lb.center);
-            lbp.lb_id = !((carMatch.division[0].carsPossible[i].first & 0x1) ^ (j & 0x1));
-            std::cout << lbp.lb_id << " ";
-            division[i].emplace_back(lbp);
+        carsPossible.push_back(std::vector<LightBarP>());
+
+        carsPossible.back().clear();
+
+        if (carMatch.carsPossible[i].lightPossibles.size() <= 1) {
+            n_cars ++;
+            continue;
         }
+        int first_index = carMatch.carsPossible[i].first_index;
+        std::cout << "car: " << carMatch.carsPossible[i].first << " light: ";
+        for (size_t j=0; j<carMatch.carsPossible[i].lightPossibles.size(); j++) {
+            const aim_deps::LightBox &lb = carMatch.carsPossible[i].lightPossibles[j].box;
+            LightBarP lbp(lb.center, lb.vex[0] - lb.center);
+            if ((j & 0x1) == (first_index & 0x1))               // 与index同奇偶性，则标志应该相同
+                lbp.lb_id = carMatch.carsPossible[i].first;
+            else                                                // 与index不同奇偶性，则标志不同
+                lbp.lb_id = 1 - carMatch.carsPossible[i].first;
+            // hqy yyds!
+            std::cout << lbp.lb_id << " ";
+            carsPossible[n_cars].emplace_back(lbp);
+        }
+        n_cars ++;
         std::cout << "\n";
     }
 
@@ -61,7 +70,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         std::cout << temp_lbp.car_id << temp_lbp.armor_id << temp_lbp.lb_id << ", ";
     std::cout << "\033[0m\n";
 
-    for (std::vector<LightBarP>& car : division) {
+    for (std::vector<LightBarP>& car : carsPossible) {
         if (car.size() <= 1)
             continue;
         for (LightBarP& lbp : car) {
@@ -86,7 +95,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         }
     }
 
-    for (std::vector<LightBarP>& car : division) {
+    for (std::vector<LightBarP>& car : carsPossible) {
         if (car.size() <= 1)
             continue;
         std::cout << "car: ";
@@ -133,7 +142,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         }
         if (max_armor_id < 0)
             max_armor_id += 2;
-        std::cout << "final lb: ";
+        std::cout << "final_lb: ";
         for (size_t i=0; i<car.size(); i++) {
             car[i].armor_id = ((max_armor_id + i) % 8) / 2;
             car[i].lb_id = (max_armor_id + i) % 2;
@@ -142,7 +151,7 @@ int PoseSolver::run(const cv::Mat &frame, double time)
         std::cout << "\n";
     }
 
-    module.bundleAdjustment(division, time);
+    module.bundleAdjustment(carsPossible, time);
     printf("finished ba\n");
     return 0;
 }
@@ -164,7 +173,7 @@ int PoseSolver::getTwcs(std::vector<cv::Mat> &Twcs)
 
 int PoseSolver::draw(cv::Mat &frame)
 {
-    match.drawLights(frame);							//绘制所有灯条
+    match.drawLights(frame, carMatch.r_trans);							//绘制所有灯条
     amp.drawArmorPlates(frame, tar_list, 0);		    //绘制装甲板
     return 0;
 }

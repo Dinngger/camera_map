@@ -210,7 +210,7 @@ bool LightMatch::doubleThresh(const std::vector<cv::Point>& ct, cv::Rect& bbox, 
 	//cv::rectangle(src, bbox, cv::Scalar(100));
 	if(contours.size() >= 1){
 		std::sort(contours.begin(), contours.end(), sizeCmp);
-		printf("Light %lu started to find true contours.\n", possibles.size());
+		// printf("Light %lu started to find true contours.\n", possibles.size());
 		const std::vector<cv::Point> &c = contours[getTrueContour(contours, tmp_rec.center, bbox.tl())];
 		cv::RotatedRect rot_box = cv::minAreaRect(c);
 		float maxi = cv::max(rot_box.size.width, rot_box.size.height);
@@ -327,8 +327,8 @@ void LightMatch::getTrapezoids(const cv::Point2f corners[2]){
 	trapezoids.emplace_back(right_trapezoid);
 }
 
-void LightMatch::drawLights(cv::Mat &src) const{
-	char str[2];
+void LightMatch::drawLights(cv::Mat &src, char belong[]) const{
+	char str[5];
 	for(size_t i = 0; i < possibles.size() ; ++i){
 		if(enemy_blue){
 			if(possibles[i].valid){				//可能是反光的灯条不绘制
@@ -348,7 +348,8 @@ void LightMatch::drawLights(cv::Mat &src) const{
 		}
 		//snprintf(str, 4, "%lu", j);
 		//cv::putText(src, str, pts[j]+cv::Point2f(1,1), cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
-		snprintf(str, 2, "%lu", i);
+		int isLeft = possibles[i].isLeft < 0 ? 2 : 1 - possibles[i].isLeft;
+		snprintf(str, 5, "%d", belong[i]);
 		cv::putText(src, str, possibles[i].box.vex[0] + cv::Point2f(1, 1),
 					cv::FONT_HERSHEY_PLAIN, 1.5, aim_deps::ORANGE);
 		cv::circle(src, possibles[i].box.vex[0], 0, aim_deps::PINK, -1);

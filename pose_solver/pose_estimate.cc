@@ -20,16 +20,11 @@ int main(int argc, char* argv[])
     Viewer *viewer = new Viewer("main", K(0, 0), K(1, 1));
     std::thread* mpViewer = new std::thread(&Viewer::Run, viewer);
 #endif
-#define path0a "/home/dinger/mine/Dataset/videos/cv_output5.avi"
-#define path0b "/home/dinger/mine/Dataset/videos/cv_output5.avi"
-#define path1 "/home/sentinel/camera_map/pose_solver/cv_output1.avi"
+#define path0a "/home/dinger/mine/Dataset/videos/disp_low2.avi"
+#define path0b "/home/dinger/mine/Dataset/videos/output_high.avi"
 #define path2a "/home/sentinel/videos/disp_low2.avi"
 #define path2b "/home/sentinel/videos/output_high.avi"
-#define path3a "/home/allegray/videos/disp_low2.avi"
-#define path3b "/home/allegray/videos/output_high.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
-#define path5 "../../../output_low.avi"
-#define path6 "../../../output_high.avi"
     cv::VideoCapture cap(path0a);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");

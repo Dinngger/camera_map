@@ -35,7 +35,15 @@ void ArmorPlate::matchAll(
         }
     }
     filter(tar_list, lights);                   //过滤无效装甲板
-    //amp_debug("Target list size(%d), valid size(%d).\n", tar_list.size(), _cnt);
+    for (aim_deps::Armor& tar: tar_list) {
+        if (tar.valid) {
+            aim_deps::Light& l = tar.left_light, r = tar.right_light;
+            l.isLeft = 1;
+            lights[l.index].isLeft = 1;
+            r.isLeft = 0;
+            lights[r.index].isLeft = 0;
+        }
+    }
 }
 
 bool ArmorPlate::isMatch(const aim_deps::Light &l1, const aim_deps::Light &l2)

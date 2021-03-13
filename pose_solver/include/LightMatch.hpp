@@ -38,7 +38,7 @@ public:
 	void setEnemyColor(const bool _enemy_blue = false);					//重新设置敌人的颜色
 
 	void findPossible();												//找到图上所有可能的灯条						
-	void drawLights(cv::Mat &src) const;								//绘制灯条
+	void drawLights(cv::Mat &src, char belongs[]) const;								//绘制灯条
 	void saveImg(const cv::Mat& src){									//图像预处理
 		cv::split(src, proced);
 	}

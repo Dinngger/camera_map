@@ -18,40 +18,27 @@ int CarModule::bundleAdjustment(const std::vector<std::vector<LightBarP>> &divis
 {
     double delta_time = time - module_time;
     std::vector<bool> observed(cars.size(), false);
-    int car_i = -1;
-    size_t car_lbp_num = 0;
-    for (size_t i=0; i<division.size(); i++) {
-        if (division[i].size() > car_lbp_num) {
-            car_lbp_num = division[i].size();
-            car_i = i;
+    for (const std::vector<LightBarP>& car : division) {
+        if (car.size() <= 1)
+            continue;
+        int i = car[0].car_id;
+        if (i >= (int)cars.size() || i < 0) {
+            if (car.size() > 2) {
+                i = add_car();
+                observed.push_back(true);
+            } else {
+                continue;
+            }
         }
+        if (!cars[i].car_valid) {
+            printf("\033[1;31;40mmatched with invalid car!!\033[0m\n");
+            continue;
+        }
+        observed[i] = true;
+        cars[i].bundleAdjustment(car, K, delta_time);
     }
-    if (car_i == -1)
-        return 0;
-    // for (const std::vector<LightBarP>& car : division) {
-    const std::vector<LightBarP>& car = division[car_i];
-    if (car.size() <= 1)
-        return 0;
-    // int i = car[0].car_id;
-    // if (i >= (int)cars.size() || i < 0) {
-    //     if (car.size() > 2) {
-    //         i = add_car();
-    //         observed.push_back(true);
-    //     } else {
-    //         continue;
-    //     }
-    // }
-    // if (!cars[i].car_valid)
-    //     continue;
-    // observed[i] = true;
-    // cars[i].bundleAdjustment(car, K, delta_time);
-    // }
-    if (cars.size() < 1 && car.size() > 2) {
-        add_car();
-    }
-    cars[0].bundleAdjustment(car, K, delta_time);
-    // for (size_t i=0; i<observed.size(); i++)
-    //     cars[i].car_valid = observed[i];
+    for (size_t i=0; i<observed.size(); i++)
+        cars[i].car_valid = observed[i];
     module_time = time;
     return 0;
 }
@@ -183,7 +170,7 @@ int CarModule::add_car()
     c.r.setIdentity();
     c.update_state();
     cars.push_back(c);
-    std::cout << "\033[42m"<< "successfully add a car! ";
+    std::cout << "\033[42m" << "successfully add a car! ";
     std::cout << "now car number: " << cars.size() << "\033[0m\n";
     return cars.size() - 1;
 }

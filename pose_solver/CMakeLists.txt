@@ -89,19 +89,19 @@ ${CERES_LIBRARIES}
 # /usr/lib/x86_64-linux-gnu/libtiff.so.5.2.4
 )
 
-add_executable(data_process
-data_process.cpp
-)
+# add_executable(data_process
+# data_process.cpp
+# )
 
-target_link_libraries(data_process
-${OpenCV_LIBS}
-)
+# target_link_libraries(data_process
+# ${OpenCV_LIBS}
+# )
 
-add_executable(SubPixelOpt
-SubPixelOpt.cc
-)
+# add_executable(SubPixelOpt
+# SubPixelOpt.cc
+# )
 
-target_link_libraries(SubPixelOpt
-${OpenCV_LIBS}
-${CERES_LIBRARIES}
-)
+# target_link_libraries(SubPixelOpt
+# ${OpenCV_LIBS}
+# ${CERES_LIBRARIES}
+# )
