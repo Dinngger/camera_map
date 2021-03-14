@@ -34,20 +34,17 @@ class SelfSetTransformer(snt.AbstractModule):
     def _build(self, x, presence=None):
 
         batch_size = int(x.shape[0])
-        h = snt.BatchApply(snt.Linear(self._n_inducing_dims))(x)
+        h = snt.TileByDim([2], [2])(x)
 
         for _ in range(3):
             h = SelfAttention(n_heads=2)(h, presence)
-
-        z = snt.BatchApply(snt.Linear(self._n_inducing_dims))(h)
 
         inducing_points = tf.get_variable(
             'inducing_points', shape=[1, self._n_outputs, self._n_inducing_dims])
         inducing_points = snt.TileByDim([0], [batch_size])(inducing_points)
 
-        h_out = MultiHeadQKVAttention(n_heads=2)(inducing_points, z, z, presence)    # PMA
-        h_out = snt.LayerNorm(axis=-1)(h_out + inducing_points)
-        routing = QKAttention()(z, h_out)
+        h_out = inducing_points + MultiHeadQKVAttention(n_heads=2)(inducing_points, h, h, presence)    # PMA
+        routing = QKAttention()(h, h_out)
         return routing
 
 
@@ -144,40 +141,19 @@ class MultiHeadQKVAttention(snt.AbstractModule):
 class SelfAttention(snt.AbstractModule):
     """Self-attention where keys, values and queries are the same."""
 
-    def __init__(self, n_heads, layer_norm=True, dropout_rate=0.):
+    def __init__(self, n_heads):
         super(SelfAttention, self).__init__()
         self._n_heads = n_heads
-        self._layer_norm = layer_norm
-        self._dropout_rate = dropout_rate
 
     def _build(self, x, presence=None):
         n_dims = int(x.shape[-1])
 
-        y = self._self_attention(x, presence)
-
-        if self._dropout_rate > 0.:
-            x = tf.nn.dropout(x, rate=self._dropout_rate)
-
-        y += x
-
+        y = x + MultiHeadQKVAttention(self._n_heads)(x, x, x, presence)
         if presence is not None:
             y *= tf.expand_dims(tf.cast(presence, tf.float32), -1)
+        y = snt.LayerNorm(axis=1)(y)
 
-        if self._layer_norm:
-            y = snt.LayerNorm(axis=-1)(y)
-
-        h = snt.BatchApply(snt.nets.MLP([2*n_dims, n_dims]))(y)
-
-        if self._dropout_rate > 0.:
-            h = tf.nn.dropout(h, rate=self._dropout_rate)
-
-        h += y
-
-        if self._layer_norm:
-            h = snt.LayerNorm(axis=-1)(h)
+        h = y + snt.BatchApply(snt.nets.MLP([2*n_dims, n_dims]))(y)
+        h = snt.LayerNorm(axis=1)(h)
 
         return h
-
-    def _self_attention(self, x, presence):
-        heads = MultiHeadQKVAttention(self._n_heads)
-        return heads(x, x, x, presence)
