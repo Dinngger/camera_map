@@ -47,26 +47,12 @@ class SelfSetTransformer(snt.AbstractModule):
 
         h_out = MultiHeadQKVAttention(n_heads=2)(inducing_points, z, z, presence)    # PMA
         h_out = snt.LayerNorm(axis=-1)(h_out + inducing_points)
-        for _ in range(3):
-            h_out = SelfAttention(n_heads=2)(h_out)
-        return QKAttention()(z, h_out)
-
-
-def minusAttention(queries, keys):
-    M = int(queries.shape[1])
-    N = int(keys.shape[1])
-
-    # [B, M, d] x [B, d, N] = [B, M, N]
-    # routing = tf.matmul(queries, keys, transpose_b=True)
-    queries_expand = tf.tile(tf.expand_dims(queries, 2), multiples=[1, 1, N, 1])
-    keys_expand = tf.tile(tf.expand_dims(keys, 1), multiples=[1, M, 1, 1])
-    routing = tf.nn.relu(snt.Conv2D(16, (1, 1))(queries_expand - keys_expand))
-    routing = tf.squeeze(snt.Conv2D(1, (1, 1))(routing), axis=-1)
-    return routing
+        routing = QKAttention()(z, h_out)
+        return routing
 
 
 class QKAttention(snt.AbstractModule):
-    """Transformer-like attention with one-hot output"""
+    """Transformer-like minus attention with one-hot output"""
 
     def __init__(self):
         super(QKAttention, self).__init__()
@@ -82,11 +68,17 @@ class QKAttention(snt.AbstractModule):
         Returns:
           Tensor of shape [B, M, N]
         """
-        routing = minusAttention(queries, keys)
+        M = int(queries.shape[1])
+        N = int(keys.shape[1])
 
-        # linear = snt.BatchApply(snt.Linear(routing.shape[-1]))
-        # return tf.sigmoid(linear(routing))
-        return tf.sigmoid(routing)
+        # [B, M, d] x [B, d, N] = [B, M, N]
+        # routing = tf.matmul(queries, keys, transpose_b=True)
+        queries_expand = tf.tile(tf.expand_dims(queries, 2), multiples=[1, 1, N, 1])
+        keys_expand = tf.tile(tf.expand_dims(keys, 1), multiples=[1, M, 1, 1])
+        routing = tf.nn.relu(snt.Conv2D(16, (1, 1))(queries_expand - keys_expand))
+        routing = tf.squeeze(snt.Conv2D(1, (1, 1))(routing), axis=-1)
+
+        return routing
 
 
 class QKVAttention(snt.AbstractModule):
@@ -109,7 +101,7 @@ class QKVAttention(snt.AbstractModule):
         """
 
         n_dim = int(queries.shape[-1])
-        routing = minusAttention(queries, keys)
+        routing = QKAttention()(queries, keys)
 
         if presence is not None:
             presence = tf.cast(tf.expand_dims(presence, -2), tf.float32)
