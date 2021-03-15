@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 
 # module_path = "/home/dinger/mine/RoboMaster/camera_map/"
-module_path = "/home/sentinel/camera_map/"
+module_path = "/home/zhao/camera_map/"
 input_path = module_path + "fifos/input.pipe"
 output_path = module_path + "fifos/output.pipe"
 model_path = module_path + "car_match/saved_model/"

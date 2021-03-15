@@ -1,5 +1,5 @@
 #define SHOW_FRAME
-#define SHOW_MODULE
+// #define SHOW_MODULE
 
 #include "PoseSolver.hpp"
 
@@ -25,8 +25,9 @@ int main(int argc, char* argv[])
 #define path1a "/media/sentinel/ENIGMATICS/cv_output.avi"
 #define path2a "/home/sentinel/videos/disp_low2.avi"
 #define path2b "/home/sentinel/videos/output_high.avi"
+#define path3a "/home/zhao/output_low.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
-    cv::VideoCapture cap(path1a);
+    cv::VideoCapture cap(path3a);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;

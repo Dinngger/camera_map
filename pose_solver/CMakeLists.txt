@@ -92,11 +92,17 @@ target_link_libraries(viewer
 ${Pangolin_LIBRARIES}
 ${OpenCV_LIBS}
 ${CERES_LIBRARIES}
-#${G2O_LIBS}
-#${CHOLMOD_LIBRARIES}
+)
 
-#this is only for hqy's computer with stupid anaconda.
-# /usr/lib/x86_64-linux-gnu/libtiff.so.5.2.4
+add_executable(dataset_generator
+dataset_generator.cc
+${PROJ_SRC}
+)
+
+target_link_libraries(dataset_generator
+${OpenCV_LIBS}
+${Pangolin_LIBRARIES}
+${CERES_LIBRARIES}
 )
 
 # add_executable(data_process

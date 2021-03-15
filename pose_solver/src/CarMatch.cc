@@ -1,6 +1,7 @@
 #include "../include/CarMatch.hpp"
 
-const std::string head_path = "/home/sentinel/camera_map/fifos/";
+// const std::string head_path = "/home/sentinel/camera_map/fifos/";
+const std::string head_path = "/home/zhao/camera_map/fifos/";
 // const std::string head_path = "/home/dinger/mine/RoboMaster/camera_map/fifos/";
 
 CarMatch::~CarMatch() {;}
