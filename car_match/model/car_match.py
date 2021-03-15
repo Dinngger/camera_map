@@ -23,10 +23,21 @@ from .attention import SelfSetTransformer
 from .general_model import Model
 
 
-def focalLoss(predict, label, valid):
-    p = tf.square(label - predict)
-    # p = p * tf.cast(tf.less(p, 0.99), tf.float32)
-    return tf.reduce_sum(tf.expand_dims(valid, -1) * p, [1, 2])
+def focalLoss(predict, label, valid, gamma=2.0):
+    p = tf.sigmoid(predict)
+    pos_term = label * ((1 - p) ** gamma)
+    neg_term = (1 - label) * (p ** gamma)
+
+    # Term involving the log and ReLU
+    log_weight = pos_term + neg_term
+    log_term = tf.math.log1p(tf.math.exp(-tf.math.abs(predict)))
+    log_term += tf.nn.relu(-predict)
+    log_term *= log_weight
+
+    # Combine all the terms into the loss
+    loss = neg_term * predict + log_term
+
+    return tf.reduce_sum(tf.expand_dims(valid, -1) * loss, [1, 2])
 
 
 class CarMatch(Model):
@@ -53,16 +64,17 @@ class CarMatch(Model):
         x, presence, belong = data['x'], data['presence'], data['belong']
         presence_f = tf.cast(presence, tf.float32)
         presence_all = tf.reduce_sum(presence_f)
+        belong_inverse = tf.floordiv(belong + tf.cast(tf.equal(belong, 1), tf.int32) * 3, 2)
 
         # [B, N, n_car]
-        belong_pred = self._encoder(x, presence)
-        belong_inverse = tf.floordiv(belong + tf.cast(tf.equal(belong, 1), tf.int32) * 3, 2)
+        routing = self._encoder(x, presence)
+        belong_pred = tf.sigmoid(routing)
         # belong = tf.Print(belong, [belong[0], belong_inverse[0]], message='belong: ', summarize=32)
 
         belong_one_hot = tf.one_hot(belong - 1, self.n_outputs, on_value=1.0, off_value=0.0, axis=-1, dtype=tf.float32)
         belong_inv_one_hot = tf.one_hot(belong_inverse - 1, self.n_outputs, on_value=1.0, off_value=0.0, axis=-1, dtype=tf.float32)
-        loss1 = focalLoss(belong_pred, belong_one_hot, presence_f)
-        loss2 = focalLoss(belong_pred, belong_inv_one_hot, presence_f)
+        loss1 = focalLoss(routing, belong_one_hot, presence_f)
+        loss2 = focalLoss(routing, belong_inv_one_hot, presence_f)
         loss = tf.reduce_sum(tf.minimum(loss1, loss2), 0) / presence_all
 
         belong_pred_round = tf.cast(tf.greater(belong_pred, 0.5), tf.float32)

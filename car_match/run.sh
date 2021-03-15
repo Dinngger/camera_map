@@ -1,7 +1,7 @@
 #!/bin/bash
 python -m model.train\
     --name=car_match\
-    --repeat=4000\
+    --repeat=5000\
     --batch_size=1\
     --save_model=True\
     # --overwrite=True\
