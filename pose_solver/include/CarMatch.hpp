@@ -42,10 +42,9 @@ public:
     char r_trans[13];
     std::vector<CarPossible> carsPossible;
 public:
-    /**
-     * @brief 灯条输入之后，先转化为对应的中点向量格式，与Python文件交互输出结果保存到div中
-     */
     void transformerMatch(const std::vector<aim_deps::Light> &lights);
+
+    void infoExchange(const std::vector<aim_deps::Light> &lights);
 
     CarMatch();
     ~CarMatch();

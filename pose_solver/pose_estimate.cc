@@ -1,5 +1,5 @@
 #define SHOW_FRAME
-// #define SHOW_MODULE
+#define SHOW_MODULE
 
 #include "PoseSolver.hpp"
 
@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 #define path0a "/home/dinger/mine/Dataset/videos/disp_low2.avi"
 #define path0b "/home/dinger/mine/Dataset/videos/output_high.avi"
 #define path1a "/media/sentinel/ENIGMATICS/cv_output.avi"
-#define path2a "/home/sentinel/videos/cv_output1.avi"
+#define path2a "/home/sentinel/videos/disp_low2.avi"
 #define path2b "/home/sentinel/videos/output_high.avi"
 #define path3a "/home/zhao/output_low.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"

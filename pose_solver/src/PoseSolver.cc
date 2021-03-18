@@ -28,12 +28,13 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     match.saveImg(frame);
     match.findPossible();
 
-    carMatch.transformerMatch(match.possibles);
-    std::vector<int> cars(0);                      // 如果需要禁用每辆车的二分图构建，则传入一个空的cars即可
-    // for (size_t i = 0; i < cars.size(); i++) {
-    //     cars[i] = carMatch.r_trans[i];
-    // }
+    carMatch.infoExchange(match.possibles);
+    std::vector<int> cars(13);                      // 如果需要禁用每辆车的二分图构建，则传入一个空的cars即可
+    for (size_t i = 0; i < cars.size(); i++) {
+        cars[i] = carMatch.r_trans[i];
+    }
     amp.matchAll(cars, match.matches, match.possibles, tar_list);
+    carMatch.transformerMatch(match.possibles);
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
     if (carMatch.carsPossible.size() < 1)
         return 0;
