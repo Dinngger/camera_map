@@ -15,3 +15,8 @@
 !*.sh
 !*.py
 !*.csv
+
+# saved_model
+!saved_model.pb
+!variables.index
+!variables.data-00000-of-00001
