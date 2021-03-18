@@ -15,7 +15,6 @@
 #include "CarMatch.hpp"
 
 Armor3d toArmor3d(const aim_deps::Armor& armor);
-bool isLowExposure(cv::Mat &src);
 
 class PoseSolver
 {

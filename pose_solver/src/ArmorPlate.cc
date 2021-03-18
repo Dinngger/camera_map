@@ -7,6 +7,7 @@
  */
 
 #include "ArmorPlate.hpp"
+#include "params.hpp"
 
 /// @ref https://wenku.baidu.com/view/0f3c083a172ded630a1cb6c8.html
 std::map<int, float> grubbs_length = {
@@ -17,12 +18,10 @@ std::map<int, float> grubbs_angle = {
     {3, 1.500}, {4, 2.238}, {5, 3.112}, {6, 3.893}, {7, 4.575}, {8, 5.171}, {9, 5.698}, {10, 6.160}
 };
 
-std::string path = "/home/sentinel/camera_map/pose_solver/mlp.xml";
-
 ArmorPlate::ArmorPlate(){
     using namespace cv::ml;
     for(int i=0; i<4 ;++i) points[i] = aim_deps::NULLPOINT2f;
-    mlp = ANN_MLP::load(path);
+    mlp = ANN_MLP::load(std::string(proj_path) + "pose_solver/mlp.xml");
     printf("MLP status: trained(%d), empty(%d)\n", mlp->isTrained(), mlp->empty());
 }
 
