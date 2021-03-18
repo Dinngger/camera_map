@@ -1,14 +1,12 @@
 #include "../include/CarMatch.hpp"
-
-const std::string head_path = "/home/sentinel/camera_map/fifos/";
-// const std::string head_path = "/home/zhao/camera_map/fifos/";
-// const std::string head_path = "/home/dinger/mine/RoboMaster/camera_map/fifos/";
+#include "params.hpp"
 
 CarMatch::~CarMatch() {;}
 
 CarMatch::CarMatch() {
-    const std::string input = head_path + "input.pipe";
-    const std::string output = head_path + "output.pipe";
+    std::string fifos_path = std::string(proj_path) + "fifos/";
+    const std::string input = fifos_path + "input.pipe";
+    const std::string output = fifos_path + "output.pipe";
     if (access(input.c_str(), F_OK) != 0 || access(output.c_str(), F_OK) != 0) {
         printf("Error: broken pipe.\n");
         exit(-1);
