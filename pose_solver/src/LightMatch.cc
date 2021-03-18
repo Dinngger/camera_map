@@ -17,8 +17,8 @@ LightMatch::LightMatch(){
     opts.line_search_type = ceres::WOLFE;
 	opts.logging_type = ceres::SILENT;
     opts.minimizer_progress_to_stdout = false;
-    opts.max_num_iterations = 100;
-    opts.function_tolerance = 1e-4;
+    opts.max_num_iterations = 50;
+    opts.function_tolerance = 2e-4;
 }
 
 LightMatch::~LightMatch(){
@@ -34,27 +34,40 @@ void LightMatch::setEnemyColor(const bool _enemy_blue){
 		reflect_thresh = aim_deps::light_params.blue_reflection;
 		filter_thresh = aim_deps::light_params.blue_filter;
 		chan_diff = aim_deps::light_params.blue_green;
-		channel_min = aim_deps::light_params.blue_reflect_min;
 	}
 	else{
 		thresh_low = aim_deps::light_params.red_thresh_low;
 		reflect_thresh = aim_deps::light_params.red_reflection;
 		filter_thresh = aim_deps::light_params.red_filter;
 		chan_diff = aim_deps::light_params.red_green;
-		channel_min = aim_deps::light_params.red_reflect_min;
 	}
 }
 
 void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
-	#ifdef LIGHT_CNT_TIME
-		double start_t = cv::getTickCount();
-	#endif	//LIGHT_CNT_TIME
+	
 	reset();
 	cv::Mat binary(1080, 1440, CV_8UC1);
 	threshold(binary);
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
+	#ifdef LIGHT_CNT_TIME
+		double start_t = std::chrono::system_clock::now().time_since_epoch().count();
+	#endif	//LIGHT_CNT_TIME
 	contourProcess(contours);
+	#ifdef LIGHT_CNT_TIME
+		double end_t = std::chrono::system_clock::now().time_since_epoch().count();
+		++cnt;
+		time_sum += (end_t - start_t) / 1e6; 
+	#endif	//LIGHT_CNT_TIME
+
+	std::sort(possibles.begin(), possibles.end(), 
+		[&](const aim_deps::Light& la, const aim_deps::Light& lb) {
+			return la.box.center.x < lb.box.center.x;
+		}
+	);
+	for (size_t i = 0; i < possibles.size(); i++) {									// 预先进行sort
+		possibles[i].index = i;
+	}
 
 	#ifdef LIGHT_MATCH_DEBUG
 	 	cv::imshow("binary", binary);
@@ -63,75 +76,46 @@ void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹�
 	for (aim_deps::Light &light: possibles) {
 		getTrapezoids(light.box.vex);								
 	}
-
 	getRealLight(possibles.size());
-	#ifdef LIGHT_CNT_TIME
-		double end_t = cv::getTickCount();
-		time_sum += (end_t - start_t) / cv::getTickFrequency() * 1000; 
-		++cnt;
-	#endif	//LIGHT_CNT_TIME
+
 }
 
 void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct){
-	double min_pos = 0.0, max_pos = 0.0; 
-	#pragma omp parallel for num_threads(3)
+	#pragma omp parallel for num_threads(4)
 	for (size_t i = 0; i < ct.size(); i++) {	
 		float area = cv::contourArea(ct[i]);
 		cv::Rect bbox = cv::boundingRect(ct[i]);
+		cv::Mat roi = enemy_blue ? proced[0](bbox) : proced[2](bbox);
 		// 轮廓在bbox中占的面积合适 / bbox 本身的面积合适 / bbox 的高不能过小 / bbox的高 - bbox长 > 某一值
-		if(bbox.area() <= 20 * area && area >= 4.0 && bbox.height >= 4){
-			/// 判定bbox 是否存在宽比高大很多的情况
-			if (!isGoodBoundingBox(bbox)){
+		if(bbox.area() > 20 * area || area < 4.0 || bbox.height < 4) continue;
+		/// 判定bbox 是否存在宽比高大很多的情况
+		if (!isGoodBoundingBox(bbox)) continue;
+		if(bbox.area() < 400){
+			cv::Mat cnt_mat;
+			float mean = 0.0;
+			cv::threshold(roi, cnt_mat, 90, 255, cv::THRESH_BINARY);
+			mean = cv::mean(roi, cnt_mat)[0];
+			cv::RotatedRect tmp_rec = cv::minAreaRect(ct[i]);
+			if (mean < 130 || cv::max(tmp_rec.size.height, tmp_rec.size.width) < 4.0)
+				continue;							// 均值小于 130 或者 最小包袱矩形尺寸太小
+			doubleThresh(bbox);
+		}	
+		else{		// 选框够大，说明灯条无需二次阈值，亚像素检测以及角度修正
+			cv::RotatedRect l = cv::minAreaRect(ct[i]);
+			if (l.size.height / l.size.width < 1.6 && l.size.height / l.size.width > 0.6){
 				continue;
 			}
-			if(bbox.area() < 400){
-				cv::Mat cnt_mat;
-				if(enemy_blue){
-					cv::threshold(proced[0](bbox), cnt_mat, reflect_thresh, 255, cv::THRESH_BINARY);
-					cv::minMaxLoc(proced[0](bbox), &min_pos, &max_pos);
-				}
-				else{
-					cv::threshold(proced[2](bbox), cnt_mat, reflect_thresh, 255, cv::THRESH_BINARY);
-					cv::minMaxLoc(proced[2](bbox), &min_pos, &max_pos);
-				} 
-				/// TODO: 酌情调大
-				if(max_pos <= channel_min){
-					continue;						// 排除地面全反射灯条
-				}
-				int num = cv::countNonZero(cnt_mat);				// 排除车体反光灯条的影响
-				// 反光灯条的特征是：灯条内亮度过小，灰度值基本不大于210，大于的也绝大多数只有一点
-				// 血量显示条上匹配的错误灯条特征：灯条长宽比例不对(弱，不剔除，只指示可能不是灯条)
-				double ratio = (double)bbox.width / (double)bbox.height;
-
-				bool valid = (ratio > 1.67 || ratio < 0.6) && (num >= 2);
-				doubleThresh(ct[i], bbox, valid);
-			}	
-			else{		// 选框够大，说明灯条无需二次阈值，亚像素检测以及角度修正
-				cv::RotatedRect l = cv::minAreaRect(ct[i]);
-				if (l.size.height / l.size.width < 1.6 && l.size.height / l.size.width > 0.6){
-					continue;
-				}
-				aim_deps::Light _l(l, l.center, cv::max(l.size.height, l.size.width), true);
-				if(bbox.area() < 2500){		// 在灯条大小不算太大时，长度准确，但角度不准
-					std::vector<cv::Point> cont;
-					if( !isAngleValid(_l.box) ) {
-						continue;		//灯条角度不符合要求
-					}
-					if(enemy_blue){
-						getBigDirection(proced[0](bbox), cont);
-						readjustAngle(cont, _l, cv::Point(bbox.x, bbox.y), 1.0);
-					}
-					else{
-						getBigDirection(proced[2](bbox), cont);
-						readjustAngle(cont, _l, cv::Point(bbox.x, bbox.y), 1.0);
-					}
-				}		
-				if( std::abs(_l.box.angle) < 40.0){
-					mtx.lock();
-					_l.index = (int)possibles.size();
-					possibles.emplace_back(_l);			
-					mtx.unlock();
-				}
+			aim_deps::Light _l(l, l.center, cv::max(l.size.height, l.size.width));
+			if(bbox.area() < 2500){		// 在灯条大小不算太大时，长度准确，但角度不准
+				std::vector<cv::Point> cont;
+				if(!isAngleValid(_l.box)) continue;
+				getBigDirection(roi, cont);
+				readjustAngle(cont, _l, cv::Point(bbox.x, bbox.y), 1.0);	
+			}		
+			if( std::abs(_l.box.angle) < 40.0){
+				mtx.lock();
+				possibles.emplace_back(_l);
+				mtx.unlock();
 			}
 		}
 	}
@@ -150,11 +134,13 @@ void LightMatch::getRealLight(const int size){
 			}
 		}
 	}
-	for (int i = 0; i<size; ++i) {						//将可能的匹配结果放入容器matches中
+	for (int i = 0; i<size; ++i) {							//将可能的匹配结果放入容器matches中
 		for (int j = i+1; j<size; ++j) {
 			if (flag[i][j] == true && flag[j][i] == true) {
 				flag[i][j] = false;
-				matches.emplace_back(cv::Point(i, j));		//最后只保存配对的信息，灯条只保存一次
+				possibles[i].valid = true;					// 预匹配成功的灯条需要设置valid标签
+				possibles[j].valid = true;
+				matches.emplace_back(i, j);		//最后只保存配对的信息，灯条只保存一次
 			}
 		}
 	}
@@ -192,7 +178,7 @@ void LightMatch::drawLights(cv::Mat &src, char belong[]) const{
 				cv::line(src, possibles[i].box.vex[0], possibles[i].box.vex[1], aim_deps::RED, 1);
 			}
 			else{
-				cv::line(src, possibles[i].box.vex[0], possibles[i].box.vex[1], aim_deps::PURPLE, 1);
+				cv::line(src, possibles[i].box.vex[0], possibles[i].box.vex[1], aim_deps::YELLOW, 1);
 			}
 		}
 		else{
@@ -205,7 +191,6 @@ void LightMatch::drawLights(cv::Mat &src, char belong[]) const{
 		}
 		//snprintf(str, 4, "%lu", j);
 		//cv::putText(src, str, pts[j]+cv::Point2f(1,1), cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
-		int isLeft = possibles[i].isLeft < 0 ? 2 : 1 - possibles[i].isLeft;
 		snprintf(str, 5, "%d", belong[i]);
 		cv::putText(src, str, possibles[i].box.vex[0] + cv::Point2f(1, 1),
 					cv::FONT_HERSHEY_PLAIN, 1.5, aim_deps::ORANGE);
@@ -245,23 +230,17 @@ bool LightMatch::isInTrapezoid(cv::Point2f corners[2], const std::vector<cv::Poi
 	return true;
 }
 
-bool LightMatch::doubleThresh(const std::vector<cv::Point>& ct, cv::Rect& bbox, bool valid){
-	cv::RotatedRect tmp_rec = cv::minAreaRect(ct);
-	if (cv::max(tmp_rec.size.height, tmp_rec.size.width) < 4.0){
-		return false;
-	}
-	extendRect(bbox, cv::Size(4, 4));
-	cv::Mat tmp, _bin;
-	tmp = enemy_blue ? proced[0](bbox) : proced[2](bbox);
+bool LightMatch::doubleThresh(cv::Rect& bbox){
+	extendRect(bbox, cv::Size(3, 3));
+	cv::Mat tmp = enemy_blue ? proced[0](bbox) : proced[2](bbox);
 	double top[2];
 	double ctr[3];
 	float offset_x = bbox.x, offset_y = bbox.y;
 	lightDiffusion(tmp, top, ctr, 2.1);
 	cv::Point2f tp(top[0] + offset_x, top[1] + offset_y), mp(ctr[0] + offset_x, ctr[1] + offset_y);
-	float len = aim_deps::getPointDist(tp, mp) * 2;
-	aim_deps::Light _l(tp, mp, len, valid);
+	aim_deps::Light _l(tp, mp);
+	if (!isAngleValid(_l.box)) return false;
 	mtx.lock();
-	_l.index = (int)possibles.size();
 	possibles.emplace_back(_l);
 	mtx.unlock();
 	return true;

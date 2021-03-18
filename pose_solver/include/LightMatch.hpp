@@ -66,14 +66,11 @@ private:
 	void contourProcess(const std::vector<std::vector<cv::Point> >& ct);
 
 	/**
-	 * @brief 二次阈值化（对于反光严重的位置仍然效果不好）
-	 * @param index 当前灯条的下标
-	 * @param ct 一次阈值化时对应的轮廓
+	 * @brief 二次阈值化
 	 * @param bbox 一次阈值化的bounding box
-	 * @param valid 灯条是否有效
 	 * @return 是否使用二次阈值的方式查找到灯条
 	 */
-	bool doubleThresh(const std::vector<cv::Point>& ct, cv::Rect& bbox, bool valid);
+	bool doubleThresh(cv::Rect& bbox);
 
 	/**
 	 * @brief 灯条预匹配
@@ -157,7 +154,6 @@ private:
 	int reflect_thresh;					// 反光灯条检测阈值
 	int filter_thresh;					// 过滤阈值
 	int chan_diff;						// 主通道与绿色通道的差异最小允许值
-	int channel_min;					// 主通道最大值的最小允许值
 
 	ceres::Solver::Options opts;
 };

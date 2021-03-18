@@ -1,7 +1,7 @@
 #include "../include/CarMatch.hpp"
 
-// const std::string head_path = "/home/sentinel/camera_map/fifos/";
-const std::string head_path = "/home/zhao/camera_map/fifos/";
+const std::string head_path = "/home/sentinel/camera_map/fifos/";
+// const std::string head_path = "/home/zhao/camera_map/fifos/";
 // const std::string head_path = "/home/dinger/mine/RoboMaster/camera_map/fifos/";
 
 CarMatch::~CarMatch() {;}
@@ -19,13 +19,8 @@ CarMatch::CarMatch() {
     out_fd = open(output.c_str(), O_RDONLY);
 }
 
-void CarMatch::transformerMatch(std::vector<aim_deps::Light> &lights) {
+void CarMatch::transformerMatch(const std::vector<aim_deps::Light> &lights) {
     carsPossible.clear();
-    std::sort(lights.begin(), lights.end(), 
-        [&](const aim_deps::Light& l1, const aim_deps::Light& l2) {
-            return l1.box.center.x < l2.box.center.x;
-        }
-    );
     memset(w_trans.data, 0, BUFFER_SIZE * sizeof(float));
     for (size_t i = 0; i < lights.size(); i++) {
         const cv::Point2f& center = lights[i].box.center;

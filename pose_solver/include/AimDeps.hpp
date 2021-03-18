@@ -54,8 +54,8 @@ const float RAD2DEG                 = 57.2958;     //(constant)(180/pi)
 const float DEG2RAD                 = 0.017453;     //(constant)(pi/180)
 
 //LightMatch.hpp 的依赖参数
-const float LIGHT_PARAM1            = 10.0;
-const float LIGHT_PARAM2            = 7.0;
+const float LIGHT_PARAM1            = 4.5;
+const float LIGHT_PARAM2            = 2;
 const float LIGHT_mean              = 40.0;
 const float FAILED_SCORE            = INFINITY;
 
@@ -158,18 +158,18 @@ struct Light
 {
     bool valid;                 //是否是有效灯条(反光灯条过滤无法完全精准判定，需要依靠装甲板匹配)
     int index;       
-    LightBox box;
     int isLeft = -1;           // 用于camera_map优化中，是否为左灯条 0 为左，1为右，否则为未知
+    LightBox box;
     Light(){
-        valid = true;
+        valid = false;
     }
 
     Light(
         const cv::RotatedRect &_r,
         const cv::Point2f &_p = NULLPOINT2f,
-        float len = 0.0, bool _v = true
+        float len = 0.0
     ):
-        valid(_v)
+        valid(false)
     {
         getTopCenter(_r, box.vex[0], box.center);
         box.vex[1] = box.center * 2 - box.vex[0];
@@ -179,16 +179,14 @@ struct Light
 
     Light(
         const cv::Point2f& tp,
-        const cv::Point2f& ctr,
-        float len = 0.0,
-        bool _v = true
+        const cv::Point2f& ctr
     ):
-        valid(_v)
+        valid(false)
     {
         box.vex[0] = tp;
         box.center = ctr;
         box.vex[1] = 2 * ctr - tp;
-        box.length = len;
+        box.length = std::sqrt(aim_deps::getPointDist(box.vex[0], box.vex[1]));
         box.angle = aim_deps::getLineAngle(box.vex[0], box.vex[1]);
     }
 };
@@ -229,26 +227,16 @@ struct Armor
 struct Light_Params{
     //============敌方红色=====================================//
     int red_thresh_low   = 84;           //二值图threshold下阈值
-    int red_thresh_high  = 250;          //二值图threshold上阈值 
-    int red_exp_short    = 140;          //曝光时间(短曝光)
-    int red_exp_long     = 7000;         //曝光时间(长曝光)
-    int red_r_balance    = 1957;         //白平衡（红色通道）
-    int red_b_balance    = 3600;         //白平衡（蓝色通道）
+    int red_exp_short    = 700;          //曝光时间(短曝光)
     int red_reflection   = 160;          //判断是否为反光灯条
     int red_filter       = 50;           //红色杂灯条过滤
     int red_green        = 90;           //红绿通道差异
-    int red_reflect_min  = 170;          //红色模式下，正常灯条的内部最大红色通道值的最小允许值
     //============敌方蓝====================================//
     int blue_thresh_low  = 92;           //二值图threshold下阈值
-    int blue_thresh_high = 250;          //二值图threshold上阈值
-    int blue_exp_short   = 140;          //曝光时间(短曝光)
-    int blue_exp_long    = 7000;         //曝光时间(长曝光) // 暂时修改
-    int blue_r_balance   = 3600;         //白平衡（红色通道）
-    int blue_b_balance   = 1500;         //白平衡（蓝色通道）
+    int blue_exp_short   = 700;          //曝光时间(短曝光)
     int blue_reflection  = 210;          //判断是否为反光灯条
     int blue_filter      = 20;           //蓝色灯更亮
     int blue_green       = 5;            //蓝绿通道差异
-    int blue_reflect_min = 200;          //蓝色模式下，正常灯条的内部最大蓝色通道值的最小允许值
     Light_Params(){}
     Light_Params(bool blue_flag, int thresh_low, int thresh_high, int exp_short,
         int exp_long, int r_balance, int b_balance, int reflection, int ch_diff, int filter)
@@ -261,22 +249,14 @@ struct Light_Params{
     ){
         if(blue_flag){
             blue_thresh_low     = thresh_low;
-            blue_thresh_high    = thresh_high;
             blue_exp_short      = exp_short;
-            blue_exp_long       = exp_long;
-            blue_r_balance      = r_balance;
-            blue_b_balance      = b_balance;
             blue_reflection     = reflection;
             blue_green          = ch_diff;
             blue_filter         = filter;
         }
         else{
             red_thresh_low      = thresh_low;
-            red_thresh_high     = thresh_high;
             red_exp_short       = exp_short;
-            red_exp_long        = exp_long;
-            red_r_balance       = r_balance;
-            red_b_balance       = b_balance;
             red_reflection      = reflection;
             red_green           = ch_diff;
             red_filter          = filter;
@@ -286,11 +266,9 @@ struct Light_Params{
 extern Light_Params light_params;
 
 struct Distance_Params{
-    const float OPS_RATIO_HEIGHT    = 16.0;         //对边宽比例        (16.0)
-    const float OPS_RATIO_WIDTH     = 1.44;         //对边长比例        (1.44)
-    const float NEAR_RATIO_MIN      = 20.0;         //邻边装甲板比例     (12.5)(开放大装甲板)
-    const float NEAR_RATIO_MAX      = 26.0;         //中点长宽比        (30.0)            
-    const float ANGLE_THRESH        = 14.0;         //角度差阈值        (13.5)
+    const float OPS_RATIO_HEIGHT    = 25.0;         //对边宽比例        (16.0)
+    const float OPS_RATIO_WIDTH     = 1.69;         //对边长比例        (1.44)
+    const float ANGLE_THRESH        = 16.0;         //角度差阈值        (13.5)
 };
 extern Distance_Params distance_params;
 }   //namespace aim_deps

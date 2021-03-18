@@ -8,11 +8,13 @@
 #ifndef _ARMOR_PLATE_HPP
 #define _ARMOR_PLATE_HPP
 
+#include <map>
 #include <vector>
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/ml.hpp>
 #include "LOG.hpp"
 #include "AimDeps.hpp"
 // #define ARMORPLATE_DEBUG     // ArmorPlate   装甲板匹配模块       装甲板配对信息显示
@@ -21,6 +23,11 @@
 #else
     #define amp_debug(...)
 #endif
+#define _MAX_CAR_NUM 2
+#define _FEAT_NUM 5
+
+typedef aim_deps::Light* LightPtr;
+typedef std::vector<LightPtr> CarLight;
 
 class ArmorPlate{
 public:
@@ -35,6 +42,7 @@ public:
      * @param tar_list 入参/输出，由更高层的AimDistance类传入
      */
     void matchAll(
+        const std::vector<int>& car,
         const std::vector<cv::Point>& matches,
         std::vector<aim_deps::Light> &lights, 
         std::vector<aim_deps::Armor> &tar_list);
@@ -47,36 +55,32 @@ public:
     void drawArmorPlates(cv::Mat &src, 
         const std::vector<aim_deps::Armor>& tar_list, const int optimal) const;                                            //消息发布
 private:
-    bool isRatioValid(float l1, float l2) const;                //中点连线（平方）的比是否合适
-    bool isEdgesValid() const;                                                //两对边(平方)的比是否合适
-
     /**
      * @brief 对两个灯条的RotatedRect进行匹配，直接在tar_list中emplace_back符合条件的装甲板
      * @param l1 灯条1
      * @param l2 灯条2
     */
-    bool isMatch(const aim_deps::Light &l1, const aim_deps::Light &l2);
-    bool getArmorPlate(const aim_deps::LightBox &b1, const aim_deps::LightBox &b2);         //灯条匹配装甲板
-    void filter(std::vector<aim_deps::Armor> &tar_list,
-            std::vector<aim_deps::Light> &lights);                      //进一步过滤装甲板容器
-    bool isAreaGood() const;                                            //面积是否正确：面积过小的装甲板将会被过滤
 
-    inline bool isAngleMatch(float ang1, float ang2) const;          
+    void filter(
+        const std::vector<int> &car,
+        std::vector<aim_deps::Armor> &tar_list,
+        std::vector<aim_deps::Light> &lights
+    );                      //进一步过滤装甲板容器
 
-    /** @brief 计算共灯条时，装甲板长边与共灯条边形成的夹角，夹角接近90度为真，同时考虑灯条夹角
-     * @param pts 装甲板的四个点列表
-     * @param start 从第start点开始计算角度（只需要算两个角度即可）
-     * @return 角度的cos值之和，越小说明所有角度越接近90度
-     */             
-    inline static float cornerAngle(const cv::Point2f *pts,
-                    const int start);
-                    
-    inline static float lengthThreshold(const float l);                 //计算自适应装甲板长宽比
+    float armorScore(
+        const aim_deps::Light& l1,
+        const aim_deps::Light& l2
+    ) const;
+
+    // 2v2 完全二分图最大权算法
+    void simpleKM(const CarLight& lights, int* lut);
+
+    template <bool use_angle = false>
+    void GrubbsIteration(CarLight& lights);
 private:
     bool _is_enemy_blue;                                                //敌人颜色
     cv::Point2f points[4];                                              //装甲板点列的临时容器
+    cv::Ptr<cv::ml::ANN_MLP> mlp;                                       // MLP装甲板判定
     aim_deps::Distance_Params params;                                   //装甲板匹配参数
 };
 #endif     //_ARMOR_PLATE_HPP
-
-

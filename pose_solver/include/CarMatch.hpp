@@ -45,7 +45,7 @@ public:
     /**
      * @brief 灯条输入之后，先转化为对应的中点向量格式，与Python文件交互输出结果保存到div中
      */
-    void transformerMatch(std::vector<aim_deps::Light> &lights);
+    void transformerMatch(const std::vector<aim_deps::Light> &lights);
 
     CarMatch();
     ~CarMatch();
