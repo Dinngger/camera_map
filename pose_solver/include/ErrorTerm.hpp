@@ -34,30 +34,29 @@ public:
         Eigen::Matrix<T, 2, 1> bottom = ctr + t2c;
         Eigen::Matrix<T, 2, 1> normal(t2c(1) / t2c_norm, - t2c(0) / t2c_norm);
         T b = T(_b) + _ctr[2];                           // ctr[2] 不是中心,是扩散半径
-        std::vector<T> results(img_row * img_col);
-        #pragma omp parallel for num_threads(8) 
+        T results(0);
         for (int i = 0; i < img_row; i++) {
             int base = i * img_col;
             for (int j = 0; j < img_col; j++) {
                 Eigen::Matrix<T, 2, 1> t2n(T(j) - top(0), T(i) - top(1)), b2n(T(j) - bottom(0), T(i) - bottom(1));
                 T t_len = t2n.norm(), b_len = b2n.norm(); 
-                T prod = b_len >= t_len ? t2n.dot(t2c) : b2n.dot(- t2c);  // 更加靠近顶部 ? 内积求夹角cos : -t2c = b2c
+                bool bigger = (b_len >= t_len);
+                T prod = bigger ? t2n.dot(t2c) : b2n.dot(- t2c);  // 更加靠近顶部 ? 内积求夹角cos : -t2c = b2c
                 T dist = T(0);
                 if (prod >= T(0)) {                        // 90度夹角之内
-                    dist = b_len >= t_len ? ceres::abs(t2n.dot(normal)) : ceres::abs(b2n.dot(normal));
+                    dist = bigger ? ceres::abs(t2n.dot(normal)) : ceres::abs(b2n.dot(normal));
                 }
                 else {
-                    dist = b_len >= t_len ? t_len : b_len;
+                    dist = bigger ? t_len : b_len;
                 }
                 T decay = T(1) / (ceres::exp(T(_a) * (dist - b)) + T(1));     // 计算光线衰减
-                int index = base + j;
-                T value = T(values[index]);
-                results[index] = ceres::pow(value - decay, 2);
+                T value = T(values[base + j]);
+                results += ceres::pow(value - decay, 2);
             }
         }
 
         /// 添加一些惩罚项
-        residual[0] = std::accumulate(results.begin(), results.end(), T(0));
+        residual[0] = results;
         T extra_loss(0.0);
         borderPunish<T>(top(0), top(1), extra_loss);
         borderPunish<T>(bottom(0), bottom(1), extra_loss);
