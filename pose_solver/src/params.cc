@@ -8,4 +8,4 @@
 
 std::string proj_path("../../");
 std::string video_low_path(path2a);
-std::string video_high_path(path2b);
+std::string video_high_path(path2a);

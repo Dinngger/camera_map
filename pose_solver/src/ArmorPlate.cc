@@ -40,18 +40,24 @@ void ArmorPlate::matchAll(
     for(size_t i = 0 ; i < matches.size() ; ++i){
         const aim_deps::Light& l1 = lights[matches[i].x];
         const aim_deps::Light& l2 = lights[matches[i].y];
-        float score = armorScore(l1, l2);       // 注意，直接predict时输出0为是灯条
-        if (std::round(score) == 1) {
-                points[0] = l1.box.vex[0];
-                points[1] = l1.box.vex[1];
-                points[2] = l2.box.vex[1];
-                points[3] = l2.box.vex[0];
-                tar_list.emplace_back(points, 0, l1, l2);
-        }
+        // float score = armorScore(l1, l2);       // 注意，直接predict时输出0为是灯条
+        // if (std::round(score) == 1) {
+        //         points[0] = l1.box.vex[0];
+        //         points[1] = l1.box.vex[1];
+        //         points[2] = l2.box.vex[1];
+        //         points[3] = l2.box.vex[0];
+        //         tar_list.emplace_back(points, 0, l1, l2);
+        // }
+        points[0] = l1.box.vex[0];
+        points[1] = l1.box.vex[1];
+        points[2] = l2.box.vex[1];
+        points[3] = l2.box.vex[0];
+        tar_list.emplace_back(points, 0, l1, l2);
+        tar_list.back().valid = true;
     }
-    if (car.size()) {
-        filter(car, tar_list, lights);                   //过滤无效装甲板
-    }
+    // if (car.size()) {
+    //     filter(car, tar_list, lights);                   //过滤无效装甲板
+    // }
 }
 
 float ArmorPlate::armorScore(
@@ -77,7 +83,7 @@ void ArmorPlate::drawArmorPlates(cv::Mat &src,
     cv::line(src, cv::Point(720, 0), cv::Point(720, 1080), cv::Scalar(255, 0, 0));
 	cv::line(src, cv::Point(0, 540), cv::Point(1440, 540), cv::Scalar(255, 0, 0));
     for (size_t i = 0; i< tar_list.size(); ++i) {
-        if(tar_list[i].armor_number != -1 && tar_list[i].valid){   //有意义的数字
+        if(tar_list[i].armor_number != -1){   //有意义的数字
             if((int)i != optimal){       //非最佳装甲板使用黄色绘制
                 for (int j = 0; j < 4; ++j){
                     cv::line(src, tar_list[i].vertex[j], 
@@ -138,7 +144,7 @@ void ArmorPlate::filter(const std::vector<int> &car, std::vector<aim_deps::Armor
     std::vector<CarLight> valid_lights(_MAX_CAR_NUM);
     for (size_t i = 0; i < lights.size(); i++) {
         int index = car[i];
-        if (index > 0 && lights[i].valid) {
+        if (index > 0) {
             car_lights[index - 1].emplace_back(&lights[i]);
         }
     }

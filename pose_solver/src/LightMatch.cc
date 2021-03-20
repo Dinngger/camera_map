@@ -53,34 +53,45 @@ void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹�
 	#ifdef LIGHT_CNT_TIME
 		double start_t = std::chrono::system_clock::now().time_since_epoch().count();
 	#endif	//LIGHT_CNT_TIME
-	contourProcess(contours);
+	std::vector<aim_deps::Light> lts;
+	contourProcess(contours, lts);
 	#ifdef LIGHT_CNT_TIME
 		double end_t = std::chrono::system_clock::now().time_since_epoch().count();
 		++cnt;
 		time_sum += (end_t - start_t) / 1e6; 
 	#endif	//LIGHT_CNT_TIME
 
-	std::sort(possibles.begin(), possibles.end(), 
+	std::sort(lts.begin(), lts.end(), 
 		[&](const aim_deps::Light& la, const aim_deps::Light& lb) {
 			return la.box.center.x < lb.box.center.x;
 		}
 	);
-	for (size_t i = 0; i < possibles.size(); i++) {									// 预先进行sort
-		possibles[i].index = i;
+	for (size_t i = 0; i < lts.size(); i++) {									// 预先进行sort
+		lts[i].index = i;
 	}
 
 	#ifdef LIGHT_MATCH_DEBUG
 	 	cv::imshow("binary", binary);
 	#endif	//LIGHT_MATCH_DEBUG
 
-	for (aim_deps::Light &light: possibles) {
+	for (aim_deps::Light &light: lts) {
 		getTrapezoids(light.box.vex);								
 	}
-	getRealLight(possibles.size());
-
+	std::vector<PtrPair> prs;
+	getRealLight(lts, prs);
+	int index = 0;
+	for (aim_deps::Light& lt: lts) {
+		if (lt.valid == true) {
+			lt.index = index++;
+			possibles.emplace_back(lt);
+		}
+	}
+	for (const PtrPair& pr: prs) {
+		matches.emplace_back(pr.first->index, pr.second->index);
+	}
 }
 
-void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct){
+void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, std::vector<aim_deps::Light>& lts){
 	#pragma omp parallel for num_threads(4)
 	for (size_t i = 0; i < ct.size(); i++) {	
 		float area = cv::contourArea(ct[i]);
@@ -98,7 +109,7 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct){
 			cv::RotatedRect tmp_rec = cv::minAreaRect(ct[i]);
 			if (mean < 130 || cv::max(tmp_rec.size.height, tmp_rec.size.width) < 4.0)
 				continue;							// 均值小于 130 或者 最小包袱矩形尺寸太小
-			doubleThresh(bbox);
+			doubleThresh(bbox, lts);
 		}	
 		else{		// 选框够大，说明灯条无需二次阈值，亚像素检测以及角度修正
 			cv::RotatedRect l = cv::minAreaRect(ct[i]);
@@ -114,14 +125,15 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct){
 			}		
 			if( std::abs(_l.box.angle) < 40.0){
 				mtx.lock();
-				possibles.emplace_back(_l);
+				lts.emplace_back(_l);
 				mtx.unlock();
 			}
 		}
 	}
 }
 
-void LightMatch::getRealLight(const int size){
+void LightMatch::getRealLight(std::vector<aim_deps::Light>& lts, std::vector<PtrPair>& prs){
+	int size = lts.size();
 	bool flag[size][size];					//两灯条是否满足要求,是个对称矩阵，当[i][j],[j][i]为真时，两灯条匹配
 	for (int i = 0; i < size; ++i) {		//初始化		
         for(int j = 0; j < size; ++j)
@@ -129,18 +141,18 @@ void LightMatch::getRealLight(const int size){
 	}
 	for (int i = 0; i < size; ++i) {		//梯形包含匹配
 		for (int j = 0; j<size*2; ++j) {
-			if (isInTrapezoid(possibles[i].box.vex, trapezoids[j])) {
+			if (isInTrapezoid(lts[i].box.vex, trapezoids[j])) {
 				flag[i][j/2] = true;
 			}
 		}
 	}
 	for (int i = 0; i<size; ++i) {							//将可能的匹配结果放入容器matches中
-		for (int j = i+1; j<size; ++j) {
+		for (int j = i+1; j < size; ++j) {
 			if (flag[i][j] == true && flag[j][i] == true) {
 				flag[i][j] = false;
-				possibles[i].valid = true;					// 预匹配成功的灯条需要设置valid标签
-				possibles[j].valid = true;
-				matches.emplace_back(i, j);		//最后只保存配对的信息，灯条只保存一次
+				lts[i].valid = true;					// 预匹配成功的灯条需要设置valid标签
+				lts[j].valid = true;
+				prs.emplace_back(&lts[i], &lts[j]);
 			}
 		}
 	}
@@ -230,7 +242,7 @@ bool LightMatch::isInTrapezoid(cv::Point2f corners[2], const std::vector<cv::Poi
 	return true;
 }
 
-bool LightMatch::doubleThresh(cv::Rect& bbox){
+bool LightMatch::doubleThresh(cv::Rect& bbox, std::vector<aim_deps::Light>& lts){
 	extendRect(bbox, cv::Size(3, 3));
 	cv::Mat tmp = enemy_blue ? proced[0](bbox) : proced[2](bbox);
 	double top[2];
@@ -241,7 +253,7 @@ bool LightMatch::doubleThresh(cv::Rect& bbox){
 	aim_deps::Light _l(tp, mp);
 	if (!isAngleValid(_l.box)) return false;
 	mtx.lock();
-	possibles.emplace_back(_l);
+	lts.emplace_back(_l);
 	mtx.unlock();
 	return true;
 }

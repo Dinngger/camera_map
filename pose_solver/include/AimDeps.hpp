@@ -54,8 +54,8 @@ const float RAD2DEG                 = 57.2958;     //(constant)(180/pi)
 const float DEG2RAD                 = 0.017453;     //(constant)(pi/180)
 
 //LightMatch.hpp 的依赖参数
-const float LIGHT_PARAM1            = 4.5;
-const float LIGHT_PARAM2            = 2;
+const float LIGHT_PARAM1            = 6;
+const float LIGHT_PARAM2            = 3;
 const float LIGHT_mean              = 40.0;
 const float FAILED_SCORE            = INFINITY;
 
