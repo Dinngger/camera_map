@@ -10,6 +10,7 @@ last date of modification:2020.4.7
 #ifndef _LIGHT_MATCH_HPP
 #define _LIGHT_MATCH_HPP
 
+#include <utility>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -32,6 +33,7 @@ last date of modification:2020.4.7
 #endif //LIGHT_MATCH_DEBUG
 
 class LightMatch{
+using PtrPair = std::pair<const aim_deps::Light*, const aim_deps::Light*>;
 public:
     LightMatch();
     ~LightMatch();
@@ -63,20 +65,20 @@ private:
 	 * @param step 间隔step个轮廓处理一次
 	 * @param ptr 假设不为空指针 就计算环境亮度的表达式(灯条匹配框面积)
 	 */
-	void contourProcess(const std::vector<std::vector<cv::Point> >& ct);
+	void contourProcess(const std::vector<std::vector<cv::Point> >& ct, std::vector<aim_deps::Light>& lts);
 
 	/**
 	 * @brief 二次阈值化
 	 * @param bbox 一次阈值化的bounding box
 	 * @return 是否使用二次阈值的方式查找到灯条
 	 */
-	bool doubleThresh(cv::Rect& bbox);
+	bool doubleThresh(cv::Rect& bbox, std::vector<aim_deps::Light>& lts);
 
 	/**
 	 * @brief 灯条预匹配
 	 * @param size 灯条预选区的大小
 	 */
-	void getRealLight(const int size);
+	void getRealLight(std::vector<aim_deps::Light>& lts, std::vector<PtrPair>& prs);
 
 	/**
 	 * @brief 阈值化
