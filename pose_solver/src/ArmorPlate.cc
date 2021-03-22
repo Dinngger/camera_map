@@ -40,18 +40,19 @@ void ArmorPlate::matchAll(
     for(size_t i = 0 ; i < matches.size() ; ++i){
         const aim_deps::Light& l1 = lights[matches[i].x];
         const aim_deps::Light& l2 = lights[matches[i].y];
-        float score = armorScore(l1, l2);       // 注意，直接predict时输出0为是灯条
-        if (std::round(score) == 1) {
-                points[0] = l1.box.vex[0];
-                points[1] = l1.box.vex[1];
-                points[2] = l2.box.vex[1];
-                points[3] = l2.box.vex[0];
-                tar_list.emplace_back(points, 0, l1, l2);
-        }
+        // float score = armorScore(l1, l2);       // 注意，直接predict时输出0为是灯条
+        // if (std::round(score) == 1) {
+        points[0] = l1.box.vex[0];
+        points[1] = l1.box.vex[1];
+        points[2] = l2.box.vex[1];
+        points[3] = l2.box.vex[0];
+        tar_list.emplace_back(points, 0, l1, l2);
+        tar_list.back().valid = true;
+        // }
     }
-    if (car.size()) {
-        filter(car, tar_list, lights);                   //过滤无效装甲板
-    }
+    // if (car.size()) {
+    //     filter(car, tar_list, lights);                   //过滤无效装甲板
+    // }
 }
 
 float ArmorPlate::armorScore(

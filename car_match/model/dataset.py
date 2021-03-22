@@ -9,10 +9,11 @@ flags.DEFINE_integer('batch_size', 32, 'batch size')
 flags.DEFINE_integer('repeat', 1, 'dataset repeat')
 
 
-def loadData():
+def loadData(batch_size):
     path = "./data/transformer.csv"
-    data = np.loadtxt(path, dtype=np.float32, delimiter=",")[0:1152, :]
-    data = np.repeat(data, 2, axis=0)
+    data = np.loadtxt(path, dtype=np.float32, delimiter=",")
+    batch_num = data.shape[0] // batch_size
+    data = data[0:batch_num*batch_size, :]
     x = data[:, 0:4*13]
     x = x.reshape((-1, 13, 4))
     presence = data[:, 4*13:4*13+13].astype(np.int32)
@@ -23,7 +24,7 @@ def loadData():
 def getDataset(config):
     batch_size = config.batch_size
     repeat = config.repeat
-    x, presence, belong = loadData()
+    x, presence, belong = loadData(batch_size)
     x_train, x_test, presence_train, presence_test, belong_train, belong_test = train_test_split(
         x, presence, belong, test_size=1/6)
     dataset_type = namedtuple("dataset", ["x", "presence", "belong"])

@@ -1,8 +1,8 @@
 /USELESS
-/pose_solver/build
-/.vscode
+build/
+.vscode/
 /car_match/checkpoints
-/__pycache__
+__pycache__/
 *.*
 !*.md
 !*.cc
