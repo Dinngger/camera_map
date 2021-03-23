@@ -17,12 +17,97 @@ Armor3d toArmor3d(const aim_deps::Armor& armor) {
     return _armor;
 }
 
-PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K, double time) :
+PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K, double time) : 
     K (K),
-    module(K, time)
-{
-}
+    module(K, time),
+    new_module(time)
+{}
 
+int PoseSolver::newrun(const cv::Mat &frame, double time)
+{
+    match.saveImg(frame);
+    match.findPossible();
+    amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
+    pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
+
+    std::vector<Eigen::Vector4d> newcarPossible;
+    for(size_t i=0;i<tar_list.size();i++)
+    {
+        #define pi 3.1415926
+        aim_deps::Armor armor=tar_list[i];
+        cv::Mat rotM;
+        cv::Rodrigues(armor.r_vec, rotM);  //将旋转向量变换成旋转矩阵
+        double theta_x = atan2(rotM.at<double>(2, 1), rotM.at<double>(2, 2));
+        if(!((theta_x<pi/6) && (theta_x>-pi/6)))
+            continue;
+        double x,z;
+        x=armor.t_vec.x+0.2*sin(theta_x);
+        z=armor.t_vec.z+0.2*cos(theta_x);
+        Eigen::Vector4d vect4(x,z,theta_x,0);
+        newcarPossible.push_back(vect4);
+    }
+    std::vector<Eigen::Vector4d> predictvec;        //第三位 theta_x 第一二位为x、z
+    for(size_t i=0;i<new_module.newcars.size();i++)
+    {
+        newcar newCar=new_module.newcars[i];
+        double pre_r;
+        Eigen::Vector2d pre_t;
+        newCar.predict(time-new_module.module_time,pre_r,pre_t);
+        Eigen::Vector4d pre(pre_t[0],pre_t[1],pre_r,0);
+        predictvec.push_back(pre);
+    }
+    std::vector<Eigen::Vector4d> dists;
+    for(size_t i=0;i<newcarPossible.size();i++){
+        for(size_t j=0;j<predictvec.size();i++){
+            double distance = sqrt(
+            (newcarPossible[i][0]-predictvec[i][0])*
+            (newcarPossible[i][0]-predictvec[i][0])+
+            (newcarPossible[i][1]-predictvec[i][1])*
+            (newcarPossible[i][1]-predictvec[i][1])+
+            (newcarPossible[i][2]-predictvec[i][2])*
+            (newcarPossible[i][2]-predictvec[i][2])
+            );
+            dists.push_back(Eigen::Vector3d(distance,(double)i,double(j)));
+        }
+    }
+    std::sort(dists.begin(), dists.end(),
+        [&](const Eigen::Vector3d &d1, const Eigen::Vector3d& d2) {
+            return d1[0] < d2[0];
+        }
+    );
+    int matches[20];
+    for(size_t i=0;i<dists.size();i++)
+    {
+        if(dists[i][0]>60)
+            break;
+        if(newcarPossible[int(dists[i][1])][3]==0&&predictvec[int(dists[i][2])][3]==0)
+        {
+            newcarPossible[dists[i][1]][3]=1;
+            predictvec[dists[i][2]][3]=1;
+            matches[int(dists[i][1])]=int(dists[i][2]);
+        }
+    }
+    std::vector<newcar>last_newcars;
+    for(size_t i=0;i<new_module.newcars.size();i++)
+        last_newcars.push_back(new_module.newcars[i]);
+    new_module.newcars.clear();
+    for(size_t i=0;i<newcarPossible.size();i++)
+    {
+        if(newcarPossible[i][3]){
+            int temp=matches[i];
+            last_newcars[temp].bundleAdjustment(time-new_module.module_time,
+            Eigen::Vector2d(newcarPossible[i][0],newcarPossible[i][1]),
+            newcarPossible[i][2]);
+            last_newcars[temp].update_state(time-new_module.module_time);
+            new_module.newcars.push_back(last_newcars[temp]);
+        }
+        else{
+            new_module.add_newcar(Eigen::Vector2d(newcarPossible[i][0],newcarPossible[i][1]),
+            newcarPossible[i][2]);
+        }
+    }
+    return 0;
+}
 int PoseSolver::run(const cv::Mat &frame, double time)
 {
     match.saveImg(frame);
@@ -180,6 +265,7 @@ int PoseSolver::draw(cv::Mat &frame)
 
 int PoseSolver::get_lbs(std::vector<cv::Point3d> &lbs)
 {
-    module.get_lbs(lbs);
+    // module.get_lbs(lbs);
+    new_module.get_lbs(lbs);
     return 0;
 }

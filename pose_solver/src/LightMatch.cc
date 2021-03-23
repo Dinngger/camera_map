@@ -260,6 +260,7 @@ bool LightMatch::doubleThresh(const std::vector<cv::Point>& ct, cv::Rect& bbox, 
 	cv::Point2f tp(top[0] + offset_x, top[1] + offset_y), mp(ctr[0] + offset_x, ctr[1] + offset_y);
 	float len = aim_deps::getPointDist(tp, mp) * 2;
 	aim_deps::Light _l(tp, mp, len, valid);
+	if(!isAngleValid(_l.box))	return false;
 	mtx.lock();
 	_l.index = (int)possibles.size();
 	possibles.emplace_back(_l);

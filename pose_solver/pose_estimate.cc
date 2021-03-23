@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
             continue;
         if (w < 38)
             continue;
-        ps.run(frame, w);
+        ps.newrun(frame, w);
 
 #ifdef SHOW_MODULE
         std::vector<cv::Mat> Twcs;

@@ -7,7 +7,8 @@
 #define path1a "/media/sentinel/ENIGMATICS/cv_output.avi"
 #define path2a "/home/sentinel/videos/disp_low2.avi"
 #define path2b "/home/sentinel/videos/output_high.avi"
-#define path3a "/home/zhao/output_low.avi"
+#define path3a "/home/zhao/videos/output_low.avi"
+#define path3b "/home/zhao/videos/disp_low1.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
 
 int mouse_pos[4];
@@ -34,13 +35,30 @@ void mouseHandle(int event, int x, int y, int flag, void* param)
 		break;
 	}
 }
-
+void deleteLine(char* file,int lineToDel) {
+    std::ifstream in;
+    in.open(file);
+    std::ofstream out;
+    out.open(file);
+    int lineNum=1;
+    std::string line;
+    if(getline(in,line))
+        std::cout<<"got it"<<std::endl;
+    while(getline(in,line)&&lineNum<lineToDel-1) {
+        std::cout<<"line"<<lineNum<<"in"<<std::endl;
+        lineNum++;
+        out<<line<<std::endl;
+    }
+    in.close();
+    out.close();
+    std::cout<<"line deleted"<<std::endl;
+}
 int main(int argc, char* argv[]) {
     std::ofstream outFile;
     if (argc < 2)
         printf("usage: dataset_generator out_file_name\n");
     outFile.open(argv[1], std::ios::out);
-    cv::VideoCapture cap(path3a);
+    cv::VideoCapture cap(path3b);
     if (!cap.isOpened()) {
         printf("Unable to open video.\n");
         return 0;
@@ -48,18 +66,29 @@ int main(int argc, char* argv[]) {
     double totalFrameNumber = cap.get(cv::CAP_PROP_FRAME_COUNT);
     std::cout<<"frame: ";
     std::cout<<totalFrameNumber<<std::endl;
-
+    cv::Mat last_frame;
+    cv::Mat llast_frame;
     cv::Mat frame;
+    bool deleteFlag = 0;
     LightMatch match;
     cv::namedWindow("disp");
 	cv::setMouseCallback("disp", mouseHandle, nullptr);
     for (int w = 0; w < totalFrameNumber; w++) {
         std::cout << "\033[32m" << "frame: " << w << "\033[0m\n";
-        cap.read(frame);
-		if(frame.empty())
-            break;
+        if(!deleteFlag){
+            cap.read(frame);
+             std::cout<<frame.cols<<" "<<frame.rows<<std::endl;
+		    if(frame.empty())
+                break;
+            llast_frame=last_frame.clone();
+            last_frame=frame.clone();
+        }else{
+            frame=llast_frame.clone();
+            deleteFlag=0;
+        }
         match.saveImg(frame);
         match.findPossible();
+        std::cout<<match.possibles.size()<<std::endl;
         assert(match.possibles.size() <= 13);
         char car_id[13] = {0,};
         cv::Mat casturing(frame.size(), CV_8U, cv::Scalar(0));
@@ -91,11 +120,36 @@ int main(int argc, char* argv[]) {
             char key = cv::waitKey(20);
             if (key == 27) {
                 goto END;
+            } else if(key=='l'){
+                //deleteLine(argv[1],w);
+                outFile.close();
+                std::ifstream in;
+                in.open(argv[1]);
+                int lineNum=1;
+                std::string line;
+                std::string inputString;
+                while(getline(in,line)&&lineNum<w) {
+                    inputString+=line;
+                    inputString+="\n";
+                    lineNum++;
+                }
+                in.close();
+                std::ofstream outFile;
+                outFile.open(argv[1],std::ios::out);
+                outFile<<inputString;
+                outFile.close();
+                outFile.open(argv[1],std::ios::out);
+                std::cout<<"line deleted"<<std::endl;
+                w -= 2;
+                deleteFlag = 1;
+                break;
             } else if (key >= '0' && key <='4') {
                 int _car = int(key - '0');
                 for (int select : selected) {
                     car_id[select] = _car;
                 }
+            } else if(key=='q') {
+                break;
             } else if (key == 'd') {
                 for (size_t i=0; i<match.possibles.size(); i++) {
                     cv::Point2f center;
@@ -110,21 +164,16 @@ int main(int argc, char* argv[]) {
                 for (int i=match.possibles.size(); i<13; i++) {
                     outFile << "0,0,0,0,";
                 }
+                for (size_t i=0; i<match.possibles.size(); i++)
+                        outFile << "1,";
+                for (size_t i=match.possibles.size(); i<13; i++)
+                        outFile << "0,";
                 char str[2] = {0,};
                 for (int i=0; i<13; i++) {
                     str[0] = '0' + car_id[i];
-                    outFile << str << ",";
-                }
-                for (size_t i=0; i<match.possibles.size(); i++)
-                    if (i == 12)
-                        outFile << "1";
-                    else
-                        outFile << "1,";
-                for (size_t i=match.possibles.size(); i<13; i++) {
-                    if (i == 12)
-                        outFile << "0";
-                    else
-                        outFile << "0,";
+                    outFile << str ;
+                    if(i!=12)
+                        outFile<<",";
                 }
                 outFile << "\n";
                 break;
