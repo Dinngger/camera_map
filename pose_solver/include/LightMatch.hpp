@@ -10,7 +10,6 @@ last date of modification:2020.4.7
 #ifndef _LIGHT_MATCH_HPP
 #define _LIGHT_MATCH_HPP
 
-#include <utility>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -26,22 +25,18 @@ last date of modification:2020.4.7
 
 #define LIGHT_CNT_TIME			// LightMatch   灯条提取模块         计算灯条处理时间
 //#define LIGHT_MATCH_DEBUG		// LightMatch   灯条提取模块         灯条调试信息输出
-#ifdef LIGHT_MATCH_DEBUG
-	#define match_debug rmlog::LOG::printc
-#else
-	#define match_debug(...)
-#endif //LIGHT_MATCH_DEBUG
 
 class LightMatch{
 using PtrPair = std::pair<const aim_deps::Light*, const aim_deps::Light*>;
 public:
     LightMatch();
     ~LightMatch();
-	void setEnemyColor(const bool _enemy_blue = false);					//重新设置敌人的颜色
+	void setEnemyColor(bool _enemy_blue, int thresh_low, int ch_diff, int filter);					//重新设置敌人的颜色
 
 	void findPossible();												//找到图上所有可能的灯条						
 	void drawLights(cv::Mat &src, char belongs[]) const;								//绘制灯条
 	void saveImg(const cv::Mat& src){									//图像预处理
+		cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
 		cv::split(src, proced);
 	}
 public:															
@@ -114,7 +109,7 @@ private:
 	 * @param ctr [3] [0,1]: 灯条粗略的中心 [2] 扩散量的变化
 	 * @param radius 灯条向外发光扩散的距离
 	 */
-	void lightDiffusion(cv::Mat& src, double* top, double* ctr, double radius);
+	bool lightDiffusion(cv::Mat& src, double* top, double* ctr, double radius);
 
 	/**
 	 * @brief 预处理ROI
@@ -127,7 +122,7 @@ private:
 	 * @brief 对灯条做初始值估计
 	 * @note 见 lightDiffusion
 	 */
-    void betterInitialize(const cv::Mat& src, double* _top, double* _ctr) const;
+    bool betterInitialize(const cv::Mat& src, double* _top, double* _ctr) const;
 
 	static bool isInTrapezoid(cv::Point2f corners[2], const std::vector<cv::Point2f> &trapezoid);
 	/**
@@ -150,10 +145,10 @@ private:
 	#endif // LIGHT_CNT_TIME
 	std::mutex mtx;														// 锁
 	cv::Mat proced[3];								
+	cv::Mat gray;														// 灰度图
 	std::vector<std::vector<cv::Point2f> > trapezoids;					//灯条梯形集合
 
 	//=================与颜色有关的阈值设置量========================//
-	int reflect_thresh;					// 反光灯条检测阈值
 	int filter_thresh;					// 过滤阈值
 	int chan_diff;						// 主通道与绿色通道的差异最小允许值
 

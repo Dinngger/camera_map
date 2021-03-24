@@ -46,6 +46,11 @@ if(NOT Ceres_FOUND)
    message(FATAL_ERROR "Ceres not found.")
 endif()
 
+find_package(Torch REQUIRED)
+if(NOT Torch_FOUND)
+   message(FATAL_ERROR "Torch not found.")
+endif()
+
 find_package(OpenMP)
 if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -62,6 +67,8 @@ endif()
 #find_package(Cholmod REQUIRED)
 
 include_directories(
+/opt/libtorch/include
+# /opt/libtorch/include/torch/csrc/api/include
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
@@ -75,6 +82,7 @@ ${CERES_INCLUDE_DIRS}
 
 link_directories(
 /usr/local/lib
+${TORCH_LIBRARY_DIRS}
 #/mine/g2o/lib
 )
 #SET(G2O_LIBS g2o_cli g2o_ext_freeglut_minimal g2o_simulator g2o_solver_slam2d_linear g2o_types_icp g2o_types_slam2d g2o_core g2o_interface g2o_solver_csparse g2o_solver_structure_only g2o_types_sba g2o_types_slam3d g2o_csparse_extension g2o_opengl_helper g2o_solver_dense g2o_stuff g2o_types_sclam2d g2o_parser g2o_solver_pcg g2o_types_data g2o_types_sim3 cxsparse )
@@ -92,6 +100,7 @@ target_link_libraries(viewer
 ${Pangolin_LIBRARIES}
 ${OpenCV_LIBS}
 ${CERES_LIBRARIES}
+${TORCH_LIBRARIES}
 )
 
 add_executable(dataset_generator
@@ -99,10 +108,12 @@ dataset_generator.cc
 ${PROJ_SRC}
 )
 
+message(STATE ${TORCH_LIBRARIES})
 target_link_libraries(dataset_generator
 ${OpenCV_LIBS}
 ${Pangolin_LIBRARIES}
 ${CERES_LIBRARIES}
+${TORCH_LIBRARIES}
 )
 
 # add_executable(data_process
