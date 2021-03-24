@@ -44,7 +44,7 @@ flags.DEFINE_integer('snapshot_steps', 0, '')
 flags.DEFINE_integer('snapshots_to_keep', 5, '')
 flags.DEFINE_integer('summary_steps', 500, '')
 
-flags.DEFINE_integer('report_loss_steps', 500, '')
+flags.DEFINE_integer('report_loss_steps', 50, '')
 
 flags.DEFINE_boolean('plot', False, 'Produces intermediate results plots '
                      'if True.')

@@ -36,7 +36,7 @@ class SelfSetTransformer(snt.AbstractModule):
         batch_size = int(x.shape[0])
         h = snt.TileByDim([2], [2])(x)
 
-        for _ in range(3):
+        for _ in range(1):
             h = SelfAttention(n_heads=2)(h, presence)
 
         inducing_points = tf.get_variable(

@@ -77,9 +77,8 @@ class CarMatch(Model):
         loss2 = focalLoss(routing, belong_inv_one_hot, presence_f)
         loss = tf.reduce_sum(tf.minimum(loss1, loss2), 0) / presence_all
 
-        belong_pred_round = tf.cast(tf.greater(belong_pred, 0.5), tf.float32)
-        accelerate1 = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred_round - belong_one_hot), 0.5), axis=-1), tf.float32)
-        accelerate2 = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred_round - belong_inv_one_hot), 0.5), axis=-1), tf.float32)
+        accelerate1 = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred - belong_one_hot), 0.5), axis=-1), tf.float32)
+        accelerate2 = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred - belong_inv_one_hot), 0.5), axis=-1), tf.float32)
         accelerate1B = tf.reduce_sum(presence_f * accelerate1, 1)
         accelerate2B = tf.reduce_sum(presence_f * accelerate2, 1)
         acc = tf.reduce_sum(tf.maximum(accelerate1B, accelerate2B), 0) / presence_all
