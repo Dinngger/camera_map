@@ -54,8 +54,8 @@ const float RAD2DEG                 = 57.2958;     //(constant)(180/pi)
 const float DEG2RAD                 = 0.017453;     //(constant)(pi/180)
 
 //LightMatch.hpp 的依赖参数
-const float LIGHT_PARAM1            = 6;
-const float LIGHT_PARAM2            = 3;
+const float LIGHT_PARAM1            = 5;
+const float LIGHT_PARAM2            = 2.4;
 const float LIGHT_mean              = 40.0;
 const float FAILED_SCORE            = INFINITY;
 
@@ -226,16 +226,16 @@ struct Armor
 ////////////////////////////////////////////////////////////////////////////////
 struct Light_Params{
     //============敌方红色=====================================//
-    int red_thresh_low   = 84;           //二值图threshold下阈值
-    int red_exp_short    = 700;          //曝光时间(短曝光)
+    int red_thresh_low   = 80;           //二值图threshold下阈值
+    int red_exp_short    = 400;          //曝光时间(短曝光)
     int red_reflection   = 160;          //判断是否为反光灯条
-    int red_filter       = 50;           //红色杂灯条过滤
-    int red_green        = 90;           //红绿通道差异
+    int red_filter       = 60;           //红色杂灯条过滤
+    int red_green        = 50;           //红绿通道差异
     //============敌方蓝====================================//
     int blue_thresh_low  = 92;           //二值图threshold下阈值
-    int blue_exp_short   = 700;          //曝光时间(短曝光)
+    int blue_exp_short   = 400;          //曝光时间(短曝光)
     int blue_reflection  = 210;          //判断是否为反光灯条
-    int blue_filter      = 20;           //蓝色灯更亮
+    int blue_filter      = 10;           //蓝色灯更亮
     int blue_green       = 5;            //蓝绿通道差异
     Light_Params(){}
     Light_Params(bool blue_flag, int thresh_low, int thresh_high, int exp_short,

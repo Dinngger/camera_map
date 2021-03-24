@@ -10,7 +10,10 @@ LightMatch::LightMatch(){
 		time_sum 		= 0.0;
 		cnt 			= 0;
 	#endif // LIGHT_CNT_TIME
-	setEnemyColor(true);												//初始设置敌人颜色
+	enemy_blue = true;
+	thresh_low = 90;
+	filter_thresh = 20;
+	chan_diff = 5;									//初始设置敌人颜色
     opts.minimizer_type = ceres::LINE_SEARCH;
     opts.line_search_direction_type = ceres::LBFGS;
     opts.linear_solver_type = ceres::DENSE_QR;
@@ -27,20 +30,11 @@ LightMatch::~LightMatch(){
 	#endif
 }
 
-void LightMatch::setEnemyColor(const bool _enemy_blue){
+void LightMatch::setEnemyColor(bool _enemy_blue, int _thresh_low, int ch_diff, int filter){
 	enemy_blue = _enemy_blue;
-	if(enemy_blue){								//设置颜色阈值
-		thresh_low = aim_deps::light_params.blue_thresh_low;
-		reflect_thresh = aim_deps::light_params.blue_reflection;
-		filter_thresh = aim_deps::light_params.blue_filter;
-		chan_diff = aim_deps::light_params.blue_green;
-	}
-	else{
-		thresh_low = aim_deps::light_params.red_thresh_low;
-		reflect_thresh = aim_deps::light_params.red_reflection;
-		filter_thresh = aim_deps::light_params.red_filter;
-		chan_diff = aim_deps::light_params.red_green;
-	}
+	thresh_low = _thresh_low;
+	filter_thresh = filter;
+	chan_diff = ch_diff;
 }
 
 void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹配找出相匹配的灯条对
@@ -48,6 +42,8 @@ void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹�
 	reset();
 	cv::Mat binary(1080, 1440, CV_8UC1);
 	threshold(binary);
+	cv::dilate(binary, binary, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3)));
+	cv::imshow("bin", binary);
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
 	#ifdef LIGHT_CNT_TIME
@@ -55,12 +51,18 @@ void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹�
 	#endif	//LIGHT_CNT_TIME
 	std::vector<aim_deps::Light> lts;
 	contourProcess(contours, lts);
+	cv::imshow("bin2", proced[0]);
 	#ifdef LIGHT_CNT_TIME
 		double end_t = std::chrono::system_clock::now().time_since_epoch().count();
 		++cnt;
 		time_sum += (end_t - start_t) / 1e6; 
 	#endif	//LIGHT_CNT_TIME
 
+	std::sort(possibles.begin(), possibles.end(), 
+		[&](const aim_deps::Light& la, const aim_deps::Light& lb) {
+			return la.box.center.x < lb.box.center.x;
+		}
+	);
 	std::sort(lts.begin(), lts.end(), 
 		[&](const aim_deps::Light& la, const aim_deps::Light& lb) {
 			return la.box.center.x < lb.box.center.x;
@@ -98,9 +100,13 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, 
 		cv::Rect bbox = cv::boundingRect(ct[i]);
 		cv::Mat roi = enemy_blue ? proced[0](bbox) : proced[2](bbox);
 		// 轮廓在bbox中占的面积合适 / bbox 本身的面积合适 / bbox 的高不能过小 / bbox的高 - bbox长 > 某一值
-		if(bbox.area() > 20 * area || area < 4.0 || bbox.height < 4) continue;
+		if(bbox.area() > 20 * area || area < 4 || bbox.height < 4) continue;
 		/// 判定bbox 是否存在宽比高大很多的情况
-		if (!isGoodBoundingBox(bbox)) continue;
+		if (!isGoodBoundingBox(bbox)) {
+			// LOG_SHELL_STREAM("BBOX is not appropriate.\n");	
+			cv::rectangle(proced[0], bbox, cv::Scalar(255, 255, 255));
+			continue;
+		}
 		if(bbox.area() < 400){
 			cv::Mat cnt_mat;
 			float mean = 0.0;
@@ -110,7 +116,7 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, 
 			if (mean < 130 || cv::max(tmp_rec.size.height, tmp_rec.size.width) < 4.0)
 				continue;							// 均值小于 130 或者 最小包袱矩形尺寸太小
 			doubleThresh(bbox, lts);
-		}	
+		}
 		else{		// 选框够大，说明灯条无需二次阈值，亚像素检测以及角度修正
 			cv::RotatedRect l = cv::minAreaRect(ct[i]);
 			if (l.size.height / l.size.width < 1.6 && l.size.height / l.size.width > 0.6){
@@ -122,9 +128,9 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, 
 				if(!isAngleValid(_l.box)) continue;
 				getBigDirection(roi, cont);
 				readjustAngle(cont, _l, cv::Point(bbox.x, bbox.y), 1.0);	
-			}		
+			}					
 			if( std::abs(_l.box.angle) < 40.0){
-				mtx.lock();
+				mtx.lock();	
 				lts.emplace_back(_l);
 				mtx.unlock();
 			}
@@ -190,7 +196,7 @@ void LightMatch::drawLights(cv::Mat &src, char belong[]) const{
 				cv::line(src, possibles[i].box.vex[0], possibles[i].box.vex[1], aim_deps::RED, 1);
 			}
 			else{
-				cv::line(src, possibles[i].box.vex[0], possibles[i].box.vex[1], aim_deps::YELLOW, 1);
+				cv::line(src, possibles[i].box.vex[0], possibles[i].box.vex[1], aim_deps::CYAN, 1);
 			}
 		}
 		else{
@@ -203,34 +209,25 @@ void LightMatch::drawLights(cv::Mat &src, char belong[]) const{
 		}
 		//snprintf(str, 4, "%lu", j);
 		//cv::putText(src, str, pts[j]+cv::Point2f(1,1), cv::FONT_HERSHEY_PLAIN, 1.5, cv::Scalar(0, 100, 255));
-		snprintf(str, 5, "%d", belong[i]);
+		snprintf(str, 5, "%d", i);
 		cv::putText(src, str, possibles[i].box.vex[0] + cv::Point2f(1, 1),
 					cv::FONT_HERSHEY_PLAIN, 1.5, aim_deps::ORANGE);
 		cv::circle(src, possibles[i].box.vex[0], 0, aim_deps::PINK, -1);
 		cv::circle(src, possibles[i].box.vex[1], 0, aim_deps::PINK, -1);
-		match_debug(rmlog::F_GREEN, "Light ", possibles[i].index, " with lenth: ", possibles[i].box.length,
-			", angle: ", possibles[i].box.angle);
 	}
 }
 
 void LightMatch::threshold(cv::Mat &dst, int diff_thresh) const{
 	const cv::Mat &tmp = enemy_blue ? (proced[0] - proced[2]) : (proced[2] - proced[0]);
 	cv::Mat _filter(1080, 1440, CV_8UC1);
-	/// 蓝色时，红色通道可能偏高（蓝色灯条亮，需要找差异）
-	/// 红色灯条只需过滤所有图上蓝色值超过filter_thresh即可(默认95)
 	cv::threshold(tmp, _filter, filter_thresh, 255, cv::THRESH_BINARY_INV);		
 	if(enemy_blue){
 		dst = proced[0] - _filter;
 	}
 	else{
-		const cv::Mat &gc = proced[2] - proced[1];		// 红色通道减去 绿色
-		cv::Mat gc_tmp(1080, 1440, CV_8UC1);
-
-		// 红色通道 - 绿色通道差值过小说明颜色不是标准红、橙色
-		cv::threshold(gc, gc_tmp, chan_diff, 255, cv::THRESH_BINARY_INV);
-		dst = proced[2] - _filter - gc_tmp;// - bc_tmp;
+		dst = proced[2] - _filter;
 	}
-	cv::threshold(dst, dst, thresh_low, 255, cv::THRESH_BINARY);
+	cv::threshold(dst, dst, 80, 255, cv::THRESH_BINARY);
 }
 
 bool LightMatch::isInTrapezoid(cv::Point2f corners[2], const std::vector<cv::Point2f> &trapezoid){
@@ -248,7 +245,11 @@ bool LightMatch::doubleThresh(cv::Rect& bbox, std::vector<aim_deps::Light>& lts)
 	double top[2];
 	double ctr[3];
 	float offset_x = bbox.x, offset_y = bbox.y;
-	lightDiffusion(tmp, top, ctr, 2.1);
+	if (lightDiffusion(tmp, top, ctr, 2.1) == false) {
+		return false;
+	}
+	/// this needs to be deleted.
+	proced[0](bbox) = tmp;
 	cv::Point2f tp(top[0] + offset_x, top[1] + offset_y), mp(ctr[0] + offset_x, ctr[1] + offset_y);
 	aim_deps::Light _l(tp, mp);
 	if (!isAngleValid(_l.box)) return false;
@@ -288,7 +289,6 @@ void LightMatch::readjustAngle(
 			diff_sum += calcDiff(lv, l.box.center, contour[j] + offset);		//计算一阶导
 			diff2_sum += calcDiff2(lv, l.box.center, contour[j] + offset);	//计算二阶导(二阶的效果显著好于一阶)
 		}		
-		//printf("Light %d iter %d: diff_sum: %f, diff2_sum: %f\n", l.index, i, diff_sum, diff2_sum);
 		if(diff2_sum == 0.0) break;
 		angle -= diff_sum / diff2_sum;				// 牛顿迭代
 		if(std::abs(angle) > 0.6) {					// 一次旋转不可能超过40度,超过则说明原来的匹配有问题
@@ -355,7 +355,7 @@ bool LightMatch::getBigDirection(const cv::Mat &src, std::vector<cv::Point> &ct)
 }
 
 void LightMatch::readAndConvert(cv::Mat& dst, std::vector<double>& pts) const{
-    cv::threshold(dst, dst, 50, 255, cv::THRESH_TOZERO);
+    cv::threshold(dst, dst, thresh_low, 255, cv::THRESH_TOZERO);
     cv::Mat dst2(cv::Size(dst.cols, dst.rows), CV_64FC1);
     dst.convertTo(dst2, CV_64FC1);
     cv::normalize(dst2, dst2, 1.0, 0.0, cv::NORM_INF);
@@ -367,38 +367,48 @@ void LightMatch::readAndConvert(cv::Mat& dst, std::vector<double>& pts) const{
     );
 }
 
-void LightMatch::betterInitialize(const cv::Mat& src, double* _top, double* _ctr) const {
+bool LightMatch::betterInitialize(const cv::Mat& src, double* _top, double* _ctr) const {
     std::vector<std::vector<cv::Point> > contours;
     cv::Mat dst;
     cv::threshold(src, dst, 1, 255, cv::THRESH_BINARY);
     cv::findContours(dst, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
-    const std::vector<cv::Point>& pts = *std::max_element(contours.begin(), contours.end(), 
-        [&](const std::vector<cv::Point>& c1, const std::vector<cv::Point>& c2) {
-            return c1.size() < c2.size();
-        }
-    );
-    cv::RotatedRect rect = cv::minAreaRect(pts);
-    cv::Point2f tp, mp;
-    aim_deps::getTopCenter(rect, tp, mp);
-    _top[0] = tp.x;
-    _top[1] = tp.y;
-    _ctr[0] = mp.x;
-    _ctr[1] = mp.y;
+	if (contours.size() > 0) {			// no usable result
+		const std::vector<cv::Point>& pts = *std::max_element(contours.begin(), contours.end(),
+    	    [&](const std::vector<cv::Point>& c1, const std::vector<cv::Point>& c2) {
+    	        return c1.size() < c2.size();
+    	    }
+    	);
+    	cv::RotatedRect rect = cv::minAreaRect(pts);
+    	cv::Point2f tp, mp;
+    	aim_deps::getTopCenter(rect, tp, mp);
+    	_top[0] = tp.x;
+    	_top[1] = tp.y;
+    	_ctr[0] = mp.x;
+    	_ctr[1] = mp.y;
+		return true;
+	}
+    return false;
 }
 
-void LightMatch::lightDiffusion(cv::Mat& src, double* top, double* ctr, double radius) {
+bool LightMatch::lightDiffusion(cv::Mat& src, double* top, double* ctr, double radius) {
     std::vector<double> values;
     readAndConvert(src, values);
-    betterInitialize(src, top, ctr);
+    if (betterInitialize(src, top, ctr) == false) {
+		return false;
+	}
     ctr[2] = 0.0;
     ceres::Problem prob;
     ceres::CostFunction* cost = ErrorTerm::Create(values, src.cols, src.rows, radius);
     prob.AddResidualBlock(cost, nullptr, top, ctr);
     ceres::Solver::Summary summary;
     ceres::Solve(opts, &prob, &summary);
+	if (summary.IsSolutionUsable() == false) {
+		return false;
+	}
 	double dx = top[0] - ctr[0], dy = top[1] - ctr[1], norm = std::sqrt(dx * dx + dy * dy), k = (radius + ctr[2]) / norm;
 	top[0] += k * dx;
 	top[1] += k * dy;
+	return true;
 }
 
 bool LightMatch::isAngleValid(const aim_deps::LightBox &lb){

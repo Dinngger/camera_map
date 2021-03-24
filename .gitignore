@@ -20,3 +20,4 @@
 !saved_model.pb
 !variables.index
 !variables.data-00000-of-00001
+!traced_model.pt
