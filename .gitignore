@@ -14,7 +14,6 @@ __pycache__/
 !.gitignore
 !*.sh
 !*.py
-!*.csv
 
 # saved_model
 !saved_model.pb

@@ -24,6 +24,10 @@ from .general_model import Model
 
 
 def focalLoss(predict, label, valid, gamma=2.0):
+    """
+    Returns:
+      Loss: [B]
+    """
     p = tf.sigmoid(predict)
     pos_term = label * ((1 - p) ** gamma)
     neg_term = (1 - label) * (p ** gamma)
@@ -36,8 +40,48 @@ def focalLoss(predict, label, valid, gamma=2.0):
 
     # Combine all the terms into the loss
     loss = neg_term * predict + log_term
+    loss = tf.expand_dims(valid, -1) * loss
+    loss = tf.reduce_sum(loss, [1, 2])
+    return loss / tf.reduce_sum(valid, [1])
 
-    return tf.reduce_sum(tf.expand_dims(valid, -1) * loss, [1, 2])
+
+def dice_loss(predict, target, valid):
+    """
+    Args:
+      predict: [B, N, N]
+      target:  [B, N, N]
+      valid:   [B, N]       float32
+    Returns:
+      Loss: [B]
+    """
+    predict *= tf.expand_dims(valid, -1)
+    target *= tf.expand_dims(valid, -1)
+    a = tf.reduce_sum(predict * target, [1, 2])
+    b = tf.reduce_sum(predict * predict, [1, 2]) + 0.001
+    c = tf.reduce_sum(target * target, [1, 2]) + 0.001
+    d = (a * 2) / (b + c)
+    return 1 - d
+
+
+def matrix_nms(masks, scores):
+    """
+    Args:
+      masks:   [B, N, N]
+      scores:  [B, N]
+      valid:   [B, N]       float32
+    Returns:
+      Loss: [B]
+    """
+    N = int(scores.shape[1])
+    intersection = tf.matmul(masks, tf.transpose(masks, [0, 2, 1]))
+    areas = tf.tile(tf.reduce_sum(masks, 2, keepdims=True), multiples=[1, 1, N])
+    union = areas + tf.transpose(areas, [0, 2, 1]) - intersection
+    ious = intersection / union
+    ious = ious - tf.matrix_band_part(ious, -1, 0)
+    ious_cmax = tf.transpose(tf.tile(tf.reduce_max(ious, 1, keepdims=True), multiples=[1, N, 1]), [0, 2, 1])
+    decay = (1 - ious) / (1 - ious_cmax)
+    decay = tf.reduce_min(decay, 1)
+    return scores * decay
 
 
 class CarMatch(Model):
@@ -45,10 +89,8 @@ class CarMatch(Model):
 
     def __init__(self):
         super(CarMatch, self).__init__()
-        self.n_outputs = 2
-        self._encoder = SelfSetTransformer(
-            n_outputs=self.n_outputs,            # car num
-        )
+        self.loss_cls_rate = 0.2
+        self._encoder = SelfSetTransformer()
 
     def _build(self, data):
         """Builds the module.
@@ -62,26 +104,25 @@ class CarMatch(Model):
           Res
         """
         x, presence, belong = data['x'], data['presence'], data['belong']
+        belong *= presence
         presence_f = tf.cast(presence, tf.float32)
-        presence_all = tf.reduce_sum(presence_f)
-        belong_inverse = tf.floordiv(belong + tf.cast(tf.equal(belong, 1), tf.int32) * 3, 2)
 
-        # [B, N, n_car]
-        routing = self._encoder(x, presence)
-        belong_pred = tf.sigmoid(routing)
-        # belong = tf.Print(belong, [belong[0], belong_inverse[0]], message='belong: ', summarize=32)
+        N = int(belong.shape[1])
+        class_target = tf.cast(tf.gt(belong, 0), tf.float32)
+        mask_a = tf.tile(tf.expand_dims(belong, 2), multiples=[1, 1, N])
+        mask_b = tf.tile(tf.expand_dims(belong, 1), multiples=[1, N, 1])
+        mask_target = tf.cast(tf.eq(mask_a, mask_b), tf.float32)
 
-        belong_one_hot = tf.one_hot(belong - 1, self.n_outputs, on_value=1.0, off_value=0.0, axis=-1, dtype=tf.float32)
-        belong_inv_one_hot = tf.one_hot(belong_inverse - 1, self.n_outputs, on_value=1.0, off_value=0.0, axis=-1, dtype=tf.float32)
-        loss1 = focalLoss(routing, belong_one_hot, presence_f)
-        loss2 = focalLoss(routing, belong_inv_one_hot, presence_f)
-        loss = tf.reduce_sum(tf.minimum(loss1, loss2), 0) / presence_all
+        # ins_mask: [B, N, N]
+        # classification: [B, N]
+        ins_mask, classification = self._encoder(x, presence)
+        loss_cls = focalLoss(classification, class_target, presence_f)
+        loss_ins = dice_loss(tf.sigmoid(ins_mask), mask_target, class_target)
+        loss = tf.reduce_sum(loss_ins, 0) * (1.0 - self.loss_cls_rate) + tf.reduce_sum(loss_cls, 0) * self.loss_cls_rate
 
-        accelerate1 = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred - belong_one_hot), 0.5), axis=-1), tf.float32)
-        accelerate2 = tf.cast(tf.reduce_all(tf.less(tf.abs(belong_pred - belong_inv_one_hot), 0.5), axis=-1), tf.float32)
-        accelerate1B = tf.reduce_sum(presence_f * accelerate1, 1)
-        accelerate2B = tf.reduce_sum(presence_f * accelerate2, 1)
-        acc = tf.reduce_sum(tf.maximum(accelerate1B, accelerate2B), 0) / presence_all
+        sort_inds = tf.argsort(classification, direction='DESCENDING')
+        ins_mask = ins_mask[sort_inds]
+
         return AttrDict(
             loss=loss,
             acc=acc,

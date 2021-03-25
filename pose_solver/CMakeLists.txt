@@ -7,23 +7,21 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3 -march=native ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3 -march=native")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
 
-# Check C++17 or C++11 support
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Check C++17 support
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 if(COMPILER_SUPPORTS_CXX17)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
    add_definitions(-DCOMPILEDWITHC17)
    message(STATUS "Using flag -std=c++17.")
-elseif(COMPILER_SUPPORTS_CXX11)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-   add_definitions(-DCOMPILEDWITHC11)
-   message(STATUS "Using flag -std=c++11.")
 else()
-   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++17 support. Please use a different C++ compiler.")
 endif()
 
 find_package(OpenCV REQUIRED)
@@ -46,6 +44,7 @@ if(NOT Ceres_FOUND)
    message(FATAL_ERROR "Ceres not found.")
 endif()
 
+set(Torch_DIR /opt/libtorch/share/cmake/Torch)
 find_package(Torch REQUIRED)
 if(NOT Torch_FOUND)
    message(FATAL_ERROR "Torch not found.")
@@ -58,35 +57,19 @@ if (OPENMP_FOUND)
 else()
     message(FATAL_ERROR "No suitable OpenMP found.")
 endif()
-# message(STATUS ${EIGEN3_INCLUDE_DIRS})
-
-#LIST( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules )
-
-#FIND_PACKAGE(G2O REQUIRED)
-#find_package(CSparse REQUIRED)
-#find_package(Cholmod REQUIRED)
 
 include_directories(
-/opt/libtorch/include
-# /opt/libtorch/include/torch/csrc/api/include
+${TORCH_INCLUDE_DIRS}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 ${CERES_INCLUDE_DIRS}
-#${G2O_INCLUDE_DIR}
-#${CSPARSE_INCLUDE_DIR}
-#${CHOLMOD_INCLUDE_DIR}
 )
-
-#message(STATUS "Pangolin include path: " ${Pangolin_INCLUDE_DIR})
 
 link_directories(
 /usr/local/lib
 ${TORCH_LIBRARY_DIRS}
-#/mine/g2o/lib
 )
-#SET(G2O_LIBS g2o_cli g2o_ext_freeglut_minimal g2o_simulator g2o_solver_slam2d_linear g2o_types_icp g2o_types_slam2d g2o_core g2o_interface g2o_solver_csparse g2o_solver_structure_only g2o_types_sba g2o_types_slam3d g2o_csparse_extension g2o_opengl_helper g2o_solver_dense g2o_stuff g2o_types_sclam2d g2o_parser g2o_solver_pcg g2o_types_data g2o_types_sim3 cxsparse )
-
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 aux_source_directory(src/ PROJ_SRC)
@@ -108,27 +91,9 @@ dataset_generator.cc
 ${PROJ_SRC}
 )
 
-message(STATE ${TORCH_LIBRARIES})
 target_link_libraries(dataset_generator
 ${OpenCV_LIBS}
 ${Pangolin_LIBRARIES}
 ${CERES_LIBRARIES}
 ${TORCH_LIBRARIES}
 )
-
-# add_executable(data_process
-# data_process.cpp
-# )
-
-# target_link_libraries(data_process
-# ${OpenCV_LIBS}
-# )
-
-# add_executable(SubPixelOpt
-# SubPixelOpt.cc
-# )
-
-# target_link_libraries(SubPixelOpt
-# ${OpenCV_LIBS}
-# ${CERES_LIBRARIES}
-# )

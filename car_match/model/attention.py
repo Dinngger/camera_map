@@ -24,28 +24,19 @@ import tensorflow as tf
 class SelfSetTransformer(snt.AbstractModule):
     """Permutation-invariant Transformer."""
 
-    def __init__(self,
-                 n_inducing_dims=8,
-                 n_outputs=2):
+    def __init__(self):
         super(SelfSetTransformer, self).__init__()
-        self._n_inducing_dims = n_inducing_dims
-        self._n_outputs = n_outputs
 
     def _build(self, x, presence=None):
 
-        batch_size = int(x.shape[0])
-        h = snt.TileByDim([2], [2])(x)
+        h = snt.TileByDim([2], [2])(x)  # dim = 4*2 = 8
 
         for _ in range(1):
             h = SelfAttention(n_heads=2)(h, presence)
 
-        inducing_points = tf.get_variable(
-            'inducing_points', shape=[1, self._n_outputs, self._n_inducing_dims])
-        inducing_points = snt.TileByDim([0], [batch_size])(inducing_points)
-
-        h_out = inducing_points + MultiHeadQKVAttention(n_heads=2)(inducing_points, h, h, presence)    # PMA
-        routing = QKAttention()(h, h_out)
-        return routing
+        ins_mask = QKAttention()(h, h, presence)
+        classification = snt.BatchApply(snt.Linear(1))(ins_mask)
+        return ins_mask, classification
 
 
 class QKAttention(snt.AbstractModule):
@@ -74,6 +65,11 @@ class QKAttention(snt.AbstractModule):
         keys_expand = tf.tile(tf.expand_dims(keys, 1), multiples=[1, M, 1, 1])
         routing = tf.nn.relu(snt.Conv2D(16, (1, 1))(queries_expand - keys_expand))
         routing = tf.squeeze(snt.Conv2D(1, (1, 1))(routing), axis=-1)
+
+        if presence is not None:
+            presence_f = tf.cast(presence, tf.float32)
+            routing *= tf.expand_dims(presence_f, -1)
+            routing *= tf.expand_dims(presence_f, -2)
 
         return routing
 

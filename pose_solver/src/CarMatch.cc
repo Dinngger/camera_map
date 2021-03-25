@@ -13,6 +13,7 @@ CarMatch::CarMatch() {
     }
     mkfifo(input.c_str(), 0777);
     mkfifo(output.c_str(), 0777);
+    printf("opening fifos...\n");
     in_fd = open(input.c_str(), O_SYNC | O_RDWR);
     out_fd = open(output.c_str(), O_RDONLY);
 }
