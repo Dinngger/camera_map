@@ -43,7 +43,7 @@ void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹�
 	cv::Mat binary(1080, 1440, CV_8UC1);
 	threshold(binary);
 	cv::dilate(binary, binary, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3)));
-	cv::imshow("bin", binary);
+	// cv::imshow("bin", binary);
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
 	#ifdef LIGHT_CNT_TIME
@@ -51,7 +51,7 @@ void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹�
 	#endif	//LIGHT_CNT_TIME
 	std::vector<aim_deps::Light> lts;
 	contourProcess(contours, lts);
-	cv::imshow("bin2", proced[0]);
+	// cv::imshow("bin2", proced[0]);
 	#ifdef LIGHT_CNT_TIME
 		double end_t = std::chrono::system_clock::now().time_since_epoch().count();
 		++cnt;
@@ -207,7 +207,7 @@ void LightMatch::drawLights(cv::Mat &src, char belong[]) const{
 				cv::line(src, possibles[i].box.vex[0], possibles[i].box.vex[1], aim_deps::PURPLE, 1);
 			}
 		}
-		snprintf(str, 5, "%lu", i);
+		snprintf(str, 5, "%u", (uint8_t)belong[i]);
 		cv::putText(src, str, possibles[i].box.vex[0] + cv::Point2f(1, 1),
 					cv::FONT_HERSHEY_PLAIN, 1.5, aim_deps::ORANGE);
 		cv::circle(src, possibles[i].box.vex[0], 0, aim_deps::PINK, -1);

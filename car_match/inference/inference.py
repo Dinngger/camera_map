@@ -32,7 +32,8 @@ def main():
         signature = meta_graph_def.signature_def
         x_tensor = tf.saved_model.utils.get_tensor_from_tensor_info(signature['sig_inout'].inputs['x'])
         presence_tensor = tf.saved_model.utils.get_tensor_from_tensor_info(signature['sig_inout'].inputs['presence'])
-        belong_tensor = tf.saved_model.utils.get_tensor_from_tensor_info(signature['sig_inout'].outputs['belong'])
+        e_tensor = tf.saved_model.utils.get_tensor_from_tensor_info(signature['sig_inout'].outputs['e'])
+        v_tensor = tf.saved_model.utils.get_tensor_from_tensor_info(signature['sig_inout'].outputs['v'])
 
         data_string = bytes()
         print("\033[42msuccessfully init.\033[0m")
@@ -48,18 +49,23 @@ def main():
                 # print('get data: ', data.shape, data)
                 x = data[0:4*13]
                 presence = data[4*13:4*13+13].astype(np.int32)
-                x = x.reshape((1, 13, 4))
-                presence = presence.reshape((1, 13))
-                belong_pred = sess.run(belong_tensor, feed_dict={x_tensor: x, presence_tensor: presence})
-                # print("Shape for belongs: ", belong_pred.shape)
-                result = np.ones(13, dtype=np.int8)
-                to_zero = (np.max(belong_pred, axis=2) < 0.5).ravel()
-                result += np.argmax(belong_pred, axis=2).ravel()
-                result[to_zero] = 0
-                to_send = result.tobytes()
+                x_ = x.reshape((1, 13, 4))
+                presence_ = presence.reshape((1, 13))
+                e, v = sess.run([e_tensor, v_tensor], feed_dict={x_tensor: x_, presence_tensor: presence_})
+                print(e, v)
+                belong_pred = np.zeros(13, dtype=np.int8)
+                num_car = 0
+                for i in range(13):
+                    if np.max(v[0, i]) <= 0 and np.min(v[0, i]) < -1e-5:
+                        v[0, i] = -v[0, i]
+                    if e[0, i] <= 0.5 and np.sum(v[0, i] > 0) > 1:
+                        num_car += 1
+                        for j in range(13):
+                            if v[0, i, j] > 0:
+                                belong_pred[j] = num_car
+                to_send = belong_pred.tobytes()
                 os.write(output_f, to_send)
-                print('send result!', result, ", result type:", result.dtype, "length: %d" % (len(to_send)))
-                print(belong_pred[:, 0:4, :])
+                print('send result!', belong_pred, ", result type:", belong_pred.dtype, "length: %d" % (len(to_send)))
     os.close(input_f)
     os.close(output_f)
 

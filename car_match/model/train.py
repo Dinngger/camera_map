@@ -42,8 +42,8 @@ flags.DEFINE_integer('max_train_steps', int(3e5), '')
 flags.DEFINE_integer('snapshot_secs', 3600, '')
 flags.DEFINE_integer('snapshot_steps', 0, '')
 flags.DEFINE_integer('snapshots_to_keep', 5, '')
-flags.DEFINE_integer('summary_steps', 500, '')
 
+flags.DEFINE_integer('summary_steps', 50, '')
 flags.DEFINE_integer('report_loss_steps', 50, '')
 
 flags.DEFINE_boolean('plot', False, 'Produces intermediate results plots '
@@ -66,12 +66,17 @@ def main(_=None):
     FLAGS.logdir = FLAGS.logdir.format(name=FLAGS.name)
 
     logdir = FLAGS.logdir
+    save_model_dir = "saved_model/"
     logging.info('logdir: %s', logdir)
 
     if os.path.exists(logdir) and FLAGS.overwrite and not FLAGS.save_model:
         logging.info(
             '"overwrite" is set to True. Deleting logdir at "%s".', logdir)
         shutil.rmtree(logdir)
+    if os.path.exists(save_model_dir) and FLAGS.save_model:
+        logging.info(
+            '"save_model" is set to True. Deleting save_model_dir at "%s".', save_model_dir)
+        shutil.rmtree(save_model_dir)
 
     with tf.Graph().as_default():
         model_dict = model_config.get(FLAGS)

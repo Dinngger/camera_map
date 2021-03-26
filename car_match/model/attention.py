@@ -35,8 +35,7 @@ class SelfSetTransformer(snt.AbstractModule):
             h = SelfAttention(n_heads=2)(h, presence)
 
         ins_mask = QKAttention()(h, h, presence)
-        classification = snt.BatchApply(snt.Linear(1))(ins_mask)
-        return ins_mask, classification
+        return ins_mask
 
 
 class QKAttention(snt.AbstractModule):
