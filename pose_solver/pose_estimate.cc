@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
         cap.read(frame);
 		if (frame.empty())
             break;
-        ps.run(frame, w);
+        ps.newrun(frame, w);
 
 #ifdef SHOW_MODULE
         std::vector<cv::Mat> Twcs;
@@ -64,7 +64,8 @@ int main(int argc, char* argv[])
 #endif
 
 #ifdef SHOW_FRAME
-        ps.draw(frame);
+        //ps.draw(frame);
+        ps.drawNewCarModule(frame);
         cv::imshow("disp", frame);
         char key = cv::waitKey(0);
         if(key==27)

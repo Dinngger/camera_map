@@ -17,12 +17,139 @@ Armor3d toArmor3d(const aim_deps::Armor& armor) {
     return _armor;
 }
 
-PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K, double time) :
+PoseSolver::PoseSolver(cv::Matx<double, 3, 3> &K, double time) : 
     K (K),
-    module(K, time)
-{
-}
+    module(K, time),
+    new_module(time)
+{}
 
+int PoseSolver::newrun(const cv::Mat &frame, double time)
+{
+    match.saveImg(frame);
+    match.findPossible();
+    amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
+    pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
+
+    std::vector<Eigen::Vector4d> newcarPossible;
+    std::vector<std::vector<cv::Point2f>> PointPossible;
+    std::vector<double> y_vec;
+    for(size_t i=0;i<tar_list.size();i++)
+    {
+        #define pi 3.1415926
+        aim_deps::Armor armor=tar_list[i];
+        cv::Mat rotM;
+        cv::Rodrigues(armor.r_vec, rotM);  //将旋转向量变换成旋转矩阵
+        double theta_x = atan2(rotM.at<double>(2, 1), rotM.at<double>(2, 2));
+        printf("tanx=%lf\n",theta_x);
+        // if(!((theta_x>2.8) || (theta_x<-2.8)))
+        //      continue;
+        // for(int c=0;c<4;c++)
+        // {
+        //     cv::line(frame, armor.vertex[c], 
+        //     armor.vertex[(c+1)%4], cv::Scalar(0, 255, 255), 1);
+        // }
+        double x,z;
+        x=armor.t_vec.x-0.2*sin(theta_x);
+        z=armor.t_vec.z+0.2*cos(theta_x);
+        y_vec.push_back(armor.t_vec.y);
+        Eigen::Vector4d vect4(x,z,theta_x,0);
+        newcarPossible.push_back(vect4);
+        std::vector<cv::Point2f> pointvec; 
+        for(int j=0;j<4;j++)
+            pointvec.push_back(armor.vertex[j]);
+        PointPossible.push_back(pointvec);
+    }
+    std::vector<Eigen::Vector4d> predictvec;        //第一二位为x、z 第三位 theta_x
+    for(size_t i=0;i<new_module.newcars.size();i++)
+    {
+        newcar newCar=new_module.newcars[i];
+        double pre_r;
+        Eigen::Vector3d pre_t;
+        newCar.predict(time-new_module.module_time,pre_r,pre_t);
+        Eigen::Vector4d pre(pre_t[0],pre_t[2],pre_r,0);
+        predictvec.push_back(pre);
+    }
+    std::vector<Eigen::Vector3d> dists;
+    std::cout<<"\033[36mmatch:\n";
+    for(size_t i=0;i<newcarPossible.size();i++){
+        for(size_t j=0;j<predictvec.size();j++){
+            double distance = sqrt(
+            (newcarPossible[i][0]-predictvec[j][0])*
+            (newcarPossible[i][0]-predictvec[j][0])+
+            (newcarPossible[i][1]-predictvec[j][1])*
+            (newcarPossible[i][1]-predictvec[j][1])
+            );
+            //printf("%lf %lf %lf %lf distance:%lf\n",newcarPossible[i][0],predictvec[j][0],newcarPossible[i][1],predictvec[j][1],distance);
+            dists.push_back(Eigen::Vector3d(distance,(double)i,(double)j));
+        }
+    }
+    std::cout<<"\033[0m";
+    std::sort(dists.begin(), dists.end(),
+        [&](const Eigen::Vector3d &d1, const Eigen::Vector3d& d2) {
+            return d1[0] < d2[0];
+        }
+    );
+    int matches[20];
+    for(size_t i=0;i<dists.size();i++)
+    {
+        //printf("dists[%lu]=%lf\n",i,dists[i][0]);
+        // if(dists[i][0]>60)
+        //      break;
+        if(newcarPossible[int(dists[i][1])][3]==0&&predictvec[int(dists[i][2])][3]==0)
+        {
+            newcarPossible[dists[i][1]][3]=1;
+            predictvec[dists[i][2]][3]=1;
+            matches[int(dists[i][1])]=int(dists[i][2]);
+        }
+    }
+    std::vector<newcar>last_newcars;
+    for(size_t i=0;i<new_module.newcars.size();i++)
+        last_newcars.push_back(new_module.newcars[i]);
+    new_module.newcars.clear();
+    for(size_t i=0;i<newcarPossible.size();i++)
+    {
+
+        if(newcarPossible[i][3]){
+            int temp=matches[i];
+            pastFrame *p, *q;
+            p=last_newcars[temp].frameHead;
+            pastFrame *n;
+            n=(pastFrame*)malloc(sizeof(pastFrame));
+            for(size_t j=0;j<4;j++)
+            {
+                n->vertex[j]=PointPossible[i][j];
+                last_newcars[temp].NowPoints[j]=PointPossible[i][j];
+                //printf("lnctnp=%lf\n",last_newcars[temp].NowPoints[j].x);
+                //std::cout<<"NowPoints["<<j<<"]: "<<last_newcars[temp].NowPoints[j]<<std::endl;
+            }
+            n->next=NULL;
+            while(p->next)
+            {
+                p=p->next;
+            }
+            p->next=n;
+            last_newcars[temp].frameNumber++;
+            if(last_newcars[temp].frameNumber==11)
+            {
+                q=p->next;
+                p->next=q->next;
+                free(q);
+                last_newcars[temp].frameNumber--;
+            }
+            //std::cout<<"last_newcars["<<temp<<"].frameNumber: "<<last_newcars[temp].frameNumber<<std::endl;
+            last_newcars[temp].bundleAdjustment(time-new_module.module_time);
+            last_newcars[temp].update_state(time-new_module.module_time);
+            new_module.newcars.push_back(last_newcars[temp]);
+        }
+        else{
+            new_module.add_newcar(Eigen::Vector3d(newcarPossible[i][0],y_vec[i],newcarPossible[i][1]),
+            newcarPossible[i][2],PointPossible[i]);
+        }
+    }
+    std::cout<<"newcarPossible.size():"<<newcarPossible.size()<<std::endl;
+    std::cout<<"new_module.newcars.size():"<<new_module.newcars.size()<<std::endl;
+    return 0;
+}
 int PoseSolver::run(const cv::Mat &frame, double time)
 {
     match.saveImg(frame);
@@ -187,6 +314,19 @@ int PoseSolver::draw(cv::Mat &frame)
 
 int PoseSolver::get_lbs(std::vector<cv::Point3d> &lbs)
 {
-    module.get_lbs(lbs);
+    // module.get_lbs(lbs);
+    new_module.get_lbs(lbs);
     return 0;
+}
+
+void PoseSolver::drawNewCarModule(cv::Mat &frame)
+{
+    //printf("Drawing: %lu\n",new_module.newcars.size());
+    for(size_t i=0;i<new_module.newcars.size();i++) {
+        for (int j = 0; j < 4; ++j) {
+            cv::line(frame, new_module.newcars[i].NowPoints[j], 
+            new_module.newcars[i].NowPoints[(j + 1) % 4], cv::Scalar(0, 255, 255), 1);
+            //printf("NowPoints[%d]=(%lf,%lf)\n",j,new_module.newcars[i].NowPoints[j].x,new_module.newcars[i].NowPoints[j].y);   
+        }
+    }
 }
