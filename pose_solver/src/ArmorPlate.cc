@@ -9,15 +9,6 @@
 #include "ArmorPlate.hpp"
 #include "params.hpp"
 
-/// @ref https://wenku.baidu.com/view/0f3c083a172ded630a1cb6c8.html
-std::map<int, float> grubbs_length = {
-    {3, 1.329}, {4, 2.140}, {5, 2.796}, {6, 3.320}, {7, 3.756}, {8, 4.129}, {9, 4.452}, {10, 4.735}
-};
-
-std::map<int, float> grubbs_angle = {
-    {3, 1.500}, {4, 2.238}, {5, 3.112}, {6, 3.893}, {7, 4.575}, {8, 5.171}, {9, 5.698}, {10, 6.160}
-};
-
 ArmorPlate::ArmorPlate(){
     for(int i=0; i<4 ;++i) points[i] = aim_deps::NULLPOINT2f;
     clf = torch::jit::load(std::string(proj_path) + "pose_solver/traced_model.pt");
@@ -43,9 +34,10 @@ void ArmorPlate::matchAll(
         feature[0] = l1.box.length;
         feature[1] = l2.box.length;
         cv::Point2f vec = l2.box.center - l1.box.center;
-        float cosa = std::cos(-l1.box.angle), sina = std::sin(-l1.box.angle);
+        float cosa = std::cos(-l1.box.angle * aim_deps::DEG2RAD), sina = std::sin(-l1.box.angle * aim_deps::DEG2RAD);
         feature[2] = cosa * vec.x - sina * vec.y;
         feature[3] = sina * vec.x + cosa * vec.y;
+        // LOG_ERROR("Center diff: (%f, %f), feature: %f, %f\n", vec.x, vec.y, feature[2], feature[3]);
         feature[4] = l2.box.angle - l1.box.angle;
         at::Tensor ts = torch::tensor(feature).reshape({1, 5});
         at::Tensor tmp = torch::softmax(clf.forward({ts}).toTensor(), 1);
@@ -62,6 +54,14 @@ void ArmorPlate::matchAll(
         }
     }
     filter(tar_list, lights.size());
+    for (aim_deps::Armor& arm: tar_list) {
+        if (arm.valid) {
+            arm.left_light.isLeft = 1;
+            arm.right_light.isLeft = 0;
+            lights[arm.left_light.index].isLeft = 1;
+            lights[arm.right_light.index].isLeft = 0;
+        }
+    }
 }
 
 void ArmorPlate::drawArmorPlates(cv::Mat &src, 
@@ -93,29 +93,36 @@ void ArmorPlate::drawArmorPlates(cv::Mat &src,
     }
 }
 
+struct ArmorCmpFunctor {
+    bool operator()(const aim_deps::Armor* const a1, const aim_deps::Armor* const a2) const {
+        return (std::abs(a1->left_light.box.angle - a1->right_light.box.angle) > 
+            std::abs(a2->left_light.box.angle - a2->right_light.box.angle)
+        );
+    }
+};
+
 void ArmorPlate::filter(
     std::vector<aim_deps::Armor> &tar_list,
     size_t lights_size
 ) const {
-    std::vector<std::vector<aim_deps::Armor*> > arms(lights_size);
-    for (aim_deps::Armor& arm: tar_list) {                        // 共灯条，如果没有共灯条，那么一个内vector最多有一个Armor
-        arms[arm.left_light.index].emplace_back(&arm);
-        arms[arm.right_light.index].emplace_back(&arm);
+    bool light_avl[lights_size];
+    for (size_t i = 0; i < lights_size; i++) {
+        light_avl[i] = true;
     }
-    for (std::vector<aim_deps::Armor*>& ptrs: arms) {
-        float mini = 90.0;
-        size_t mini_pos = 0;
-        for (size_t i = 0; i < ptrs.size(); i++) {
-            if (ptrs[i]->valid == false) continue; 
-            float val = std::abs(ptrs[i]->left_light.box.angle - ptrs[i]->right_light.box.angle);
-            if (val < mini) {
-                mini = val;
-                mini_pos = i;
-            }
+    std::priority_queue<aim_deps::Armor*, std::vector<aim_deps::Armor*>, ArmorCmpFunctor> que;
+    for (aim_deps::Armor& arm: tar_list) {
+        que.emplace(&arm);
+    }
+    while (que.empty() == false) {
+        aim_deps::Armor* ptr = que.top();
+        int l_idx = ptr->left_light.index, r_idx = ptr->right_light.index;
+        if (light_avl[l_idx] == false || light_avl[r_idx] == false) {
+            ptr->valid = false;
         }
-        for (size_t i = 0; i < ptrs.size(); i++) {
-            if (ptrs[i]->valid == false) continue; 
-            ptrs[i]->valid = (i == mini_pos);
+        else {
+            light_avl[l_idx] = false;
+            light_avl[r_idx] = false;
         }
+        que.pop();
     }
 }

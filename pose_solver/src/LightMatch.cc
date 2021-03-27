@@ -43,26 +43,20 @@ void LightMatch::findPossible(){			//找出所有可能灯条，使用梯形匹�
 	cv::Mat binary(1080, 1440, CV_8UC1);
 	threshold(binary);
 	cv::dilate(binary, binary, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3)));
-	// cv::imshow("bin", binary);
 	std::vector<std::vector<cv::Point> > contours;
 	cv::findContours(binary, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);	//寻找图上轮廓
+	std::vector<aim_deps::Light> lts;
+
 	#ifdef LIGHT_CNT_TIME
 		double start_t = std::chrono::system_clock::now().time_since_epoch().count();
 	#endif	//LIGHT_CNT_TIME
-	std::vector<aim_deps::Light> lts;
 	contourProcess(contours, lts);
-	// cv::imshow("bin2", proced[0]);
+
 	#ifdef LIGHT_CNT_TIME
 		double end_t = std::chrono::system_clock::now().time_since_epoch().count();
 		++cnt;
 		time_sum += (end_t - start_t) / 1e6; 
 	#endif	//LIGHT_CNT_TIME
-
-	std::sort(possibles.begin(), possibles.end(), 
-		[&](const aim_deps::Light& la, const aim_deps::Light& lb) {
-			return la.box.center.x < lb.box.center.x;
-		}
-	);
 	std::sort(lts.begin(), lts.end(), 
 		[&](const aim_deps::Light& la, const aim_deps::Light& lb) {
 			return la.box.center.x < lb.box.center.x;
@@ -107,7 +101,7 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, 
 			cv::rectangle(proced[0], bbox, cv::Scalar(255, 255, 255));
 			continue;
 		}
-		if(bbox.area() < 400){
+		if(area < 400){
 			cv::Mat cnt_mat;
 			float mean = 0.0;
 			cv::threshold(roi, cnt_mat, 90, 255, cv::THRESH_BINARY);
@@ -116,7 +110,7 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, 
 			if (mean < 130 || cv::max(tmp_rec.size.height, tmp_rec.size.width) < 4.0)
 				continue;							// 均值小于 130 或者 最小包袱矩形尺寸太小
 			doubleThresh(bbox, lts);
-		}
+		}	
 		else{		// 选框够大，说明灯条无需二次阈值，亚像素检测以及角度修正
 			cv::RotatedRect l = cv::minAreaRect(ct[i]);
 			if (l.size.height / l.size.width < 1.6 && l.size.height / l.size.width > 0.6){
@@ -130,7 +124,7 @@ void LightMatch::contourProcess(const std::vector<std::vector<cv::Point> >& ct, 
 				readjustAngle(cont, _l, cv::Point(bbox.x, bbox.y), 1.0);	
 			}					
 			if( std::abs(_l.box.angle) < 40.0){
-				mtx.lock();	
+				mtx.lock();
 				lts.emplace_back(_l);
 				mtx.unlock();
 			}
@@ -219,13 +213,11 @@ void LightMatch::threshold(cv::Mat &dst, int diff_thresh) const{
 	const cv::Mat &tmp = enemy_blue ? (proced[0] - proced[2]) : (proced[2] - proced[0]);
 	cv::Mat _filter(1080, 1440, CV_8UC1);
 	cv::threshold(tmp, _filter, filter_thresh, 255, cv::THRESH_BINARY_INV);		
-	if(enemy_blue){
+	if(enemy_blue)
 		dst = proced[0] - _filter;
-	}
-	else{
+	else
 		dst = proced[2] - _filter;
-	}
-	cv::threshold(dst, dst, 80, 255, cv::THRESH_BINARY);
+	cv::threshold(dst, dst, 100, 255, cv::THRESH_BINARY);
 }
 
 bool LightMatch::isInTrapezoid(cv::Point2f corners[2], const std::vector<cv::Point2f> &trapezoid){
@@ -238,22 +230,20 @@ bool LightMatch::isInTrapezoid(cv::Point2f corners[2], const std::vector<cv::Poi
 }
 
 bool LightMatch::doubleThresh(cv::Rect& bbox, std::vector<aim_deps::Light>& lts){
-	extendRect(bbox, cv::Size(3, 3));
+	extendRect(bbox, cv::Size(2, 2));
 	cv::Mat tmp = enemy_blue ? proced[0](bbox) : proced[2](bbox);
 	double top[2];
 	double ctr[3];
 	float offset_x = bbox.x, offset_y = bbox.y;
-	if (lightDiffusion(tmp, top, ctr, 2.1) == false) {
+	if (lightDiffusion(tmp, top, ctr, 2.1) == false)
 		return false;
-	}
-	/// this needs to be deleted.
-	proced[0](bbox) = tmp;
 	cv::Point2f tp(top[0] + offset_x, top[1] + offset_y), mp(ctr[0] + offset_x, ctr[1] + offset_y);
 	aim_deps::Light _l(tp, mp);
 	if (!isAngleValid(_l.box)) return false;
 	mtx.lock();
 	lts.emplace_back(_l);
 	mtx.unlock();
+
 	return true;
 }
 
@@ -352,17 +342,54 @@ bool LightMatch::getBigDirection(const cv::Mat &src, std::vector<cv::Point> &ct)
 	return (ct.size() > 12);
 }
 
-void LightMatch::readAndConvert(cv::Mat& dst, std::vector<double>& pts) const{
-    cv::threshold(dst, dst, thresh_low, 255, cv::THRESH_TOZERO);
-    cv::Mat dst2(cv::Size(dst.cols, dst.rows), CV_64FC1);
-    dst.convertTo(dst2, CV_64FC1);
+void LightMatch::readAndConvert(cv::Mat& dst, std::vector<double>& pts){
+	cv::Mat dst2(cv::Size(dst.cols, dst.rows), CV_64FC1);
+	cv::Mat mask = cv::Mat::zeros(cv::Size(dst.cols, dst.rows), CV_8UC1);
+	cv::Mat tmp;
+
+	cv::threshold(dst, tmp, thresh_low, 255, cv::THRESH_BINARY);
+	bool mask_flag = false;
+	
+	cv::threshold(dst, dst, 90, 255, cv::THRESH_TOZERO);
+	dst.convertTo(dst2, CV_64FC1);
     cv::normalize(dst2, dst2, 1.0, 0.0, cv::NORM_INF);
     pts.resize(dst2.cols * dst2.rows);
-    dst2.forEach<double>(
-        [&](const double& pix, const int* pos){
-            pts[pos[1] + pos[0] * dst2.cols] = pix;
-        }
-    );
+
+	std::vector<std::vector<cv::Point> > cts;
+	cv::findContours(tmp, cts, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+	if (cts.size() > 0) {
+		mask_flag = true;
+		const std::vector<cv::Point> &ctref = *std::max_element(cts.begin(), cts.end(),
+			[&](const std::vector<cv::Point>& c1, const std::vector<cv::Point>& c2) {
+    			return c1.size() < c2.size();
+    		}
+		);
+		cv::fillPoly(mask, ctref, cv::Scalar(255));			// 最大的轮廓，内部填充，之后膨胀，成为最后的mask
+		cv::dilate(mask, mask, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+	}
+
+	if (mask_flag == true) {							// 使用mask，对于图上明显的噪点进行消除
+		cv::bitwise_and(mask, dst, dst);				// 提供更好的初值估计 
+		for (int i = 0; i < dst2.rows; i++) {
+			double* ptr = dst2.ptr<double>(i);
+			int base =  i * dst2.cols;
+			for (int j = 0; j < dst2.cols; j++) {
+				if (mask.data[base + j] > 0)
+    	        	pts[j + base] = *(ptr + j);
+				else
+					pts[base + j] = 0.0;
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < dst2.rows; i++) {
+			double* ptr = dst2.ptr<double>(i);
+			int base =  i * dst2.cols;
+			for (int j = 0; j < dst2.cols; j++) {
+				pts[j + base] = *(ptr + j);
+			}
+		}
+	}
 }
 
 bool LightMatch::betterInitialize(const cv::Mat& src, double* _top, double* _ctr) const {
@@ -371,10 +398,9 @@ bool LightMatch::betterInitialize(const cv::Mat& src, double* _top, double* _ctr
     cv::threshold(src, dst, 1, 255, cv::THRESH_BINARY);
     cv::findContours(dst, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
 	if (contours.size() > 0) {			// no usable result
-		const std::vector<cv::Point>& pts = *std::max_element(contours.begin(), contours.end(),
+		const std::vector<cv::Point>& pts = *std::max_element(contours.begin(), contours.end(), 
     	    [&](const std::vector<cv::Point>& c1, const std::vector<cv::Point>& c2) {
-    	        return c1.size() < c2.size();
-    	    }
+    	        return c1.size() < c2.size();}
     	);
     	cv::RotatedRect rect = cv::minAreaRect(pts);
     	cv::Point2f tp, mp;

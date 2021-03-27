@@ -36,7 +36,6 @@ public:
 	void findPossible();												//找到图上所有可能的灯条						
 	void drawLights(cv::Mat &src, char belongs[]) const;								//绘制灯条
 	void saveImg(const cv::Mat& src){									//图像预处理
-		cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
 		cv::split(src, proced);
 	}
 public:															
@@ -116,7 +115,7 @@ private:
 	 * @param dst 预处理后的图像
 	 * @param pts 输出的normalized图像点
 	 */
-    void readAndConvert(cv::Mat& dst, std::vector<double>& pts) const;
+    void readAndConvert(cv::Mat& dst, std::vector<double>& pts);
 
 	/**
 	 * @brief 对灯条做初始值估计
@@ -145,12 +144,12 @@ private:
 	#endif // LIGHT_CNT_TIME
 	std::mutex mtx;														// 锁
 	cv::Mat proced[3];								
-	cv::Mat gray;														// 灰度图
 	std::vector<std::vector<cv::Point2f> > trapezoids;					//灯条梯形集合
 
 	//=================与颜色有关的阈值设置量========================//
 	int filter_thresh;					// 过滤阈值
 	int chan_diff;						// 主通道与绿色通道的差异最小允许值
+	int img_cnt = 0;
 
 	ceres::Solver::Options opts;
 };
