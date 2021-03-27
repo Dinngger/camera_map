@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 #define path1a "/media/sentinel/ENIGMATICS/cv_output.avi"
 #define path2a "/home/sentinel/videos/disp_low2.avi"
 #define path2b "/home/sentinel/videos/output_high.avi"
-#define path3a "/home/zhao/output_low.avi"
+#define path3a "/home/zhao/videos/disp_low1.avi"
 #define path4 "/home/xjturm/rm2020/videos/disp_low2.avi"
     cv::VideoCapture cap(path3a);
     if (!cap.isOpened()) {
@@ -76,7 +76,8 @@ int main(int argc, char* argv[])
 #endif
 
 #ifdef SHOW_FRAME
-        ps.draw(frame);
+        //ps.draw(frame);
+        ps.drawNewCarModule(frame);
         cv::imshow("disp", frame);
         char key = cv::waitKey(0);
         if(key==27)

@@ -2,72 +2,74 @@
 #define __NEWCARCAR_MODULE_HPP
 #include "CarModule.hpp"
 #include "AimDeps.hpp"
+#include <queue>
 
-
+struct pastFrame
+{
+    cv::Point2f vertex[4];
+    struct pastFrame* next;
+};//在头节点删除 尾节点插入 head是空的头节点
 class newcar {
     private:
     Armor3d armor;
-    //double confidence;
-    Eigen::Vector2d t;
-    Eigen::Vector2d dt;
-    Eigen::Vector2d last_t;
+    Eigen::Vector3d t;
+    Eigen::Vector3d dt;
+    Eigen::Vector3d last_t;
     double r;
     double dr;
     double last_r;
-    static Eigen::Matrix3d up(const Eigen::Vector3d& a) {
-        Eigen::Matrix3d res;
-        res << 0, -a(2), a(1),
-               a(2), 0, -a(0),
-               -a(1), a(0), 0;
-        return res;
-    }
-    static Eigen::Matrix3d exp(const Eigen::Vector3d& fi) {
-        double theta = fi.norm();
-        if (theta < 1e-10)
-            return Eigen::Matrix3d::Identity();
-        Eigen::Vector3d a = fi / theta;
-        return cos(theta)*Eigen::Matrix3d::Identity() + (1 - cos(theta))*(a*a.transpose()) + sin(theta)*up(a);
-    }
-    static Eigen::Matrix3d jacobi(const Eigen::Vector3d& fi) {
-        double theta = fi.norm();
-        if (theta < 1e-10)
-            return Eigen::Matrix3d::Identity();
-        Eigen::Vector3d a = fi / theta;
-        return sin(theta)/theta*Eigen::Matrix3d::Identity() + (1 - sin(theta) / theta)*(a*a.transpose()) + (1 - cos(theta))/theta*up(a);
-    }
+    Eigen::Matrix3d K;
     public:
+    int frameNumber;
+    //std::vector<cv::Point2f[4]> pastFrame;
+    pastFrame* frameHead;
+    cv::Point2f NowPoints[4];
     int update_state();
-    newcar(Eigen::Vector2d st,double sr){
+    Eigen::Vector2d projectPoint(Eigen::Vector3d p3) const;
+    newcar(Eigen::Vector3d st,double sr){
         t=st;
         r=sr;
         update_state();
-        dt=Eigen::Vector2d::Zero();
+        dt=Eigen::Vector3d::Zero();
         dr=0.0;
+        K<<1776.67168581218, 0, 720,
+             0, 1778.59375346543, 540,
+             0, 0, 1;
+        frameNumber=0;
+        frameHead=(pastFrame*)malloc(sizeof(pastFrame));
+        frameHead->next=NULL;
     }
-    newcar(){
-        t=Eigen::Vector2d::Zero();
-        dt=Eigen::Vector2d::Zero();
-        last_t=Eigen::Vector2d::Zero();
+    newcar(){   //not used
+        t=Eigen::Vector3d::Zero();
+        dt=Eigen::Vector3d::Zero();
+        last_t=Eigen::Vector3d::Zero();
         r=0.0;
         dr=0.0;
         last_r=0.0;
-        //confidence=0.0;
+        frameNumber=10;
+        frameHead=(pastFrame*)malloc(sizeof(pastFrame));
+        if(frameHead!=NULL)
+        {
+            std::cout<<"framehead success"<<std::endl;
+        }
+        frameHead->next=NULL;
     }
-    int bundleAdjustment(double delta_time,Eigen::Vector2d real_t,double real_r);
+    int bundleAdjustment(double delta_time);
     int update_state(double delta_time);    // time from last update;
-    int predict(double delta_time, double &pre_r, Eigen::Vector2d &pre_t) const  ;  // time to the future
+    int predict(double delta_time, double &pre_r, Eigen::Vector3d &pre_t) const  ;  // time to the future
     friend class newCarModule;
 };
 
 class newCarModule {
     private:
-    //Eigen::Matrix3d K;
-    //Eigen::Vector2d projectPoint(Eigen::Vector3d p3) const;
+    Eigen::Matrix3d K;
     public:
     std::vector<newcar> newcars;
     double module_time;
-    newCarModule(double module_time) : module_time(module_time) {}
-    int add_newcar(Eigen::Vector2d t,double r);
+    newCarModule(double module_time) : module_time(module_time) {
+        std::cout<<"newcarModule initalized"<<std::endl;
+    }
+    int add_newcar(Eigen::Vector3d t,double r,std::vector<cv::Point2f> Points);
     void get_lbs(std::vector<cv::Point3d> &lbs) const;
 };
 
