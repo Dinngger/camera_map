@@ -7,5 +7,5 @@
 #define path3a "/home/zhao/output_low.avi"
 
 std::string proj_path("../../");
-std::string video_low_path(path0a);
-std::string video_high_path(path0b);
+std::string video_low_path(path2a);
+std::string video_high_path(path2b);

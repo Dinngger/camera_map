@@ -7,6 +7,7 @@
 #define _ARMOR_PLATE_HPP
 
 #include <map>
+#include <queue>
 #include <vector>
 #include <memory>
 #include <iostream>

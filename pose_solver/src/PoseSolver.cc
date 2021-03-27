@@ -39,6 +39,10 @@ int PoseSolver::run(const cv::Mat &frame, double time)
     if (carMatch.carsPossible.size() < 1)
         return 0;
     std::vector<std::vector<LightBarP> > carsPossible;
+    printf("Cars possible: %lu\n", carMatch.carsPossible.size());
+    for (const CarPossible& car: carMatch.carsPossible) {
+        printf("car : %lu, first: %d\n", car.lightPossibles.size(), car.first);
+    }
     for (uint i = 0, n_cars = 0; i < carMatch.carsPossible.size(); i++) {
         if (carMatch.carsPossible[i].first < 0)
             continue;
