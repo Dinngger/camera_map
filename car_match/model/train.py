@@ -39,12 +39,12 @@ flags.DEFINE_integer('run_updates_every', 10, '')
 flags.DEFINE_boolean('global_ema_update', True, '')
 
 flags.DEFINE_integer('max_train_steps', int(3e5), '')
-flags.DEFINE_integer('snapshot_secs', 3600, '')
-flags.DEFINE_integer('snapshot_steps', 0, '')
+flags.DEFINE_integer('snapshot_secs', 0, '')
+flags.DEFINE_integer('snapshot_steps', 500, '')
 flags.DEFINE_integer('snapshots_to_keep', 5, '')
 
-flags.DEFINE_integer('summary_steps', 50, '')
-flags.DEFINE_integer('report_loss_steps', 50, '')
+flags.DEFINE_integer('summary_steps', 250, '')
+flags.DEFINE_integer('report_loss_steps', 250, '')
 
 flags.DEFINE_boolean('plot', False, 'Produces intermediate results plots '
                      'if True.')
@@ -60,6 +60,9 @@ flags.DEFINE_boolean('save_model', False, 'Save model as saved_model')
 
 def main(_=None):
     FLAGS = flags.FLAGS
+    if FLAGS.save_model:
+        FLAGS.batch_size = 1
+        FLAGS.overwrite = False
     config = FLAGS
     FLAGS.__dict__['config'] = config
 
@@ -150,7 +153,7 @@ def main(_=None):
         if config.save_model:
             saver = tf.train.Saver()
             with tf.Session() as sess:
-                saver.restore(sess, tf.train.latest_checkpoint(logdir))
+                saver.restore(sess, logdir + "/best.ckpt")
                 signature = tf.saved_model.signature_def_utils.build_signature_def(res.input, res.output, 'sig_inout')
                 builder = tf.saved_model.builder.SavedModelBuilder("saved_model/")
                 builder.add_meta_graph_and_variables(sess, ['car_match_model'], {'sig_inout': signature})
@@ -164,12 +167,18 @@ def main(_=None):
                 train_tensors = [global_step, train_step]
                 report_tensors = [report, valid_report]
                 all_tensors = report_tensors + train_tensors
+                valid_loss = 1e5
 
                 while train_itr < config.max_train_steps:
 
                     if train_itr % config.report_loss_steps == 0:
                         report_vals, valid_report_vals, train_itr, _ = sess.run(
                             all_tensors)
+                        this_loss = valid_report_vals['loss']
+                        if this_loss < valid_loss and tf.train.latest_checkpoint(logdir) is not None:
+                            ends = ['.data-00000-of-00001', '.index', '.meta']
+                            for end in ends:
+                                shutil.copy(tf.train.latest_checkpoint(logdir) + end, logdir + "/best.ckpt" + end)
 
                         logging.info('')
                         logging.info('train:')

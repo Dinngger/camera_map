@@ -28,11 +28,12 @@ class SelfSetTransformer(snt.AbstractModule):
         super(SelfSetTransformer, self).__init__()
 
     def _build(self, x, presence=None):
+        # TODO: Bottom up and Top down.
 
         h = snt.TileByDim([2], [2])(x)  # dim = 4*2 = 8
 
         for _ in range(1):
-            h = SelfAttention(n_heads=2)(h, presence)
+            h = SelfAttention(n_heads=2, layerNorm=False)(h, presence)
 
         ins_mask = QKAttention()(h, h, presence)
         return ins_mask
@@ -136,19 +137,25 @@ class MultiHeadQKVAttention(snt.AbstractModule):
 class SelfAttention(snt.AbstractModule):
     """Self-attention where keys, values and queries are the same."""
 
-    def __init__(self, n_heads):
+    def __init__(self, n_heads, layerNorm=True):
         super(SelfAttention, self).__init__()
         self._n_heads = n_heads
+        self.layerNorm = layerNorm
 
     def _build(self, x, presence=None):
-        n_dims = int(x.shape[-1])
+        n_dim = int(x.shape[-1])
 
-        y = x + MultiHeadQKVAttention(self._n_heads)(x, x, x, presence)
+        y = MultiHeadQKVAttention(self._n_heads)(x, x, x, presence)
+        y = snt.BatchApply(snt.Linear(int(n_dim)))(tf.nn.relu(y))
+        y += x
+
         if presence is not None:
             y *= tf.expand_dims(tf.cast(presence, tf.float32), -1)
-        y = snt.LayerNorm(axis=1)(y)
+        if self.layerNorm:
+            y = snt.LayerNorm(axis=1)(y)
 
-        h = y + snt.BatchApply(snt.nets.MLP([2*n_dims, n_dims]))(y)
-        h = snt.LayerNorm(axis=1)(h)
+        # h = y + snt.BatchApply(snt.nets.MLP([2*n_dim, n_dim]))(y)
+        # if self.layerNorm:
+        #     h = snt.LayerNorm(axis=1)(h)
 
-        return h
+        return y

@@ -101,12 +101,34 @@ def spectralClustering(masks):
     return e, tf.transpose(v, [0, 2, 1])
 
 
+# TODO: fix this function
+def inference(e, v):
+    B = int(e.shape[0])
+    belong_pred = tf.zeros([B, 13], dtype=tf.int32)
+    num_car = tf.zeros([B], dtype=tf.int32)
+    i = tf.zeros([B], dtype=tf.int32)
+    def cond(b): tf.less(b, 13)
+
+    def loop(b):
+        if tf.reduce_max(v[b, i]) <= 0 and tf.reduce_min(v[b, i]) < -1e-5:
+            v[b, i] = -v[b, i]
+        if e[b, i] <= 0.2 and tf.reduce_max(v[b, i]) < 1:
+            num_car[b] += 1
+            for j in range(13):
+                if v[b, i, j] > (0.1 if num_car[b] > 1 else 0):
+                    belong_pred[b, j] = num_car[b]
+        i[b] += 1
+
+    for b in range(B):
+        tf.while_loop(cond, loop, [i[b]])
+
+
 class CarMatch(Model):
     """Car Match Model."""
 
     def __init__(self):
         super(CarMatch, self).__init__()
-        self.loss_cls_rate = 0.5
+        self.loss_cls_rate = 0.1
         self._encoder = SelfSetTransformer()
 
     def _build(self, data):

@@ -58,10 +58,10 @@ def main():
                 for i in range(13):
                     if np.max(v[0, i]) <= 0 and np.min(v[0, i]) < -1e-5:
                         v[0, i] = -v[0, i]
-                    if e[0, i] <= 0.5 and np.sum(v[0, i] > 0) > 1:
+                    if e[0, i] <= 0.2 and np.max(v[0, i]) < 1:
                         num_car += 1
                         for j in range(13):
-                            if v[0, i, j] > 0:
+                            if v[0, i, j] > (0.1 if num_car > 1 else 0):
                                 belong_pred[j] = num_car
                 to_send = belong_pred.tobytes()
                 os.write(output_f, to_send)
