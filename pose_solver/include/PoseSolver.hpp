@@ -35,7 +35,6 @@ public:
     int newrun(const cv::Mat &frame,double time);
     int getTwcs(std::vector<cv::Mat> &Twcs);
     int draw(cv::Mat &frame);
-    void drawNewCarModule(cv::Mat &frame);
     int get_lbs(std::vector<cv::Point3d> &lbs);
 };
 

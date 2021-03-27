@@ -64,8 +64,7 @@ int main(int argc, char* argv[])
 #endif
 
 #ifdef SHOW_FRAME
-        //ps.draw(frame);
-        ps.drawNewCarModule(frame);
+        ps.draw(frame);
         cv::imshow("disp", frame);
         char key = cv::waitKey(0);
         if(key==27)

@@ -364,7 +364,8 @@ void LightMatch::readAndConvert(cv::Mat& dst, std::vector<double>& pts){
     			return c1.size() < c2.size();
     		}
 		);
-		cv::fillPoly(mask, ctref, cv::Scalar(255));			// 最大的轮廓，内部填充，之后膨胀，成为最后的mask
+		std::vector<std::vector<cv::Point> > res_ct = {ctref}; 
+		cv::fillPoly(mask, res_ct, cv::Scalar(255));			// 最大的轮廓，内部填充，之后膨胀，成为最后的mask
 		cv::dilate(mask, mask, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
 	}
 

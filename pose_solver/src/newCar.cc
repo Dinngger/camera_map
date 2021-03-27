@@ -27,7 +27,10 @@ int newcar::predict(double delta_time, double &pre_r, Eigen::Vector3d &pre_t) co
     pre_r = r + dr * delta_time;
     return 0;
 }
-struct Edge2Edge {                                          //重投影误差：传入过去一帧的装甲板观测结果 优化过去一帧的x,z,r,将其重投影到平面上，与观测点的位置进行比较，残差是位置的差值
+
+// 重投影误差：传入过去一帧的装甲板观测结果 
+// 优化过去一帧的x,z,r,将其重投影到平面上，与观测点的位置进行比较，残差是位置的差值
+struct Edge2Edge {
     const Eigen::Matrix3d K;
     const cv::Point2f Point;
     const int Id;
@@ -35,7 +38,8 @@ struct Edge2Edge {                                          //重投影误差：
         K(K),Point(Point),Id(Id){}
     template <typename T>
     bool operator()(const T* const t_x,const T* const t_y,const T* const t_z, const T* const r, T* residuals) const {
-        T x=t_x[0]+0.2*cos(r[0]),z=t_z[0]-0.2*sin(r[0]);           //此处没考虑清楚r的正负，可能有bug
+        T x=t_x[0]+0.2*cos(r[0]);
+        T z=t_z[0]-0.2*sin(r[0]);           //此处没考虑清楚r的正负，可能有bug
         T y=t_y[0];
         //还需要加上装甲板偏差，按照Id
         switch(Id)
@@ -56,8 +60,8 @@ struct Edge2Edge {                                          //重投影误差：
         Eigen::Matrix<T,3,1> p{x,y,z};
         p = K.cast<T>() * p;
         p /= p(2);
-        residuals[0]=T(x)-T(Point.x);
-        residuals[1]=T(z)-T(Point.y);
+        residuals[0]=T(p(0))-T(Point.x);
+        residuals[1]=T(p(1))-T(Point.y);
         return true;
     }
     static ceres::CostFunction *Create(
@@ -76,8 +80,8 @@ struct Edge2Energy {
     delta_time(delta_time){}
     template <typename T>
     bool operator()(const T* const l_x,const T* const l_z, const T* const l_r,const T* const x,const T* const z, const T* const r, T* residuals) const {
-        residuals[0]=((x[0]-l_x[0])/delta_time)*((x[0]-l_x[0])/delta_time);
-        residuals[1]=T(15)*((r[0]-l_r[0])/delta_time)*((r[0]-l_r[0])/delta_time);
+        residuals[0]= T(1) * (pow((x[0]-l_x[0])/delta_time, 2) + pow((z[0]-l_z[0])/delta_time, 2));
+        residuals[1]= T(15) * pow((r[0]-l_r[0])/delta_time, 2);
         return true;
     }
     static ceres::CostFunction *Create(const double delta_time) {

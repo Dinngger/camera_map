@@ -5,6 +5,7 @@
  */
 
 #include "PoseSolver.hpp"
+#include <opencv2/core/eigen.hpp>
 
 Armor3d toArmor3d(const aim_deps::Armor& armor) {
     Armor3d _armor;
@@ -27,7 +28,9 @@ int PoseSolver::newrun(const cv::Mat &frame, double time)
 {
     match.saveImg(frame);
     match.findPossible();
-    amp.matchAll(match.matches, match.possibles, tar_list);//查找匹配灯条
+
+    std::vector<int> cars(0);
+    amp.matchAll(cars, match.matches, match.possibles, tar_list);
     pos_getter.batchProcess(tar_list);              ///外部pnp解算所有装甲板
 
     std::vector<Eigen::Vector4d> newcarPossible;
@@ -39,7 +42,9 @@ int PoseSolver::newrun(const cv::Mat &frame, double time)
         aim_deps::Armor armor=tar_list[i];
         cv::Mat rotM;
         cv::Rodrigues(armor.r_vec, rotM);  //将旋转向量变换成旋转矩阵
-        double theta_x = atan2(rotM.at<double>(2, 1), rotM.at<double>(2, 2));
+        Eigen::Matrix3d rot_m;
+        cv::cv2eigen(rotM, rot_m);
+        double theta_x = rot_m.matrix().eulerAngles(1,2,0)(0);
         printf("tanx=%lf\n",theta_x);
         // if(!((theta_x>2.8) || (theta_x<-2.8)))
         //      continue;
@@ -49,9 +54,9 @@ int PoseSolver::newrun(const cv::Mat &frame, double time)
         //     armor.vertex[(c+1)%4], cv::Scalar(0, 255, 255), 1);
         // }
         double x,z;
-        x=armor.t_vec.x-0.2*sin(theta_x);
-        z=armor.t_vec.z+0.2*cos(theta_x);
-        y_vec.push_back(armor.t_vec.y);
+        x=armor.t_vec.x / 1000 - 0.2*sin(theta_x);
+        z=armor.t_vec.z / 1000 + 0.2*cos(theta_x);
+        y_vec.push_back(armor.t_vec.y / 1000);
         Eigen::Vector4d vect4(x,z,theta_x,0);
         newcarPossible.push_back(vect4);
         std::vector<cv::Point2f> pointvec; 
@@ -139,7 +144,7 @@ int PoseSolver::newrun(const cv::Mat &frame, double time)
             //std::cout<<"last_newcars["<<temp<<"].frameNumber: "<<last_newcars[temp].frameNumber<<std::endl;
             last_newcars[temp].bundleAdjustment(time-new_module.module_time);
             last_newcars[temp].update_state(time-new_module.module_time);
-            new_module.newcars.push_back(last_newcars[temp]);
+            new_module.newcars.push_back(last_newcars[temp]);           //??????
         }
         else{
             new_module.add_newcar(Eigen::Vector3d(newcarPossible[i][0],y_vec[i],newcarPossible[i][1]),
@@ -150,6 +155,7 @@ int PoseSolver::newrun(const cv::Mat &frame, double time)
     std::cout<<"new_module.newcars.size():"<<new_module.newcars.size()<<std::endl;
     return 0;
 }
+
 int PoseSolver::run(const cv::Mat &frame, double time)
 {
     match.saveImg(frame);
@@ -317,16 +323,4 @@ int PoseSolver::get_lbs(std::vector<cv::Point3d> &lbs)
     // module.get_lbs(lbs);
     new_module.get_lbs(lbs);
     return 0;
-}
-
-void PoseSolver::drawNewCarModule(cv::Mat &frame)
-{
-    //printf("Drawing: %lu\n",new_module.newcars.size());
-    for(size_t i=0;i<new_module.newcars.size();i++) {
-        for (int j = 0; j < 4; ++j) {
-            cv::line(frame, new_module.newcars[i].NowPoints[j], 
-            new_module.newcars[i].NowPoints[(j + 1) % 4], cv::Scalar(0, 255, 255), 1);
-            //printf("NowPoints[%d]=(%lf,%lf)\n",j,new_module.newcars[i].NowPoints[j].x,new_module.newcars[i].NowPoints[j].y);   
-        }
-    }
 }
